@@ -54,7 +54,7 @@ export default function CharacterSheet() {
       .filter(item => item.type === "weapon")
       .map(item => ({ name: item.name, damage: item.damage || "1d4" })),
     { name: "Unarmed", damage: "1d4+2" }
-  ]``
+  ]
 
   const filteredActions = character.actions.filter(action => 
     actionFilter === "all" || action.type === actionFilter

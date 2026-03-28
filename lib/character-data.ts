@@ -16,6 +16,14 @@ export interface ActionCard {
   requirements?: string
 }
 
+export interface FocusFeature {
+    id: string
+    name: string
+    description: string
+    equipped: boolean
+    isDefault?: boolean // Opportunity Attack and Start of Turn are always equipped
+}
+
 export interface Reaction {
   id: string
   name: string
