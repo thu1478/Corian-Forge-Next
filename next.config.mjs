@@ -6,7 +6,8 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-    output: 'export'
+    output: 'export',
+    basePath: "/Corian-Forge-Next"
 }
 
 export default nextConfig
