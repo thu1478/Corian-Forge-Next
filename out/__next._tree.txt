@@ -1,5 +1,5 @@
 :HL["/Corian-Forge-Next/_next/static/chunks/182~_-mrq1dc9.css","style"]
-:HL["/Corian-Forge-Next/_next/static/chunks/10-ahbajl0a4~.css","style"]
+:HL["/Corian-Forge-Next/_next/static/chunks/0kyotsafeknjm.css","style"]
 :HL["/Corian-Forge-Next/_next/static/media/0595f7052377a1a2-s.p.0u0xtu5i3hze-.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
 :HL["/Corian-Forge-Next/_next/static/media/6c98c9fb873995d2-s.p.0o4ax6vjjs2k3.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
 :HL["/Corian-Forge-Next/_next/static/media/797e433ab948586e-s.p.0.q-h669a_dqa.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
@@ -7,4 +7,4 @@
 :HL["/Corian-Forge-Next/_next/static/media/c6e2684784a55443-s.p.0v346keojskif.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
 :HL["/Corian-Forge-Next/_next/static/media/cc014fcb166cf364-s.p.0rbrcy8kuidpb.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
 :HL["/Corian-Forge-Next/_next/static/media/efe66f9dab7e6ce7-s.p.0h1ye24nbisx0.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
-0:{"tree":{"name":"","param":null,"prefetchHints":16,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":0,"slots":null}}},"staleTime":300,"buildId":"eAfwMuAG4uyqHOtScZ-Eo"}
+0:{"tree":{"name":"","param":null,"prefetchHints":16,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":0,"slots":null}}},"staleTime":300,"buildId":"XLUddmLkPMe7mrTPmNUiS"}

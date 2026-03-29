@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
 interface AttributesPanelProps {
   attributes: {
     might: number
-    agility: number
+    dexterity: number
     reason: number
     willpower: number
     presence: number
@@ -15,9 +15,9 @@ interface AttributesPanelProps {
 
 const attributeConfig = {
   might: { label: "Might", abbr: "MIG", color: "text-red-700 border-red-300 bg-red-50 dark:text-red-400 dark:border-red-800/60 dark:bg-red-950/30" },
-  agility: { label: "Agility", abbr: "AGI", color: "text-emerald-700 border-emerald-300 bg-emerald-50 dark:text-emerald-400 dark:border-emerald-800/60 dark:bg-emerald-950/30" },
+  dexterity: { label: "Dexterity", abbr: "DEX", color: "text-emerald-700 border-emerald-300 bg-emerald-50 dark:text-emerald-400 dark:border-emerald-800/60 dark:bg-emerald-950/30" },
   reason: { label: "Reason", abbr: "REA", color: "text-blue-700 border-blue-300 bg-blue-50 dark:text-blue-400 dark:border-blue-800/60 dark:bg-blue-950/30" },
-  willpower: { label: "Willpower", abbr: "WIL", color: "text-amber-700 border-amber-300 bg-amber-50 dark:text-amber-400 dark:border-amber-800/60 dark:bg-amber-950/30" },
+  willpower: { label: "Willpower", abbr: "WIP", color: "text-amber-700 border-amber-300 bg-amber-50 dark:text-amber-400 dark:border-amber-800/60 dark:bg-amber-950/30" },
   presence: { label: "Presence", abbr: "PRE", color: "text-pink-700 border-pink-300 bg-pink-50 dark:text-pink-400 dark:border-pink-800/60 dark:bg-pink-950/30" }
 }
 

@@ -4,33 +4,119 @@
       "focusFeat": {
         "name": "Start of Turn",
         "description": "Gain 1 Focus at the start of your turn"
-       }
+       },
+      "reactions": [
+        {
+          "id": "opportunityAttack",
+          "name": "Opportunity Attack",
+          "type": "Free Reaction",
+          "level": 0,
+          "chargeStat": "",
+          "trigger":"A hostile creature leaves your melee range while you have a non-Implement melee weapon equipped",
+          "description": "Deal fixed physical damage to the target equal to your melee weapon damage"
+        }
+      ]
     }
   },
   "classes": {
     "weaponmaster": {
       "name": "Weaponmaster",
       "description": "Weaponmasters are those who have spent a significant amount of time and effort honing their craft with their weapon. This can be either several weapons or a single one.",
+      "statBonus": {
+        "stat": "hp",
+        "amount": 1,
+        "frequency": 1
+      },
       "focusFeat": {
         "name": "Battle Sense (Melee)",
         "description": "The first time per round an enemy takes damage from a melee attack you gain 1 Focus"
-      }
+      },
+      "reactions": [
+        {
+          "id": "counterattack",
+          "name": "Counterattack",
+          "type": "Reaction",
+          "level": 1,
+          "chargeStat": "",
+          "trigger":"You take damage from an attack",
+          "description": "Make an Opportunity Attack against the attacker"
+        },
+        {
+          "id": "parry",
+          "name": "Parry",
+          "type": "Reaction",
+          "level": 3,
+          "chargeStat": "dexterity",
+          "trigger":"You are attacked by a melee attack while you have a melee weapon equipped",
+          "description": "Spend a Parry charge to reduce incoming damage by 5, or 6 or you are dual-wielding melee weapons or wielding a 2H melee weapon."
+        }
+      ]
     },
     "sorcerer": {
       "name": "Sorcerer",
       "description": "Users of the magical arts, Sorcerers are experts at dealing magical damage to many enemies in strong bursts.",
+      "statBonus": {
+        "stat": "mp",
+        "amount": 2,
+        "frequency": 1
+      },
       "focusFeat": {
         "name": "Ambient Mana",
         "description": "The first time per round an enemy takes magic damage you gain 1 Focus"
-      }
+      },
+      "reactions": [
+        {
+          "id": "pairedCasting",
+          "name": "Paired Casting",
+          "type": "Reaction",
+          "level": 1,
+          "chargeStat": "",
+          "trigger":"An ally you can see within 8 tiles casts an attack spell",
+          "description": "Increase the damage of that spell by your Reason Modifier"
+        },
+        {
+          "id": "returnFire",
+          "name": "Return Fire",
+          "type": "Reaction",
+          "level": 3,
+          "chargeStat": "",
+          "trigger":"You are attacked by a ranged attack",
+          "description": "After the attack you fire back with Flare Arrow"
+        }
+      ]
     },
     "wizard": {
       "name": "Wizard",
       "description": "Master of the arcane arts, Wizards are most concerned with the nature of magic itself rather than finding ways to weaponize it. They offer a wide selection of debuffs while still having some offensive abilities.",
+      "statBonus": {
+        "stat": "mp",
+        "amount": 2,
+        "frequency": 1
+      },
       "focusFeat": {
         "name": "Honed Mana Sensitivity",
         "description": "The first time per round any creature spends Mana you gain 1 Focus."
-      }
+      },
+      "reactions": [
+        {
+          "id": "abjuration",
+          "name": "Abjuration",
+          "type": "Reaction",
+          "level": 1,
+          "chargeStat": "",
+          "trigger":"You are attacked by a ranged attack",
+          "description": "Throw up a magical shield, reducing the damage by 5"
+        },
+        {
+          "id": "subjugate",
+          "name": "Subjugate",
+          "type": "Reaction",
+          "level": 3,
+          "chargeStat": "",
+          "trigger":"An ally afflicts a hostile creature with Shaken or Dazed",
+          "description": "Target the creature with Subjugate"
+        }
+      ]
     }
   }
 }

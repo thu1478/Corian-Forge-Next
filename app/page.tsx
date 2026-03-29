@@ -58,7 +58,23 @@ export default function CharacterSheet() {
     //<editor-fold desc="Update Handlers">
     // Resource update handlers
     const updateHp = (current: number, max: number) => {
-        setCharacter(prev => ({...prev, hp: {current, max}}))
+        // 1. Calculate the floor (Death Threshold)
+        const deathThreshold = Math.floor(max * -0.5);
+
+        // 2. Clamp the value:
+        // - Math.max(newCurrent, deathThreshold) ensures it doesn't go below -half
+        // - Math.min(..., max) ensures it doesn't go above max
+        const clampedHp = Math.min(Math.max(current, deathThreshold), max);
+
+        // 3. Update State
+        setCharacter(prev => ({
+            ...prev,
+            hp: {
+                ...prev.hp,
+                current: clampedHp,
+                max: max // Keep the formula-calculated max
+            }
+        }));
     }
 
     const updateBarrier = (current: number, max: number) => {
@@ -163,6 +179,43 @@ export default function CharacterSheet() {
             };
         });
     };
+
+    // Dropdown logic for selecting focus feats
+    const handleSelectReaction = (index: number, newID: string) => {
+        setCharacter(prev => {
+            // Find who is currently in the slot we clicked (to kick them out)
+            const oldReaction = (prev.reactions || []).find(f => f.slotIndex === index);
+            const oldID = oldReaction?.id;
+
+            return {
+                ...prev,
+                reactions: (prev.reactions || []).map(reaction => {
+                    // A. If this is the one the user just picked, put it in the slot
+                    if (reaction.id === newID && newID !== "") {
+                        return { ...reaction, slotIndex: index };
+                    }
+
+                    // B. If this was the one previously in the slot, kick it out
+                    // (But don't kick it out if it's the one we're currently moving IN)
+                    if (reaction.id === oldID && reaction.id !== newID) {
+                        return { ...reaction, slotIndex: -1 };
+                    }
+
+                    return reaction;
+                })
+            };
+        });
+    };
+    // Handler for updating reaction charges (pips)
+    const handleUpdateReactionCharges = (reactionId: string, newCount: number) => {
+        setCharacter(prev => ({
+            ...prev,
+            // We look through all known reactions and update the currentCharges for the one matching the ID
+            reactions: (prev.reactions || []).map(rx =>
+                rx.id === reactionId ? { ...rx, charges: newCount } : rx
+            )
+        }));
+    };
     //</editor-fold>
 
     return (
@@ -190,18 +243,6 @@ export default function CharacterSheet() {
                         <div className="flex items-center gap-2">
                             {/* File Controls using your shadcn Button component */}
                             <div className="flex items-center bg-muted/50 p-1 rounded-md border border-border mr-2">
-                                {/*<label>*/}
-                                {/*    <Button variant="ghost" size="sm" className="h-8 text-xs font-bold gap-2 cursor-pointer">*/}
-                                {/*        <Sparkles className="w-3 h-3 text-blue-500" />*/}
-                                {/*        LOAD*/}
-                                {/*    </Button>*/}
-                                {/*    <input*/}
-                                {/*        type="file"*/}
-                                {/*        className="hidden"*/}
-                                {/*        accept=".json"*/}
-                                {/*        onChange={importJSON}*/}
-                                {/*    />*/}
-                                {/*</label>*/}
 
                                 {/* 1. We use a standard Button but give it a ref trigger */}
                                 <Button
@@ -288,6 +329,7 @@ export default function CharacterSheet() {
 
                                 {/* Resources */}
                                 <ResourceBars
+                                    rules={rulesData}
                                     hp={character.hp}
                                     barrier={character.barrier}
                                     mp={character.mp}
@@ -299,6 +341,8 @@ export default function CharacterSheet() {
                                     onFocusChange={updateFocus}
                                     onIpChange={updateIp}
                                     onOpenDamageCalculator={() => setShowDamageCalculator(true)}
+                                    attributes={character.attributes}
+                                    knownClasses={character.classes}
                                 />
 
                                 {/* Combat Stats */}
@@ -444,7 +488,10 @@ export default function CharacterSheet() {
                                     rules={rulesData}
                                     knownFocusFeats={character.focusFeatures}
                                     onSelectFeat={handleSelectFeat}
-                                    reactions={character.reactions}
+                                    knownReactions={character.reactions}
+                                    onSelectReaction={handleSelectReaction}
+                                    attributes={character.attributes}
+                                    onUpdateReactionCharges={handleUpdateReactionCharges}
                                 />
                             </div>
                         </div>
@@ -519,7 +566,6 @@ export default function CharacterSheet() {
                 isOpen={showDamageCalculator}
                 onClose={() => setShowDamageCalculator(false)}
                 defense={character.defense}
-                stability={character.stability}
                 hp={character.hp}
                 barrier={character.barrier}
                 onApplyDamage={handleApplyDamage}

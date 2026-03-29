@@ -23,11 +23,8 @@ export interface FocusFeature {
 
 export interface Reaction {
     id: string
-    name: string
-    trigger: string
-    effect: string
-    equipped: boolean
-    isDefault?: boolean
+    slotIndex: number
+    charges: number
 }
 
 export interface CharacterClass {
@@ -44,7 +41,7 @@ export interface Trait {
 
 export interface Skill {
     name: string
-    attribute: "might" | "agility" | "reason" | "willpower" | "presence"
+    attribute: "might" | "dexterity" | "reason" | "willpower" | "presence"
     hasExpertise: boolean
 }
 
@@ -106,7 +103,7 @@ export interface Character {
     // Attributes (stat + modifier)
     attributes: {
         might: number
-        agility: number
+        dexterity: number
         reason: number
         willpower: number
         presence: number
@@ -179,7 +176,7 @@ export const defaultCharacter: Character = {
     // Attributes
     attributes: {
         might: 14,
-        agility: 16,
+        dexterity: 16,
         reason: 15,
         willpower: 12,
         presence: 13
@@ -212,34 +209,15 @@ export const defaultCharacter: Character = {
     // Reactions
     reactions: [
         {
-            id: "r-1",
-            name: "Opportunity Attack",
-            trigger: "When an enemy leaves your reach",
-            effect: "Make a melee attack against the creature.",
-            equipped: true,
-            isDefault: true
+            id: "counterattack",
+            slotIndex: -1,
+            charges: -1
         },
         {
-            id: "r-2",
-            name: "Mana Shield",
-            trigger: "When you would take damage",
-            effect: "Spend up to 6 MP to reduce damage by twice the MP spent.",
-            equipped: true
+            id: "parry",
+            slotIndex: -1,
+            charges: 0
         },
-        {
-            id: "r-3",
-            name: "Parry",
-            trigger: "When hit by a melee attack",
-            effect: "Roll weapon die and reduce damage by that amount. If reduced to 0, make a free Blade Strike.",
-            equipped: true
-        },
-        {
-            id: "r-4",
-            name: "Counterspell",
-            trigger: "When a creature within 60ft casts a spell",
-            effect: "Spend 4 MP to attempt to interrupt the spell with a contested Reason check.",
-            equipped: false
-        }
     ],
 
     // Actions
@@ -380,8 +358,8 @@ export const defaultCharacter: Character = {
     // Skills
     skills: [
         {name: "Athletics", attribute: "might", hasExpertise: false},
-        {name: "Acrobatics", attribute: "agility", hasExpertise: true},
-        {name: "Stealth", attribute: "agility", hasExpertise: true},
+        {name: "Acrobatics", attribute: "dexterity", hasExpertise: true},
+        {name: "Stealth", attribute: "dexterity", hasExpertise: true},
         {name: "Arcana", attribute: "reason", hasExpertise: false},
         {name: "Investigation", attribute: "reason", hasExpertise: false},
         {name: "Perception", attribute: "willpower", hasExpertise: false},
