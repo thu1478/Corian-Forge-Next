@@ -1,8 +1,14 @@
 import type { Metadata } from 'next'
-import { Cinzel, Geist_Mono } from 'next/font/google'
+import { Cinzel, Geist_Mono, Barlow } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { ThemeProvider } from '@/components/theme-provider'
 import './globals.css'
+
+const barlow = Barlow({
+    subsets: ["latin"],
+    weight: ['400', '500', '600', '700', '800'],
+    variable: '--font-sans', // We map this to font-sans!
+})
 
 const cinzel = Cinzel({ 
   subsets: ["latin"],
@@ -15,7 +21,7 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'D&D Character Sheet',
+  title: 'Corian Character Sheet',
   description: 'Interactive D&D 5e Character Sheet',
   generator: 'v0.app',
   icons: {
@@ -44,7 +50,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${cinzel.variable} ${geistMono.variable} font-sans antialiased`}>
+      <body className={`${barlow.variable} ${cinzel.variable} ${geistMono.variable} font-sans antialiased`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"

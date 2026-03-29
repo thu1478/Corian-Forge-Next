@@ -120,7 +120,7 @@ export function CharacterProfile({
 
       {/* Backstory */}
       <div className="p-4 bg-card rounded-xl border border-border">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-8">
           <h3 className="text-base font-semibold uppercase tracking-wider text-primary flex items-center gap-2">
             <BookOpen className="w-5 h-5" />
             Backstory

@@ -6,30 +6,38 @@ import { cn } from "@/lib/utils"
 import { GraduationCap, Sparkles, Languages, Brain, Heart, Star, Filter } from "lucide-react"
 
 interface ClassesPanelProps {
-  classes: CharacterClass[]
+    classes: { id: string; level: number }[]; // Character's specific data
+    rules: Record<string, any>;               // The entire classes section of rules.json
 }
 
-export function ClassesPanel({ classes }: ClassesPanelProps) {
+export function ClassesPanel({ classes, rules }: ClassesPanelProps) {
   const totalLevel = classes.reduce((sum, c) => sum + c.level, 0)
-  
+
   return (
     <div className="p-4 bg-card rounded-xl border border-border">
       <h3 className="text-base font-semibold uppercase tracking-wider text-primary mb-4 flex items-center gap-2">
         <GraduationCap className="w-5 h-5" />
         Classes
-        <span className="text-sm text-muted-foreground font-normal">(Level {totalLevel})</span>
+        {/*<span className="text-sm text-muted-foreground font-normal">(Level {totalLevel})</span>*/}
       </h3>
 
       <div className="space-y-3">
-        {classes.map((cls, i) => (
-          <div 
-            key={i}
-            className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border"
-          >
-            <span className="font-semibold text-foreground text-base">{cls.name}</span>
-            <span className="text-base font-bold text-primary">Lv. {cls.level}</span>
-          </div>
-        ))}
+          {classes.map((cls, i) => {
+
+              return (
+                  <div
+                      key={i}
+                      className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border"
+                  >
+                  <span className="font-semibold text-foreground text-base">
+                    {rules?.[cls.id]?.name}
+                  </span>
+                  <span className="text-base font-bold text-primary">
+                    Lv. {cls.level}
+                  </span>
+                  </div>
+              );
+          })}
       </div>
     </div>
   )

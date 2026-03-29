@@ -91,9 +91,9 @@
 }
 
 @theme inline {
-  --font-sans: 'Cinzel', 'Geist', serif;
+  --font-sans: 'Barlow', 'Cinzel', 'Geist', serif;
   --font-mono: 'Geist Mono', 'Geist Mono Fallback';
-  --font-serif: 'Cinzel', serif;
+  --font-serif: 'Barlow', 'Cinzel', serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);

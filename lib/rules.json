@@ -1,0 +1,36 @@
+{
+  "system": {
+    "defaults": {
+      "focusFeat": {
+        "name": "Start of Turn",
+        "description": "Gain 1 Focus at the start of your turn"
+       }
+    }
+  },
+  "classes": {
+    "weaponmaster": {
+      "name": "Weaponmaster",
+      "description": "Weaponmasters are those who have spent a significant amount of time and effort honing their craft with their weapon. This can be either several weapons or a single one.",
+      "focusFeat": {
+        "name": "Battle Sense (Melee)",
+        "description": "The first time per round an enemy takes damage from a melee attack you gain 1 Focus"
+      }
+    },
+    "sorcerer": {
+      "name": "Sorcerer",
+      "description": "Users of the magical arts, Sorcerers are experts at dealing magical damage to many enemies in strong bursts.",
+      "focusFeat": {
+        "name": "Ambient Mana",
+        "description": "The first time per round an enemy takes magic damage you gain 1 Focus"
+      }
+    },
+    "wizard": {
+      "name": "Wizard",
+      "description": "Master of the arcane arts, Wizards are most concerned with the nature of magic itself rather than finding ways to weaponize it. They offer a wide selection of debuffs while still having some offensive abilities.",
+      "focusFeat": {
+        "name": "Honed Mana Sensitivity",
+        "description": "The first time per round any creature spends Mana you gain 1 Focus."
+      }
+    }
+  }
+}
