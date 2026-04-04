@@ -82,7 +82,6 @@ export interface Bond {
 export interface Character {
     // Character Info
     name: string
-    level: number
     age: number
     gender: string
     race: string
@@ -94,10 +93,10 @@ export interface Character {
     classes: CharacterClass[]
 
     // Combat Resources
-    hp: { current: number; max: number }
+    hp: number
     barrier: { current: number; max: number }
-    mp: { current: number; max: number }
-    focus: { current: number; max: number }
+    mp: number
+    focus: number
     ap: { current: number; max: number }
 
     // Attributes (stat + modifier)
@@ -110,8 +109,6 @@ export interface Character {
     }
 
     // Non-resource stats
-    defense: number
-    stability: number
     speed: number
 
     // Other stats
@@ -152,7 +149,6 @@ export interface Character {
 export const defaultCharacter: Character = {
     // Character Info
     name: "Kira Shadowmend",
-    level: 4,
     age: 27,
     gender: "Female",
     race: "Half-Elf",
@@ -167,10 +163,10 @@ export const defaultCharacter: Character = {
     ],
 
     // Combat Resources
-    hp: {current: 42, max: 56},
+    hp: 20,
     barrier: {current: 8, max: 12},
-    mp: {current: 18, max: 24},
-    focus: {current: 2, max: 3},
+    mp: 18,
+    focus: 3,
     ap: {current: 3, max: 3},
 
     // Attributes
@@ -183,8 +179,6 @@ export const defaultCharacter: Character = {
     },
 
     // Non-resource stats
-    defense: 16,
-    stability: 14,
     speed: 30,
 
     // Other stats

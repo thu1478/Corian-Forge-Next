@@ -3,16 +3,16 @@
 import {useState} from "react"
 import {useTheme} from "next-themes"
 import {Equipment} from "@/lib/character-data"
-import {ActionCardComponent} from "@/components/character-sheet/action-card"
-import {FocusTracker} from "@/components/character-sheet/focus-tracker"
-import {CombatStatsPanel, OtherStats, ResourceBars} from "@/components/character-sheet/resource-bars"
-import {AttributesPanel} from "@/components/character-sheet/attributes-panel"
-import {EquipmentPanel} from "@/components/character-sheet/equipment-panel"
-import {InventoryPanel} from "@/components/character-sheet/inventory-panel"
-import {FocusReactionsPanel} from "@/components/character-sheet/focus-reactions-panel"
-import {BondsPanel, ClassesPanel, LanguagesPanel, TraitsPanel} from "@/components/character-sheet/tracking-panel"
-import {CharacterProfile} from "@/components/character-sheet/character-panel"
-import {DamageCalculator} from "@/components/character-sheet/damage-calculator"
+import {ActionCardComponent} from "@/components/character-sheet/actionCards/action-card"
+import {FocusTracker} from "@/components/character-sheet/combatPage/focus-tracker"
+import {CombatStatsPanel, OtherStats, ResourceBars} from "@/components/character-sheet/combatPage/resource-bars"
+import {AttributesPanel} from "@/components/character-sheet/combatPage/attributes-panel"
+import {EquipmentPanel} from "@/components/character-sheet/trackingPage/equipment-panel"
+import {InventoryPanel} from "@/components/character-sheet/trackingPage/inventory-panel"
+import {FocusReactionsPanel} from "@/components/character-sheet/combatPage/focus-reactions-panel"
+import {BondsPanel, ClassesPanel, LanguagesPanel, TraitsPanel} from "@/components/character-sheet/unused/tracking-panel"
+import {CharacterProfile} from "@/components/character-sheet/characterPage/character-panel"
+import {DamageCalculator} from "@/components/character-sheet/combatPage/damage-calculator"
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs"
 import {ScrollArea} from "@/components/ui/scroll-area"
 import {ChevronDown, Filter, LayoutGrid, List, Moon, Package, Sparkles, Sun, Swords, User} from "lucide-react"
@@ -21,13 +21,15 @@ import {cn} from "@/lib/utils"
 import {Button} from "@/components/ui/button"
 import {useCharacterIO} from '@/hooks/CharacterLoader';
 import rulesData from "@/lib/rules.json";
+import {useDerivedStats} from "@/components/character-sheet/hooks/statCalculator";
 
 type ActionFilter = "all" | "attack" | "skill" | "spell" | "reaction" | "utility"
 type ViewMode = "grid" | "list"
 
 export default function CharacterSheet() {
     const {character, setCharacter, importJSON, exportJSON} = useCharacterIO();
-    const [currentFocus, setCurrentFocus] = useState(character.focus.current)
+    const derived = useDerivedStats(character, rulesData as any);
+
     const [actionFilter, setActionFilter] = useState<ActionFilter>("all")
     const [viewMode, setViewMode] = useState<ViewMode>("grid")
     const [showDamageCalculator, setShowDamageCalculator] = useState(false)
@@ -57,23 +59,12 @@ export default function CharacterSheet() {
 
     //<editor-fold desc="Update Handlers">
     // Resource update handlers
-    const updateHp = (current: number, max: number) => {
-        // 1. Calculate the floor (Death Threshold)
-        const deathThreshold = Math.floor(max * -0.5);
+    const updateHp = (current: number) => {
+        const clampedHp = Math.min(Math.max(current, derived.deathThreshold), derived.maxHp);
 
-        // 2. Clamp the value:
-        // - Math.max(newCurrent, deathThreshold) ensures it doesn't go below -half
-        // - Math.min(..., max) ensures it doesn't go above max
-        const clampedHp = Math.min(Math.max(current, deathThreshold), max);
-
-        // 3. Update State
         setCharacter(prev => ({
             ...prev,
-            hp: {
-                ...prev.hp,
-                current: clampedHp,
-                max: max // Keep the formula-calculated max
-            }
+            hp: clampedHp
         }));
     }
 
@@ -81,13 +72,18 @@ export default function CharacterSheet() {
         setCharacter(prev => ({...prev, barrier: {current, max}}))
     }
 
-    const updateMp = (current: number, max: number) => {
-        setCharacter(prev => ({...prev, mp: {current, max}}))
+    const updateMp = (current: number) => {
+        setCharacter(prev => ({
+            ...prev,
+            mp: current
+        }))
     }
 
-    const updateFocus = (current: number, max: number) => {
-        setCharacter(prev => ({...prev, focus: {current, max}}))
-        setCurrentFocus(current)
+    const updateFocus = (current: number) => {
+        setCharacter(prev => ({
+            ...prev,
+            focus: current
+        }));
     }
 
     const updateIp = (value: number) => {
@@ -104,10 +100,12 @@ export default function CharacterSheet() {
 
     // Damage calculator handler
     const handleApplyDamage = (newHp: number, newBarrier: number) => {
+        const clampedHp = Math.min(newHp, derived.maxHp);
+
         setCharacter(prev => ({
             ...prev,
-            hp: {...prev.hp, current: newHp},
-            barrier: {...prev.barrier, current: newBarrier}
+            hp: clampedHp,
+            barrier: {...prev.barrier, current: Math.max(newBarrier, 0)}
         }))
     }
 
@@ -165,13 +163,13 @@ export default function CharacterSheet() {
                 focusFeatures: (prev.focusFeatures || []).map(feat => {
                     // A. If this is the one the user just picked, put it in the slot
                     if (feat.classSrc === newSrc && newSrc !== "") {
-                        return { ...feat, slotIndex: index };
+                        return {...feat, slotIndex: index};
                     }
 
                     // B. If this was the one previously in the slot, kick it out
                     // (But don't kick it out if it's the one we're currently moving IN)
                     if (feat.classSrc === oldName && feat.classSrc !== newSrc) {
-                        return { ...feat, slotIndex: -1 };
+                        return {...feat, slotIndex: -1};
                     }
 
                     return feat;
@@ -192,13 +190,13 @@ export default function CharacterSheet() {
                 reactions: (prev.reactions || []).map(reaction => {
                     // A. If this is the one the user just picked, put it in the slot
                     if (reaction.id === newID && newID !== "") {
-                        return { ...reaction, slotIndex: index };
+                        return {...reaction, slotIndex: index};
                     }
 
                     // B. If this was the one previously in the slot, kick it out
                     // (But don't kick it out if it's the one we're currently moving IN)
                     if (reaction.id === oldID && reaction.id !== newID) {
-                        return { ...reaction, slotIndex: -1 };
+                        return {...reaction, slotIndex: -1};
                     }
 
                     return reaction;
@@ -212,7 +210,7 @@ export default function CharacterSheet() {
             ...prev,
             // We look through all known reactions and update the currentCharges for the one matching the ID
             reactions: (prev.reactions || []).map(rx =>
-                rx.id === reactionId ? { ...rx, charges: newCount } : rx
+                rx.id === reactionId ? {...rx, charges: newCount} : rx
             )
         }));
     };
@@ -234,7 +232,7 @@ export default function CharacterSheet() {
                                     {character.name}
                                 </h1>
                                 <p className="text-[14px] text-muted-foreground mt-1 uppercase tracking-tighter">
-                                    LVL {character.level} {character.age} Y/O {character.gender} {character.race}
+                                    LVL {derived.characterLevel} {character.age} Y/O {character.gender} {character.race}
                                 </p>
                             </div>
                         </div>
@@ -249,7 +247,7 @@ export default function CharacterSheet() {
                                     variant="ghost" size="sm" className="h-8 text-xs font-bold gap-2"
                                     onClick={() => document.getElementById('char-upload')?.click()} // Direct trigger
                                 >
-                                    <Sparkles className="w-3 h-3 text-blue-500" />
+                                    <Sparkles className="w-3 h-3 text-blue-500"/>
                                     LOAD
                                 </Button>
 
@@ -267,7 +265,7 @@ export default function CharacterSheet() {
                                     }}
                                 />
 
-                                <div className="w-[1px] h-4 bg-border mx-1" />
+                                <div className="w-[1px] h-4 bg-border mx-1"/>
 
                                 <Button
                                     variant="ghost"
@@ -275,7 +273,7 @@ export default function CharacterSheet() {
                                     className="h-8 text-xs font-bold gap-2 text-primary"
                                     onClick={exportJSON}
                                 >
-                                    <LayoutGrid className="w-3 h-3" />
+                                    <LayoutGrid className="w-3 h-3"/>
                                     SAVE
                                 </Button>
                             </div>
@@ -286,8 +284,10 @@ export default function CharacterSheet() {
                                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
                                 className="w-9 h-9 p-0 border-border"
                             >
-                                <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0"/>
-                                <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100"/>
+                                <Sun
+                                    className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0"/>
+                                <Moon
+                                    className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100"/>
                                 <span className="sr-only">Toggle theme</span>
                             </Button>
                         </div>
@@ -320,20 +320,22 @@ export default function CharacterSheet() {
                             <div className="lg:col-span-3 space-y-4">
                                 {/* Focus Tracker */}
                                 <FocusTracker
-                                    current={currentFocus}
-                                    onChange={(value) => {
-                                        setCurrentFocus(value)
-                                        setCharacter(prev => ({...prev, focus: {...prev.focus, current: value}}))
-                                    }}
+                                    current={character.focus}
+                                    onChange={updateFocus}
                                 />
 
                                 {/* Resources */}
                                 <ResourceBars
                                     rules={rulesData}
-                                    hp={character.hp}
+                                    hp={{
+                                        current: Math.min(character.hp, derived.maxHp),
+                                        max: derived.maxHp
+                                    }}
                                     barrier={character.barrier}
-                                    mp={character.mp}
-                                    focus={character.focus}
+                                    mp={{
+                                        current: Math.min(character.mp, derived.maxMp),
+                                        max: derived.maxMp
+                                    }}
                                     ip={character.ip}
                                     onHpChange={updateHp}
                                     onBarrierChange={updateBarrier}
@@ -347,8 +349,8 @@ export default function CharacterSheet() {
 
                                 {/* Combat Stats */}
                                 <CombatStatsPanel
-                                    defense={character.defense}
-                                    stability={character.stability}
+                                    defense={derived.defense}
+                                    stability={derived.stability}
                                     speed={character.speed}
                                     resistances={character.resistances}
                                     vulnerabilities={character.vulnerabilities}
@@ -467,7 +469,7 @@ export default function CharacterSheet() {
                                                 <ActionCardComponent
                                                     key={action.id}
                                                     action={action}
-                                                    disabled={(action.focusCost || 0) > currentFocus}
+                                                    disabled={(action.focusCost || 0) > character.focus}
                                                     currentWeapon={currentWeapon}
                                                 />
                                             ))}
@@ -557,7 +559,7 @@ export default function CharacterSheet() {
             {/* Footer */}
             <footer className="border-t border-border mt-12 py-6">
                 <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-                    <p>Custom TTRPG Character Sheet</p>
+                    <p>Corian TTRPG Character Sheet</p>
                 </div>
             </footer>
 
@@ -565,8 +567,11 @@ export default function CharacterSheet() {
             <DamageCalculator
                 isOpen={showDamageCalculator}
                 onClose={() => setShowDamageCalculator(false)}
-                defense={character.defense}
-                hp={character.hp}
+                defense={derived.defense}
+                hp={{
+                    current: character.hp,
+                    max: derived.maxHp
+                }}
                 barrier={character.barrier}
                 onApplyDamage={handleApplyDamage}
             />

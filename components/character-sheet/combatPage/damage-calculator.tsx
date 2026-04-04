@@ -27,11 +27,13 @@ export function DamageCalculator({
     const [isDragging, setIsDragging] = useState(false)
     const [dragOffset, setDragOffset] = useState({x: 0, y: 0})
     const [damageInput, setDamageInput] = useState("")
+    const [penInput, setPenInput] = useState("")
     const [damageType, setDamageType] = useState<"physical" | "magical">("physical")
     const containerRef = useRef<HTMLDivElement>(null)
 
     const rawDamage = parseInt(damageInput) || 0
-    const relevantDefense = damageType === "physical" ? defense : 0
+    const rawPen = parseInt(penInput) || 0
+    const relevantDefense = damageType === "physical" ? Math.max(defense-rawPen,0) : 0
     const finalDamage = damageType === "physical" ? Math.max(1, rawDamage - relevantDefense) : rawDamage
 
     // Calculate what the values WOULD be
@@ -112,7 +114,20 @@ export function DamageCalculator({
 
         onApplyDamage(newHp, newBarrier)
         setDamageInput("")
+        setPenInput("")
     }
+
+    // Reset/close handler
+    const handleClose = () => {
+        setDamageInput("");
+        setPenInput("");
+
+        // If you have a selected damage type, maybe reset that too?
+        // setDamageType("physical");
+
+        // Finally, call the parent's close prop
+        onClose?.();
+    };
 
     if (!isOpen) return null
 
@@ -139,7 +154,7 @@ export function DamageCalculator({
                     variant="ghost"
                     size="sm"
                     className="h-7 w-7 p-0"
-                    onClick={onClose}
+                    onClick={handleClose}
                 >
                     <X className="w-4 h-4"/>
                 </Button>
@@ -190,6 +205,20 @@ export function DamageCalculator({
                     />
                 </div>
 
+                {/* Pen Input */}
+                {damageType === "physical" && (
+                    <div className="space-y-2">
+                        <label className="text-sm font-semibold text-foreground">Penetration</label>
+                        <Input
+                            type="number"
+                            placeholder="Enter penetration amount"
+                            value={penInput}
+                            onChange={(e) => setPenInput(e.target.value)}
+                            className="text-lg font-mono h-12"
+                        />
+                    </div>
+                )}
+
                 {/* Calculation Display */}
                 <div className="p-4 bg-muted/30 rounded-lg border border-border space-y-3">
                     <div className="flex items-center justify-between text-sm">
@@ -198,7 +227,7 @@ export function DamageCalculator({
                     </div>
                     {damageType === "physical" && (
                         <div className="flex items-center justify-between text-sm">
-                            <span className="text-muted-foreground">Defense:</span>
+                            <span className="text-muted-foreground">Applicable Defense:</span>
                             <span className="font-mono font-bold text-foreground text-base">
       -{relevantDefense}
     </span>
@@ -220,8 +249,10 @@ export function DamageCalculator({
                 {/* Current Resources */}
                 <div className="grid grid-cols-2 gap-3">
                     {/* Barrier Box */}
-                    <div className="p-3 bg-cyan-100/50 dark:bg-cyan-950/30 rounded-lg border border-cyan-300 dark:border-cyan-700/50">
-                        <div className="flex items-center gap-2 mb-1 text-xs text-cyan-700 dark:text-cyan-300 uppercase tracking-wider font-semibold">
+                    <div
+                        className="p-3 bg-cyan-100/50 dark:bg-cyan-950/30 rounded-lg border border-cyan-300 dark:border-cyan-700/50">
+                        <div
+                            className="flex items-center gap-2 mb-1 text-xs text-cyan-700 dark:text-cyan-300 uppercase tracking-wider font-semibold">
                             <Shield className="w-4 h-4 text-cyan-600 dark:text-cyan-400"/>
                             Barrier
                         </div>
@@ -237,8 +268,10 @@ export function DamageCalculator({
                     </div>
 
                     {/* HP Box */}
-                    <div className="p-3 bg-red-100/50 dark:bg-red-950/30 rounded-lg border border-red-300 dark:border-red-700/50">
-                        <div className="flex items-center gap-2 mb-1 text-xs text-red-700 dark:text-red-300 uppercase tracking-wider font-semibold">
+                    <div
+                        className="p-3 bg-red-100/50 dark:bg-red-950/30 rounded-lg border border-red-300 dark:border-red-700/50">
+                        <div
+                            className="flex items-center gap-2 mb-1 text-xs text-red-700 dark:text-red-300 uppercase tracking-wider font-semibold">
                             <Heart className="w-4 h-4 text-red-600 dark:text-red-400"/>
                             HP
                         </div>

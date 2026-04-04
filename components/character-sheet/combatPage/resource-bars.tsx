@@ -174,7 +174,6 @@ interface ResourceBarsProps {
     hp: { current: number; max: number }
     barrier: { current: number; max: number }
     mp: { current: number; max: number }
-    focus: { current: number; max: number }
     ip: number
     onHpChange?: (current: number, max: number) => void
     onBarrierChange?: (current: number, max: number) => void
@@ -191,7 +190,6 @@ export function ResourceBars({
                                  hp,
                                  barrier,
                                  mp,
-                                 focus,
                                  ip,
                                  onHpChange,
                                  onBarrierChange,
@@ -306,16 +304,6 @@ export function ResourceBars({
                 color="bg-gradient-to-r from-blue-600 to-blue-400"
                 icon={<Droplets className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400"/>}
                 onUpdate={onMpChange}
-            />
-
-            <ResourceBar
-                label="Focus"
-                current={focus.current}
-                max={focus.max}
-                min={0}
-                color="bg-gradient-to-r from-orange-600 to-amber-400"
-                icon={<Target className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400"/>}
-                onUpdate={onFocusChange}
             />
 
             {/* IP as a simple value resource */}
