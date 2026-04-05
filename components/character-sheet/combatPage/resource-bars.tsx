@@ -170,15 +170,13 @@ function ResourceBar({label, current, max, min = 0, color, icon, onUpdate, barri
 }
 
 interface ResourceBarsProps {
-    rules: Record<string, any>;
-    hp: { current: number; max: number }
-    barrier: { current: number; max: number }
+    hp: { current: number; max: number, min:number }
+    barrier: number
     mp: { current: number; max: number }
-    ip: number
+    ip: { current: number; max: number }
     onHpChange?: (current: number, max: number) => void
-    onBarrierChange?: (current: number, max: number) => void
+    onBarrierChange?: (current: number) => void
     onMpChange?: (current: number, max: number) => void
-    onFocusChange?: (current: number, max: number) => void
     onIpChange?: (value: number) => void
     onOpenDamageCalculator?: () => void
     attributes: Record<string, number>
@@ -186,7 +184,6 @@ interface ResourceBarsProps {
 }
 
 export function ResourceBars({
-                                 rules,
                                  hp,
                                  barrier,
                                  mp,
@@ -194,51 +191,11 @@ export function ResourceBars({
                                  onHpChange,
                                  onBarrierChange,
                                  onMpChange,
-                                 onFocusChange,
                                  onIpChange,
                                  onOpenDamageCalculator,
                                  attributes,
                                  knownClasses
                              }: ResourceBarsProps) {
-    const [isEditingIp, setIsEditingIp] = useState(false)
-    const [editIp, setEditIp] = useState(ip.toString())
-
-    const handleIpSave = () => {
-        const newIp = Math.max(0, parseInt(editIp) || 0)
-        onIpChange?.(newIp)
-        setIsEditingIp(false)
-    }
-
-    // Calculate Total Level as the highest single class level
-    const totalLevel = knownClasses?.length > 0
-        ? Math.max(...knownClasses.map(c => c.level || 0))
-        : 1;
-
-    // Helper to calculate class-specific bonuses
-    const getBonusForStat = (statName: string) => {
-        return knownClasses.reduce((total, cls) => {
-            // Find the rule definition for this class
-            const classRule = rules.classes?.[cls.id];
-            const bonus = classRule?.statBonus;
-
-            if (bonus && bonus.stat === statName) {
-                // Math: (Current Level / Frequency) * Amount
-                // Using Math.floor because you usually don't get half-bonuses
-                const applications = Math.floor((cls.level || 0) / (bonus.frequency || 1));
-                return total + (applications * (bonus.amount || 0));
-            }
-            return total;
-        }, 0);
-    };
-
-    // 3. Final HP Calculation
-    const classHpBonus = getBonusForStat("hp");
-    const maxHp = (attributes.might || 10) + (5 * totalLevel) + classHpBonus;
-    const minHp = Math.floor(maxHp * -0.5); // HP Floor
-
-// 4. Final MP Calculation
-    const classMpBonus = getBonusForStat("mp");
-    const maxMp = totalLevel + 2 * (attributes.willpower || 10) + classMpBonus;
 
     return (
         <div className="p-4 bg-card rounded-xl border border-border space-y-5">
@@ -260,12 +217,12 @@ export function ResourceBars({
             <ResourceBar
                 label="HP"
                 current={hp.current}
-                max={maxHp}
-                min={minHp}
+                max={hp.max}
+                min={hp.min}
                 color="bg-gradient-to-r from-red-600 to-red-500"
                 icon={<Heart className="w-3.5 h-3.5 text-red-600 dark:text-red-400"/>}
                 onUpdate={onHpChange}
-                barrier={barrier.current}
+                barrier={barrier}
             />
 
             <div className="space-y-2">
@@ -277,19 +234,19 @@ export function ResourceBars({
                     </div>
 
                     <div className="flex items-center gap-1">
-                        <Button size="sm" variant="ghost" className="h-6 w-6 p-0 hover:bg-destructive/20" onClick={() => onBarrierChange?.(Math.max(0, barrier.current - 1), 0)}>
+                        <Button size="sm" variant="ghost" className="h-6 w-6 p-0 hover:bg-destructive/20" onClick={() => onBarrierChange?.(Math.max(0, barrier - 1))}>
                             <Minus className="w-3 h-3"/>
                         </Button>
 
                         {/* Matching min-w and Font for Alignment */}
                         <div className="min-w-[4rem] flex justify-center">
                             <BarrierEditor
-                                value={barrier.current}
-                                onSave={(val) => onBarrierChange?.(val, 0)}
+                                value={barrier}
+                                onSave={(val) => onBarrierChange?.(val)}
                             />
                         </div>
 
-                        <Button size="sm" variant="ghost" className="h-6 w-6 p-0 hover:bg-primary/20" onClick={() => onBarrierChange?.(barrier.current + 1, 0)}>
+                        <Button size="sm" variant="ghost" className="h-6 w-6 p-0 hover:bg-primary/20" onClick={() => onBarrierChange?.(barrier + 1)}>
                             <Plus className="w-3 h-3"/>
                         </Button>
                     </div>
@@ -299,70 +256,22 @@ export function ResourceBars({
             <ResourceBar
                 label="MP"
                 current={mp.current}
-                max={maxMp}
+                max={mp.max}
                 min={0}
                 color="bg-gradient-to-r from-blue-600 to-blue-400"
                 icon={<Droplets className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400"/>}
                 onUpdate={onMpChange}
             />
 
-            {/* IP as a simple value resource */}
-            <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-1.5 text-muted-foreground">
-                        <Gem className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400"/>
-                        <span className="uppercase tracking-wider font-medium">IP</span>
-                    </div>
-                    {isEditingIp ? (
-                        <div className="flex items-center gap-1">
-                            <Input
-                                type="number"
-                                value={editIp}
-                                onChange={(e) => setEditIp(e.target.value)}
-                                className="w-16 h-6 text-xs text-center p-1"
-                                autoFocus
-                            />
-                            <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={handleIpSave}>
-                                Save
-                            </Button>
-                        </div>
-                    ) : (
-                        <div className="flex items-center gap-1">
-                            <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-5 w-5 p-0 hover:bg-destructive/20"
-                                onClick={() => onIpChange?.(Math.max(0, ip - 1))}
-                            >
-                                <Minus className="w-3 h-3"/>
-                            </Button>
-                            <button
-                                onClick={() => {
-                                    setEditIp(ip.toString())
-                                    setIsEditingIp(true)
-                                }}
-                                className="font-mono font-bold text-foreground hover:text-primary transition-colors cursor-pointer min-w-[2rem] text-center"
-                            >
-                                {ip}
-                            </button>
-                            <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-5 w-5 p-0 hover:bg-primary/20"
-                                onClick={() => onIpChange?.(ip + 1)}
-                            >
-                                <Plus className="w-3 h-3"/>
-                            </Button>
-                        </div>
-                    )}
-                </div>
-                <div className="h-3 bg-violet-500/30 rounded-full overflow-hidden border border-violet-500/50">
-                    <div
-                        className="h-full rounded-full bg-gradient-to-r from-violet-600 to-violet-400"
-                        style={{width: `${Math.min(ip * 10, 100)}%`}}
-                    />
-                </div>
-            </div>
+            <ResourceBar
+                label="IP"
+                current={ip.current}
+                max={ip.max}
+                min={0}
+                color="bg-gradient-to-r from-violet-600 to-violet-400"
+                icon={<Droplets className="ww-3.5 h-3.5 text-violet-600 dark:text-violet-400"/>}
+                onUpdate={onIpChange}
+            />
         </div>
     )
 }
@@ -376,6 +285,8 @@ interface CombatStatsPanelProps {
 }
 
 export function CombatStatsPanel({defense, stability, speed, resistances, vulnerabilities}: CombatStatsPanelProps) {
+    console.log("Defense: " + defense);
+    console.log("Stability: " + stability);
     return (
         <div className="p-4 bg-card rounded-xl border border-border">
             <h3 className="text-base font-semibold uppercase tracking-wider text-primary mb-4">Combat Stats</h3>

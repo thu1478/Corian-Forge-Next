@@ -11,7 +11,7 @@ interface DamageCalculatorProps {
     onClose: () => void
     defense: number
     hp: { current: number; max: number }
-    barrier: { current: number; max: number }
+    barrier: number
     onApplyDamage: (newHp: number, newBarrier: number) => void
 }
 
@@ -33,11 +33,11 @@ export function DamageCalculator({
 
     const rawDamage = parseInt(damageInput) || 0
     const rawPen = parseInt(penInput) || 0
-    const relevantDefense = damageType === "physical" ? Math.max(defense-rawPen,0) : 0
+    const relevantDefense = damageType === "physical" ? Math.max(defense - rawPen, 0) : 0
     const finalDamage = damageType === "physical" ? Math.max(1, rawDamage - relevantDefense) : rawDamage
 
     // Calculate what the values WOULD be
-    let previewBarrier = barrier.current
+    let previewBarrier = barrier
     let previewHp = hp.current
     let remainingDamage = finalDamage
 
@@ -95,7 +95,7 @@ export function DamageCalculator({
         if (finalDamage <= 0) return
 
         let remainingDamage = finalDamage
-        let newBarrier = barrier.current
+        let newBarrier = barrier
         let newHp = hp.current
 
         // Barrier absorbs damage first
@@ -258,12 +258,11 @@ export function DamageCalculator({
                         </div>
                         <div className="font-mono font-bold text-lg flex items-baseline gap-2">
             <span className="line-through text-xs opacity-50 text-cyan-900 dark:text-cyan-100">
-                {barrier.current}
+                {barrier}
             </span>
                             <span className="text-cyan-700 dark:text-cyan-300">
                 {previewBarrier}
             </span>
-                            <span className="text-[10px] opacity-40">/ {barrier.max}</span>
                         </div>
                     </div>
 

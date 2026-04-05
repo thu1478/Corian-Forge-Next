@@ -1,5 +1,5 @@
-import { Character, defaultCharacter } from '@/lib/character-data';
-import { ChangeEvent, ChangeEventHandler, useState } from 'react';
+import {defaultCharacter} from '@/lib/character-data';
+import {useState} from 'react';
 
 export function useCharacterIO() {
     const [character, setCharacter] = useState(defaultCharacter);

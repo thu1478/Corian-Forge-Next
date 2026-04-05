@@ -1,13 +1,13 @@
 "use client"
 
 import { useState } from "react"
-import { InventoryItem } from "@/lib/character-data"
 import { 
   Backpack, 
   Coins, 
   Search
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
+import {InventoryItem} from "@/lib/equipment-data";
 
 interface InventoryPanelProps {
   inventory: InventoryItem[]
@@ -18,10 +18,19 @@ interface InventoryPanelProps {
 export function InventoryPanel({ inventory, money, ip }: InventoryPanelProps) {
   const [inventorySearch, setInventorySearch] = useState("")
 
-  const filteredInventory = inventory.filter(item => 
-    item.name.toLowerCase().includes(inventorySearch.toLowerCase()) ||
-    item.description.toLowerCase().includes(inventorySearch.toLowerCase())
-  )
+    const filteredInventory = inventory.filter(item => {
+        // 1. Safety check: Is the item itself null?
+        if (!item) return false;
+
+        const searchTerm = inventorySearch.toLowerCase();
+
+        // 2. Use ?. to check for property existence
+        // 3. Use ?? "" to fallback to an empty string if property is missing
+        const name = (item.name ?? "").toLowerCase();
+        const description = (item.description ?? "").toLowerCase();
+
+        return name.includes(searchTerm) || description.includes(searchTerm);
+    });
 
   return (
     <div className="space-y-4">
@@ -71,7 +80,7 @@ export function InventoryPanel({ inventory, money, ip }: InventoryPanelProps) {
         <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
           {filteredInventory.map((item) => (
             <div
-              key={item.id}
+              key={item.uid}
               className="flex items-center justify-between p-3 rounded-lg bg-muted/10 border border-border/50"
             >
               <div className="flex-1 min-w-0">

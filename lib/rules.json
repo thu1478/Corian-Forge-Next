@@ -4,7 +4,7 @@
       "focusFeat": {
         "name": "Start of Turn",
         "description": "Gain 1 Focus at the start of your turn"
-       },
+      },
       "reactions": [
         {
           "id": "opportunityAttack",
@@ -12,11 +12,24 @@
           "type": "Free Reaction",
           "level": 0,
           "chargeStat": "",
-          "trigger":"A hostile creature leaves your melee range while you have a non-Implement melee weapon equipped",
+          "trigger": "A hostile creature leaves your melee range while you have a non-Implement melee weapon equipped",
           "description": "Deal fixed physical damage to the target equal to your melee weapon damage"
         }
       ]
-    }
+    },
+    "damageTypes": [
+      "crushing",
+      "slashing",
+      "piercing",
+      "air",
+      "volt",
+      "water",
+      "fire",
+      "earth",
+      "nature",
+      "light",
+      "dark"
+    ]
   },
   "classes": {
     "weaponmaster": {
@@ -38,7 +51,7 @@
           "type": "Reaction",
           "level": 1,
           "chargeStat": "",
-          "trigger":"You take damage from an attack",
+          "trigger": "You take damage from an attack",
           "description": "Make an Opportunity Attack against the attacker"
         },
         {
@@ -47,7 +60,7 @@
           "type": "Reaction",
           "level": 3,
           "chargeStat": "dexterity",
-          "trigger":"You are attacked by a melee attack while you have a melee weapon equipped",
+          "trigger": "You are attacked by a melee attack while you have a melee weapon equipped",
           "description": "Spend a Parry charge to reduce incoming damage by 5, or 6 or you are dual-wielding melee weapons or wielding a 2H melee weapon."
         }
       ]
@@ -71,7 +84,7 @@
           "type": "Reaction",
           "level": 1,
           "chargeStat": "",
-          "trigger":"An ally you can see within 8 tiles casts an attack spell",
+          "trigger": "An ally you can see within 8 tiles casts an attack spell",
           "description": "Increase the damage of that spell by your Reason Modifier"
         },
         {
@@ -80,7 +93,7 @@
           "type": "Reaction",
           "level": 3,
           "chargeStat": "",
-          "trigger":"You are attacked by a ranged attack",
+          "trigger": "You are attacked by a ranged attack",
           "description": "After the attack you fire back with Flare Arrow"
         }
       ]
@@ -104,7 +117,7 @@
           "type": "Reaction",
           "level": 1,
           "chargeStat": "",
-          "trigger":"You are attacked by a ranged attack",
+          "trigger": "You are attacked by a ranged attack",
           "description": "Throw up a magical shield, reducing the damage by 5"
         },
         {
@@ -113,10 +126,199 @@
           "type": "Reaction",
           "level": 3,
           "chargeStat": "",
-          "trigger":"An ally afflicts a hostile creature with Shaken or Dazed",
+          "trigger": "An ally afflicts a hostile creature with Shaken or Dazed",
           "description": "Target the creature with Subjugate"
         }
       ]
+    }
+  },
+  "races": {
+  },
+  "items": {
+    "i-w1": {
+      "name": "Shadowsteel Longsword",
+      "quantity": 1,
+      "description": "A fancy shadow-touched longsword",
+      "value": 100,
+      "allowedSlots": [
+        "rightHand",
+        "leftHand"
+      ],
+      "tags": [
+        "melee",
+        "1h",
+        "martial"
+      ],
+      "type": "weapon",
+      "damage": 4,
+      "damageType": "slashing",
+      "range": 1
+    },
+    "i-w2": {
+      "name": "Arcane Wand",
+      "quantity": 1,
+      "description": "Channels arcane energy",
+      "value": 150,
+      "allowedSlots": [
+        "rightHand",
+        "leftHand"
+      ],
+      "tags": [
+        "implement",
+        "1h"
+      ],
+      "type": "weapon",
+      "damage": 2,
+      "damageType": "",
+      "range": 1
+    },
+    "i-w3": {
+      "name": "Dagger",
+      "quantity": 1,
+      "description": "A useful tool",
+      "value": 25,
+      "allowedSlots": [
+        "rightHand",
+        "leftHand"
+      ],
+      "tags": [
+        "melee",
+        "1h",
+        "light",
+        "throwing"
+      ],
+      "type": "weapon",
+      "damage": 4,
+      "damageType": "slashing",
+      "range": 1
+    },
+    "i-a1": {
+      "name": "Leather Armor of Shadows",
+      "quantity": 1,
+      "description": "+2 Stealth in dim light",
+      "value": 240,
+      "allowedSlots": [
+        "armor"
+      ],
+      "tags": [],
+      "type": "armor",
+      "defense": {
+        "value": 1,
+        "attribute": "dexterity",
+        "attrMax": 2
+      },
+      "stability": 0
+    },
+    "i-a2": {
+      "name": "Half-Plate",
+      "quantity": 1,
+      "description": "Covers the front well",
+      "value": 1200,
+      "allowedSlots": [
+        "armor"
+      ],
+      "tags": [
+        "martial"
+      ],
+      "type": "armor",
+      "defense": {
+        "value": 5
+      },
+      "stability": 1
+    },
+    "i-a3": {
+      "name": "Mage Robes",
+      "quantity": 1,
+      "description": "Good for mages",
+      "value": 1500,
+      "allowedSlots": [
+        "armor"
+      ],
+      "tags": [],
+      "type": "armor",
+      "defense": {
+        "value": 0
+      },
+      "stability": 0,
+      "statBonuses": {
+        "mp": 15
+      }
+    },
+    "i-a4": {
+      "name": "Pocket Cloak",
+      "quantity": 1,
+      "description": "Deep pockets",
+      "value": 345,
+      "allowedSlots": [
+        "armor"
+      ],
+      "tags": [],
+      "type": "armor",
+      "defense": {
+        "value": 1
+      },
+      "stability": 0,
+      "statBonuses": {
+        "ip": 2
+      }
+    },
+    "i-acc1": {
+      "name": "Silver Earring of Whispers",
+      "quantity": 1,
+      "description": "+2 Perception for hearing",
+      "tags": [],
+      "charges": {
+        "current": 2,
+        "max": 3
+      },
+      "value": 500,
+      "allowedSlots": [
+        "ears",
+        "head"
+      ],
+      "type": "misc"
+    },
+    "i-acc2": {
+      "name": "Amulet of Minor Protection",
+      "quantity": 1,
+      "description": "+1 to all saves",
+      "tags": [],
+      "charges": {
+        "current": 2,
+        "max": 3
+      },
+      "value": 500,
+      "allowedSlots": [
+        "neck"
+      ],
+      "type": "misc"
+    },
+    "i-acc3": {
+      "name": "Traveler's Cloak",
+      "quantity": 1,
+      "description": "Resistance to cold weather",
+      "tags": [],
+      "value": 362,
+      "allowedSlots": [
+        "back"
+      ],
+      "type": "misc"
+    },
+    "i-1": {
+      "name": "Health Potion",
+      "quantity": 3,
+      "description": "Restore 3 HP",
+      "tags": [],
+      "value": 40,
+      "type": "misc"
+    },
+    "i-3": {
+      "name": "Rope",
+      "quantity": 2,
+      "description": "Standard hempen rope",
+      "tags": [],
+      "value": 24,
+      "type": "misc"
     }
   }
 }

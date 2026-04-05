@@ -1,3 +1,5 @@
+import {ArmorItem, Equipment, InventoryEntry, InventoryItem, MiscItem, WeaponItem} from "@/lib/equipment-data";
+
 export interface ActionCard {
     id: string
     name: string
@@ -45,34 +47,6 @@ export interface Skill {
     hasExpertise: boolean
 }
 
-export interface InventoryItem {
-    id: string
-    name: string
-    quantity: number
-    description: string
-    type?: "weapon" | "armor" | "accessory" | "consumable" | "misc"
-    damage?: string // For weapons
-    slot?: keyof Equipment["accessories"] | "rightHand" | "leftHand" | "armor" // What slot this can equip to
-}
-
-export interface Equipment {
-    rightHand: string | null
-    leftHand: string | null
-    armor: string | null
-    accessories: {
-        head: string | null
-        face: string | null
-        ears: string | null
-        neck: string | null
-        back: string | null
-        hands: string | null
-        ringLeft: string | null
-        ringRight: string | null
-        waist: string | null
-        feet: string | null
-    }
-}
-
 export interface Bond {
     id: string
     target: string
@@ -94,10 +68,9 @@ export interface Character {
 
     // Combat Resources
     hp: number
-    barrier: { current: number; max: number }
+    barrier: number
     mp: number
     focus: number
-    ap: { current: number; max: number }
 
     // Attributes (stat + modifier)
     attributes: {
@@ -137,13 +110,22 @@ export interface Character {
     // Inventory
     money: number
     ip: number
-    inventory: InventoryItem[]
+    inventory: InventoryEntry[]
 
     // Equipment
     equipment: Equipment
 
     // Bonds
     bonds: Bond[]
+}
+
+export interface HydratedCharacter extends Omit<Character, 'equipment' | 'inventory'> {
+    inventory: InventoryItem[];
+    equipment: {
+        activeWeapon: WeaponItem | null;
+        armor: ArmorItem | null;
+        accessories: Record<string, MiscItem | null>;
+    };
 }
 
 export const defaultCharacter: Character = {
@@ -164,10 +146,9 @@ export const defaultCharacter: Character = {
 
     // Combat Resources
     hp: 20,
-    barrier: {current: 8, max: 12},
+    barrier: 8,
     mp: 18,
     focus: 3,
-    ap: {current: 3, max: 3},
 
     // Attributes
     attributes: {
@@ -366,149 +347,36 @@ export const defaultCharacter: Character = {
     money: 127,
     ip: 15,
     inventory: [
-        // Weapons
-        {
-            id: "i-w1",
-            name: "Shadowsteel Longsword",
-            quantity: 1,
-            description: "+2 Slashing, Shadow-touched",
-            type: "weapon",
-            damage: "1d8+2",
-            slot: "rightHand"
-        },
-        {
-            id: "i-w2",
-            name: "Arcane Focus Crystal",
-            quantity: 1,
-            description: "Channels arcane energy",
-            type: "weapon",
-            damage: "1d6",
-            slot: "rightHand"
-        },
-        {
-            id: "i-w3",
-            name: "Dagger",
-            quantity: 2,
-            description: "Light, Finesse, Thrown",
-            type: "weapon",
-            damage: "1d4+3",
-            slot: "rightHand"
-        },
-        // Armor
-        {
-            id: "i-a1",
-            name: "Leather Armor of Shadows",
-            quantity: 1,
-            description: "+2 Stealth in dim light",
-            type: "armor",
-            slot: "armor"
-        },
-        // Accessories
-        {
-            id: "i-acc1",
-            name: "Silver Earring of Whispers",
-            quantity: 1,
-            description: "+2 Perception for hearing",
-            type: "accessory",
-            slot: "ears"
-        },
-        {
-            id: "i-acc2",
-            name: "Amulet of Minor Protection",
-            quantity: 1,
-            description: "+1 to all saves",
-            type: "accessory",
-            slot: "neck"
-        },
-        {
-            id: "i-acc3",
-            name: "Traveler's Cloak",
-            quantity: 1,
-            description: "Resistance to cold weather",
-            type: "accessory",
-            slot: "back"
-        },
-        {
-            id: "i-acc4",
-            name: "Fingerless Gloves",
-            quantity: 1,
-            description: "Better grip for climbing",
-            type: "accessory",
-            slot: "hands"
-        },
-        {
-            id: "i-acc5",
-            name: "Ring of Minor Protection",
-            quantity: 1,
-            description: "+1 AC",
-            type: "accessory",
-            slot: "ringLeft"
-        },
-        {
-            id: "i-acc6",
-            name: "Utility Belt",
-            quantity: 1,
-            description: "Quick access to small items",
-            type: "accessory",
-            slot: "waist"
-        },
-        {
-            id: "i-acc7",
-            name: "Soft Leather Boots",
-            quantity: 1,
-            description: "+1 Stealth",
-            type: "accessory",
-            slot: "feet"
-        },
-        {
-            id: "i-acc8",
-            name: "Circlet of Clarity",
-            quantity: 1,
-            description: "+1 to Reason checks",
-            type: "accessory",
-            slot: "head"
-        },
-        {
-            id: "i-acc9",
-            name: "Ring of Jumping",
-            quantity: 1,
-            description: "Triple jump distance",
-            type: "accessory",
-            slot: "ringRight"
-        },
-        {
-            id: "i-acc10",
-            name: "Mask of Many Faces",
-            quantity: 1,
-            description: "Cast Disguise Self at will",
-            type: "accessory",
-            slot: "face"
-        },
-        // Consumables
-        {id: "i-1", name: "Health Potion", quantity: 3, description: "Restore 2d8+4 HP", type: "consumable"},
-        {id: "i-2", name: "Mana Crystal", quantity: 2, description: "Restore 10 MP", type: "consumable"},
-        // Misc
-        {id: "i-3", name: "Rope (50 ft)", quantity: 1, description: "Standard hempen rope", type: "misc"},
-        {id: "i-4", name: "Rations", quantity: 5, description: "One day's food", type: "misc"},
-        {id: "i-5", name: "Torch", quantity: 3, description: "Light for 1 hour", type: "misc"}
+        { id: "i-w1", uid: "i-w1-v4n9z2" },
+        { id: "i-w1", uid: "i-w1-v4n9z6" },
+        { id: "i-w2", uid: "i-w2-x7m3k1" },
+        { id: "i-w3", uid: "i-w3-p9l5r8" },
+        { id: "i-a1", uid: "i-a1-q2w4e6" },
+        { id: "i-a2", uid: "i-a2-t8y1u3" },
+        { id: "i-a3", uid: "i-a3-i0o2p4" },
+        { id: "i-a4", uid: "i-a4-a7s9d1" },
+        { id: "i-acc1", uid: "i-acc1-f3g5h7" },
+        { id: "i-acc2", uid: "i-acc2-j9k1l3" },
+        { id: "i-acc3", uid: "i-acc3-z8x0c2" },
+        { id: "i-1", uid: "i-1-v4b6n8" },
+        { id: "i-3", uid: "i-3-m1q3w5" }
     ],
 
     // Equipment
     equipment: {
-        rightHand: "Shadowsteel Longsword",
-        leftHand: "Arcane Focus Crystal",
-        armor: "Leather Armor of Shadows",
+        activeWeapon: "i-w1-v4n9z2",
+        armor: "i-a1-q2w4e6",
         accessories: {
             head: null,
             face: null,
-            ears: "Silver Earring of Whispers",
-            neck: "Amulet of Minor Protection",
-            back: "Traveler's Cloak",
-            hands: "Fingerless Gloves",
-            ringLeft: "Ring of Minor Protection",
+            ears: null,
+            neck: null,
+            back: null,
+            hands: null,
+            ringLeft: null,
             ringRight: null,
-            waist: "Utility Belt",
-            feet: "Soft Leather Boots"
+            waist: null,
+            feet: null,
         }
     },
 

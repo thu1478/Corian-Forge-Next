@@ -2,7 +2,6 @@
 
 import {useState} from "react"
 import {useTheme} from "next-themes"
-import {Equipment} from "@/lib/character-data"
 import {ActionCardComponent} from "@/components/character-sheet/actionCards/action-card"
 import {FocusTracker} from "@/components/character-sheet/combatPage/focus-tracker"
 import {CombatStatsPanel, OtherStats, ResourceBars} from "@/components/character-sheet/combatPage/resource-bars"
@@ -22,27 +21,45 @@ import {Button} from "@/components/ui/button"
 import {useCharacterIO} from '@/hooks/CharacterLoader';
 import rulesData from "@/lib/rules.json";
 import {useDerivedStats} from "@/components/character-sheet/hooks/statCalculator";
+import {Equipment} from "@/lib/equipment-data";
+import {useCharacter} from "@/hooks/ItemLoader";
 
 type ActionFilter = "all" | "attack" | "skill" | "spell" | "reaction" | "utility"
 type ViewMode = "grid" | "list"
 
 export default function CharacterSheet() {
-    const {character, setCharacter, importJSON, exportJSON} = useCharacterIO();
-    const derived = useDerivedStats(character, rulesData as any);
+    // Read in raw data from file
+    const {character: rawCharacter, setCharacter, importJSON, exportJSON} = useCharacterIO();
+
+    // 2. Wait for the raw data to exist
+    if (!rawCharacter) return <div>Loading character data...</div>;
+
+    // Hydrate character with data from rules
+    const {character} = useCharacter(rawCharacter, rulesData);
+
+    if (!character) return <div>Loading rules...</div>;
+
+    const derived = useDerivedStats(character, rulesData);
 
     const [actionFilter, setActionFilter] = useState<ActionFilter>("all")
     const [viewMode, setViewMode] = useState<ViewMode>("grid")
     const [showDamageCalculator, setShowDamageCalculator] = useState(false)
-    const [currentWeapon, setCurrentWeapon] = useState<string>(character.equipment.rightHand || "Unarmed")
+    const currentWeapon = character.inventory.find(
+        item => item.uid === character.equipment.activeWeapon?.uid
+    ) || null;
     const {theme, setTheme} = useTheme()
 
     // Get weapons from inventory
     const availableWeapons = [
         ...character.inventory
             .filter(item => item.type === "weapon")
-            .map(item => ({name: item.name, damage: item.damage || "1d4"})),
-        {name: "Unarmed", damage: "1d4+2"}
-    ]
+            .map(item => ({
+                uid: item.uid,
+                name: item.name,
+                damage: (item as any).damage || "0"
+            })),
+        {uid: "empty", name: "Empty", damage: "0"}
+    ];
 
     const filteredActions = character.actions.filter(action =>
         actionFilter === "all" || action.type === actionFilter
@@ -68,8 +85,11 @@ export default function CharacterSheet() {
         }));
     }
 
-    const updateBarrier = (current: number, max: number) => {
-        setCharacter(prev => ({...prev, barrier: {current, max}}))
+    const updateBarrier = (current: number) => {
+        setCharacter(prev => ({
+            ...prev,
+            barrier: current
+        }));
     }
 
     const updateMp = (current: number) => {
@@ -105,51 +125,37 @@ export default function CharacterSheet() {
         setCharacter(prev => ({
             ...prev,
             hp: clampedHp,
-            barrier: {...prev.barrier, current: Math.max(newBarrier, 0)}
-        }))
-    }
-
-    // Weapon selection handler
-    const handleWeaponSelect = (weaponName: string) => {
-        setCurrentWeapon(weaponName)
-        // Update equipment tracking
-        setCharacter(prev => ({
-            ...prev,
-            equipment: {
-                ...prev.equipment,
-                rightHand: weaponName
-            }
+            barrier: Math.max(newBarrier, 0)
         }))
     }
 
     // Accessory change handler
-    const handleAccessoryChange = (slot: keyof Equipment["accessories"], value: string | null) => {
+    const handleAccessoryChange = (slot: keyof Equipment["accessories"], uid: string | null) => {
         setCharacter(prev => ({
             ...prev,
             equipment: {
                 ...prev.equipment,
                 accessories: {
                     ...prev.equipment.accessories,
-                    [slot]: value
+                    [slot]: uid
                 }
             }
         }))
     }
 
     // Equipment change handler
-    const handleEquipmentChange = (slot: "rightHand" | "leftHand" | "armor", value: string | null) => {
+    const handleEquipmentChange = (slot: "activeWeapon" | "armor", value: string | null) => {
+        const finalValue = value === "empty" ? null : value;
+
         setCharacter(prev => ({
             ...prev,
             equipment: {
                 ...prev.equipment,
-                [slot]: value
+                [slot]: finalValue
             }
-        }))
-        // Update current weapon if right hand changes
-        if (slot === "rightHand" && value) {
-            setCurrentWeapon(value)
-        }
-    }
+        }));
+        // The derived variable above handles it.
+    };
 
     // Dropdown logic for selecting focus feats
     const handleSelectFeat = (index: number, newSrc: string) => {
@@ -326,21 +332,23 @@ export default function CharacterSheet() {
 
                                 {/* Resources */}
                                 <ResourceBars
-                                    rules={rulesData}
                                     hp={{
                                         current: Math.min(character.hp, derived.maxHp),
-                                        max: derived.maxHp
+                                        max: derived.maxHp,
+                                        min: derived.deathThreshold
                                     }}
                                     barrier={character.barrier}
                                     mp={{
                                         current: Math.min(character.mp, derived.maxMp),
                                         max: derived.maxMp
                                     }}
-                                    ip={character.ip}
+                                    ip={{
+                                        current: Math.min(character.ip, derived.maxIp),
+                                        max: derived.maxIp
+                                    }}
                                     onHpChange={updateHp}
                                     onBarrierChange={updateBarrier}
                                     onMpChange={updateMp}
-                                    onFocusChange={updateFocus}
                                     onIpChange={updateIp}
                                     onOpenDamageCalculator={() => setShowDamageCalculator(true)}
                                     attributes={character.attributes}
@@ -412,21 +420,24 @@ export default function CharacterSheet() {
                                                         className="min-w-[180px] justify-between"
                                                     >
                             <span className="flex items-center gap-2">
-                              {currentWeapon}
-                                {availableWeapons.find(w => w.name === currentWeapon)?.damage && (
+            {/* Logic: If currentWeapon exists (is an object), show name. Else show "Empty" */}
+                                {currentWeapon ? currentWeapon.name : "Empty"}
+
+                                {/* Damage display: only show if the object exists and has damage */}
+                                {(currentWeapon as any)?.damage && (currentWeapon as any).damage !== "0" && (
                                     <span className="text-xs text-muted-foreground font-mono">
-                                  ({availableWeapons.find(w => w.name === currentWeapon)?.damage})
-                                </span>
+        ({(currentWeapon as any).damage})
+    </span>
                                 )}
-                            </span>
+        </span>
                                                         <ChevronDown className="w-4 h-4"/>
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end" className="w-[220px]">
                                                     {availableWeapons.map((weapon) => (
                                                         <DropdownMenuItem
-                                                            key={weapon.name}
-                                                            onClick={() => handleWeaponSelect(weapon.name)}
+                                                            key={weapon.uid}
+                                                            onClick={() => handleEquipmentChange("activeWeapon", weapon.uid)}
                                                             className="justify-between"
                                                         >
                                                             <span className="font-medium">{weapon.name}</span>
