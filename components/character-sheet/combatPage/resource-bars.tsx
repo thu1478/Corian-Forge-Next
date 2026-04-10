@@ -285,8 +285,6 @@ interface CombatStatsPanelProps {
 }
 
 export function CombatStatsPanel({defense, stability, speed, resistances, vulnerabilities}: CombatStatsPanelProps) {
-    console.log("Defense: " + defense);
-    console.log("Stability: " + stability);
     return (
         <div className="p-4 bg-card rounded-xl border border-border">
             <h3 className="text-base font-semibold uppercase tracking-wider text-primary mb-4">Combat Stats</h3>

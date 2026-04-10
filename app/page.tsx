@@ -2,7 +2,7 @@
 
 import {useState} from "react"
 import {useTheme} from "next-themes"
-import {ActionCardComponent} from "@/components/character-sheet/actionCards/action-card"
+import {ActionCardComponent} from "@/components/character-sheet/combatPage/action-card-manager"
 import {FocusTracker} from "@/components/character-sheet/combatPage/focus-tracker"
 import {CombatStatsPanel, OtherStats, ResourceBars} from "@/components/character-sheet/combatPage/resource-bars"
 import {AttributesPanel} from "@/components/character-sheet/combatPage/attributes-panel"
@@ -424,10 +424,13 @@ export default function CharacterSheet() {
                                 {currentWeapon ? currentWeapon.name : "Empty"}
 
                                 {/* Damage display: only show if the object exists and has damage */}
+
                                 {(currentWeapon as any)?.damage && (currentWeapon as any).damage !== "0" && (
-                                    <span className="text-xs text-muted-foreground font-mono">
-        ({(currentWeapon as any).damage})
-    </span>
+                                    <span
+                                        className="flex items-center gap-1 text-xs text-muted-foreground font-mono bg-muted px-1.5 py-0.5 rounded border border-border">
+            <Swords className="w-3 h-3"/>
+                                        {(currentWeapon as any).damage}
+        </span>
                                 )}
         </span>
                                                         <ChevronDown className="w-4 h-4"/>
@@ -441,8 +444,13 @@ export default function CharacterSheet() {
                                                             className="justify-between"
                                                         >
                                                             <span className="font-medium">{weapon.name}</span>
-                                                            <span
-                                                                className="text-xs text-muted-foreground font-mono">{weapon.damage}</span>
+                                                            {weapon.damage !== "0" && (
+                                                                <div
+                                                                    className="flex items-center gap-1 text-xs text-muted-foreground font-mono">
+                                                                    <Swords className="w-3 h-3 opacity-70"/>
+                                                                    {weapon.damage}
+                                                                </div>
+                                                            )}
                                                         </DropdownMenuItem>
                                                     ))}
                                                 </DropdownMenuContent>
@@ -480,6 +488,7 @@ export default function CharacterSheet() {
                                                 <ActionCardComponent
                                                     key={action.id}
                                                     action={action}
+                                                    attributes={character.attributes}
                                                     disabled={(action.focusCost || 0) > character.focus}
                                                     currentWeapon={currentWeapon}
                                                 />

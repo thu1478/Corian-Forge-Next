@@ -16,7 +16,7 @@
 ### Character Data
 - [ ] Add flags for optional content like ammo and weight
 ### Equipment
-- [ ] Make equipment usable
+- [X] Make equipment usable
 - [ ] Equipment containers
 - [ ] Make equipment draggable within inventory menu
 - [ ] Make equipment capable of having stat and skill bonuses

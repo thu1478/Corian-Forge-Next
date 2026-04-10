@@ -1,4 +1,4 @@
-import {ActionCard} from "@/lib/character-data";
+import {ActionCard} from "@/components/rules/rules";
 
 export interface InventoryEntry {
     id: string;

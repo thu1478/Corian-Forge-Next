@@ -1,57 +1,15 @@
 import {ArmorItem, Equipment, InventoryEntry, InventoryItem, MiscItem, WeaponItem} from "@/lib/equipment-data";
-
-export interface ActionCard {
-    id: string
-    name: string
-    type: "attack" | "skill" | "spell" | "reaction" | "utility"
-    apCost: number
-    mpCost?: number
-    focusCost?: number
-    range?: string
-    target?: string
-    duration?: string
-    effect: string
-    damage?: string
-    damageType?: string
-    tags: string[]
-    cooldown?: string
-    requirements?: string
-}
-
-export interface FocusFeature {
-    classSrc: string
-    slotIndex: number
-}
-
-export interface Reaction {
-    id: string
-    slotIndex: number
-    charges: number
-}
-
-export interface CharacterClass {
-    id: string
-    level: number
-}
-
-export interface Trait {
-    id: string
-    name: string
-    source: "racial" | "feat" | "class" | "background" | "other"
-    description: string
-}
-
-export interface Skill {
-    name: string
-    attribute: "might" | "dexterity" | "reason" | "willpower" | "presence"
-    hasExpertise: boolean
-}
-
-export interface Bond {
-    id: string
-    target: string
-    type: "admiration" | "inferiority" | "loyalty" | "mistrust" | "affection" | "hatred"
-}
+import {
+    ActionCard,
+    Bond,
+    CharacterClass,
+    CharAttribute, Condition,
+    DamageType,
+    FocusFeature, PotencyDuration, PotencyStrength,
+    Reaction,
+    Skill,
+    Trait
+} from "@/components/rules/rules";
 
 export interface Character {
     // Character Info
@@ -160,7 +118,7 @@ export const defaultCharacter: Character = {
     },
 
     // Non-resource stats
-    speed: 30,
+    speed: 4,
 
     // Other stats
     resistances: ["Arcane", "Cold"],
@@ -199,103 +157,226 @@ export const defaultCharacter: Character = {
     actions: [
         {
             id: "1",
-            name: "Blade Strike",
-            type: "attack",
-            apCost: 1,
-            range: "Melee",
-            target: "Single",
-            effect: "Make a melee attack against one creature within reach. On hit, deal weapon damage plus your Might modifier.",
-            damage: "1d8+2",
-            damageType: "Slashing",
-            tags: ["Weapon", "Melee", "Basic"]
+            name: "Swing",
+            type: "action",
+            description: "Swing your weapon",
+            apCost: 2,
+            range: "Wpn",
+            damageType: DamageType.Slashing,
+            powerRoll: {
+                rollStats: [CharAttribute.Might, CharAttribute.Dexterity],
+                // Tier 1
+                tier1Dmg: 0,
+                tier1Wpn: true,
+
+                // Tier 2
+                tier2Dmg: 1,
+                tier2Wpn: true,
+
+                // Tier 3
+                tier3Dmg: 2,
+                tier3Wpn: true,
+                tier3Effect: {
+                    type: 'Condition',
+                    effect: Condition.BLEEDING,
+                    duration: PotencyDuration.TurnEnd
+                }
+            },
+            tags: ["Melee", "Weapon"],
+            source: "Equipment"
         },
         {
             id: "2",
-            name: "Arcane Slash",
-            type: "attack",
+            name: "Stab",
+            type: "action",
+            description: "Stab with the weapon",
             apCost: 2,
-            mpCost: 4,
-            range: "Melee",
-            target: "Single",
-            effect: "Infuse your blade with arcane energy and strike. On hit, deal weapon damage plus additional arcane damage. The target must succeed on a Stability check or be Dazed until the end of their next turn.",
-            damage: "1d8+2 + 2d6",
-            damageType: "Slashing + Arcane",
-            tags: ["Weapon", "Melee", "Magic", "Debuff"]
+            range: "Wpn",
+            damageType: DamageType.Slashing,
+            powerRoll: {
+                rollStats: [CharAttribute.Might, CharAttribute.Dexterity],
+                // Tier 1
+                tier1Dmg: 0,
+                tier1Wpn: true,
+
+                // Tier 2
+                tier2Dmg: 1,
+                tier2Wpn: true,
+                tier2Effect: {
+                    type: 'Condition',
+                    effect: Condition.HEMORRHAGE,
+                    duration: PotencyDuration.None
+                },
+
+                // Tier 3
+                tier3Dmg: 2,
+                tier3Wpn: true,
+                tier3Effect: {
+                    type: 'Condition',
+                    effect: Condition.HEMORRHAGE,
+                    duration: PotencyDuration.None
+                }
+            },
+            tags: ["Melee", "Weapon"],
+            source: "Equipment"
         },
         {
             id: "3",
-            name: "Shadow Step",
-            type: "skill",
-            apCost: 1,
+            name: "Raise Shield",
+            type: "action",
+            description: "Raise your shield",
+            apCost: 2,
+            tags: [],
+            source: "Equipment"
+        },
+        {
+            id: "4",
+            name: "Icicle Lance",
+            type: "action",
+            description: "Fire two sharp icicles at multiple targets",
+            apCost: 2,
+            mpCost: 8,
             focusCost: 1,
-            range: "Self",
-            effect: "Teleport up to 20 feet to an unoccupied space you can see. You gain advantage on your next attack this turn if made from behind the target.",
-            duration: "Instant",
-            tags: ["Movement", "Teleport", "Stealth"],
-            cooldown: "1 round"
+            range: "10",
+            damageType: DamageType.Water,
+            powerRoll: {
+                rollStats: [CharAttribute.Reason],
+                // Tier 1
+                tier1Dmg: 3,
+                tier1Wpn: false,
+
+                // Tier 2
+                tier2Dmg: 4,
+                tier2Wpn: false,
+
+                // Tier 3
+                tier3Dmg: 6,
+                tier3Wpn: false,
+                tier3Effect: {
+                    type: 'Condition',
+                    srcStats: [CharAttribute.Reason],
+                    targetStats: [CharAttribute.Dexterity],
+                    effect: Condition.SLOWED,
+                    duration: PotencyDuration.TurnEnd,
+                    strength: PotencyStrength.Strong
+                }
+            },
+            tags: ["Ranged", "Spell", "Multi(2)"],
+            source: "Sorcerer"
         },
         {
             id: "5",
-            name: "Whirlwind Cut",
-            type: "attack",
+            name: "Fireball",
+            type: "action",
+            description: "Choose a target. The target must be a creature. Charge up a powerful concentration of flames that explodes in a 3x3 area once it hits its target dealing fire (fire) damage to all creatures in the area. The target is pushed away from the caster, but other creatures in the area are pushed away from the target. If you take at least 10 damage in one turn the explosive orb explodes prematurely on your location. In this case the push affecting you is changed to vertical push upwards. After the attack flames remain in the area for 1 minute",
             apCost: 2,
-            focusCost: 1,
-            range: "Melee",
-            target: "All Adjacent",
-            effect: "Spin with your blade extended, striking all enemies within melee range. Make a single attack roll compared against each target's Defense.",
-            damage: "1d8+2",
-            damageType: "Slashing",
-            tags: ["Weapon", "Melee", "AoE"]
+            focusCost: 3,
+            mpCost: 10,
+            range: "10",
+            damageType: DamageType.Water,
+            powerRoll: {
+                rollStats: [CharAttribute.Reason],
+                // Tier 1
+                tier1Dmg: 5,
+                tier1Wpn: false,
+                tier1Effect: {
+                    type: 'ForcedMovement',
+                    effect: 'push',
+                    distance: 2
+                },
+
+                // Tier 2
+                tier2Dmg: 7,
+                tier2Wpn: false,
+                tier2Effect: {
+                    type: 'ForcedMovement',
+                    effect: 'push',
+                    distance: 3
+                },
+
+                // Tier 3
+                tier3Dmg: 9,
+                tier3Wpn: false,
+                tier3Effect: {
+                    type: 'ForcedMovement',
+                    effect: 'push',
+                    distance: 4
+                },
+            },
+            tags: ["Ranged", "Spell", "Area", "Delay"],
+            source: "Sorcerer"
         },
         {
             id: "6",
-            name: "Arcane Bolt",
-            type: "spell",
+            name: "Steal",
+            type: "action",
+            description: "Attempt to steal something. You may only steal from each such enemy once per combat",
             apCost: 1,
-            mpCost: 3,
-            range: "60 ft",
-            target: "Single",
-            effect: "Launch a bolt of pure arcane energy at a target. This attack automatically hits and cannot be dodged, but can be resisted with Stability to halve damage.",
-            damage: "2d6",
-            damageType: "Arcane",
-            tags: ["Magic", "Ranged", "Auto-hit"]
+            range: "1",
+            powerRoll: {
+                rollStats: [CharAttribute.Dexterity],
+                tier1Effect: {
+                    type: 'Special',
+                    effect: "You get 10 Zenny"
+                },
+
+                // Tier 2
+                tier2Effect: {
+                    type: 'Special',
+                    effect: "You get 1 IP and 20 Zenny"
+                },
+
+                // Tier 3
+                tier3Effect: {
+                    type: 'Special',
+                    effect: "You get 3 IP and 50 Zenny"
+                },
+            },
+            tags: ["Melee"],
+            source: "Scout"
         },
         {
             id: "7",
-            name: "Blade Ward",
-            type: "utility",
+            name: "Flashbang",
+            type: "action",
+            description: "Throw a flashbang to blind enemies in a 2x2 area",
             apCost: 1,
-            mpCost: 2,
-            range: "Self",
-            target: "Self",
-            duration: "3 rounds",
-            effect: "Create a protective ward around yourself. Gain +2 to Defense and resistance to Slashing, Piercing, and Bludgeoning damage.",
-            tags: ["Defense", "Buff", "Magic"]
-        },
-        {
-            id: "8",
-            name: "Execute",
-            type: "attack",
-            apCost: 3,
-            focusCost: 2,
-            range: "Melee",
-            target: "Single",
-            effect: "A devastating finishing blow. If the target is below 25% health, this attack deals triple damage. Otherwise, deal double weapon damage.",
-            damage: "3d8+6",
-            damageType: "Slashing",
-            tags: ["Weapon", "Melee", "Finisher", "High Damage"],
-            requirements: "Must be in melee range"
-        },
-        {
-            id: "10",
-            name: "Analyze Weakness",
-            type: "utility",
-            apCost: 1,
-            range: "30 ft",
-            target: "Single",
-            duration: "Until end of combat",
-            effect: "Study an enemy to find their weak points. Make a Reason check against their Stability. On success, you and your allies gain +2 to attack rolls against this target and deal an extra 1d4 damage.",
-            tags: ["Tactical", "Buff", "Support"]
+            focusCost: 5,
+            ipCost: 3,
+            range: "3",
+            powerRoll: {
+                rollStats: [CharAttribute.Dexterity],
+                tier1Effect: {
+                    type: 'Condition',
+                    srcStats: [CharAttribute.Dexterity],
+                    targetStats: [CharAttribute.Dexterity],
+                    effect: Condition.SHAKEN,
+                    duration: PotencyDuration.RoundEnd,
+                    strength: PotencyStrength.Weak
+                },
+
+                // Tier 2
+                tier2Effect: {
+                    type: 'Condition',
+                    srcStats: [CharAttribute.Dexterity],
+                    targetStats: [CharAttribute.Dexterity],
+                    effect: Condition.SHAKEN,
+                    duration: PotencyDuration.RoundEnd,
+                    strength: PotencyStrength.Average
+                },
+
+                // Tier 3
+                tier3Effect: {
+                    type: 'Condition',
+                    srcStats: [CharAttribute.Dexterity],
+                    targetStats: [CharAttribute.Dexterity],
+                    effect: Condition.SHAKEN,
+                    duration: PotencyDuration.RoundEnd,
+                    strength: PotencyStrength.Strong
+                },
+            },
+            tags: ["Ranged, Area"],
+            source: "Scout"
         }
     ],
 
