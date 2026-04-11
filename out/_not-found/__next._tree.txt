@@ -1,3 +1,0 @@
-:HL["/Corian-Forge-Next/_next/static/chunks/182~_-mrq1dc9.css","style"]
-:HL["/Corian-Forge-Next/_next/static/chunks/0q4g09.9_h9z3.css","style"]
-0:{"tree":{"name":"","param":null,"prefetchHints":16,"slots":{"children":{"name":"/_not-found","param":null,"prefetchHints":0,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":0,"slots":null}}}}},"staleTime":300,"buildId":"8RpXiB0JTK1z3iFOXCFcq"}
