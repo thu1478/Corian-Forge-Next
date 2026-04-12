@@ -23,17 +23,18 @@ import {
     DropdownMenuItem, DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import {ArmorItem, Equipment, InventoryItem, MiscItem, WeaponItem} from "@/lib/equipment-data";
+import {ArmorItem, Equipment, InventoryItem, MiscItem, ShieldItem, WeaponItem} from "@/lib/equipment-data";
 
 interface EquipmentPanelProps {
     equipment: {
         activeWeapon: WeaponItem | null;
+        offhand: WeaponItem | ShieldItem | null;
         armor: ArmorItem | null;
         accessories: Record<string, MiscItem | null>;
     };
     inventory: InventoryItem[]; // Keep this for the selection dropdowns
     onAccessoryChange: (slot: keyof Equipment["accessories"], uid: string | null) => void;
-    onEquipmentChange: (slot: "activeWeapon" | "armor", uid: string | null) => void;
+    onEquipmentChange: (slot: "activeWeapon" | "offhand" | "armor", item: any) => void;
 }
 
 const accessorySlots: { key: keyof Equipment["accessories"]; label: string; icon: React.ReactNode }[] = [
@@ -62,6 +63,12 @@ export function EquipmentPanel({equipment, inventory, onAccessoryChange, onEquip
     const getItemsForSlot = (slot: string) => {
         if (slot === "activeWeapon") {
             return inventory.filter((item): item is WeaponItem => item.type === "weapon");
+        }
+        if (slot === "offhand") {
+            return inventory.filter(
+                (item): item is WeaponItem | ShieldItem =>
+                    item.type === "weapon" || item.type === "shield"
+            );
         }
         if (slot === "armor") {
             return inventory.filter((item): item is ArmorItem => item.type === "armor");
@@ -111,14 +118,70 @@ export function EquipmentPanel({equipment, inventory, onAccessoryChange, onEquip
                                 {(getItemsForSlot("activeWeapon") as WeaponItem[]).map((item) => (
                                     <DropdownMenuItem
                                         key={item.uid}
-                                        onClick={() => onEquipmentChange?.("activeWeapon", item.uid)}
+                                        onClick={() => onEquipmentChange?.("activeWeapon", item)}
                                         className="flex flex-col items-start gap-0.5"
                                     >
                                         <span className="font-medium text-sm">{item.name}</span>
                                         <div
                                             className="flex gap-2 text-[10px] text-muted-foreground uppercase tracking-tight font-mono">
                                             <span>Dmg: {item.damage} ({item.damageType})</span>
-                                            <span>Range: {item.range}m</span>
+                                            <span>Range: {item.range}</span>
+                                        </div>
+                                    </DropdownMenuItem>
+                                ))}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+
+                    {/* OFFHAND SLOT */}
+                    <div className="p-3 rounded-lg bg-muted/20 border border-border">
+                        <div className="flex items-center gap-2 text-muted-foreground mb-2">
+                            <Shield className="w-4 h-4"/>
+                            <span className="text-xs uppercase tracking-wider font-medium">Offhand</span>
+                        </div>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" size="sm" className="w-full justify-between text-sm h-9">
+                    <span className={cn(
+                        "truncate",
+                        !!equipment.offhand ? "text-foreground" : "text-muted-foreground italic"
+                    )}>
+                        {equipment.offhand?.name || "Empty"}
+                    </span>
+                                    <ChevronDown className="w-4 h-4 shrink-0 ml-2"/>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start" className="w-[220px]">
+                                <DropdownMenuItem onClick={() => onEquipmentChange?.("offhand", null)}>
+                                    <X className="w-4 h-4 mr-2 text-muted-foreground"/>
+                                    <span className="text-muted-foreground italic">Unequip</span>
+                                </DropdownMenuItem>
+
+                                <DropdownMenuSeparator/>
+
+                                {/* Filtered for Weapons OR Shields */}
+                                {(inventory.filter(i => i.type === "weapon" || i.type === "shield") as (WeaponItem | ShieldItem)[]).map((item) => (
+                                    <DropdownMenuItem
+                                        key={item.uid}
+                                        onClick={() => onEquipmentChange?.("offhand", item)}
+                                        className="flex flex-col items-start gap-0.5 py-2"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            {item.type === "weapon" ? <Sword className="w-3 h-3 opacity-50"/> :
+                                                <Shield className="w-3 h-3 opacity-50"/>}
+                                            <span className="font-medium text-sm">{item.name}</span>
+                                        </div>
+
+                                        <div
+                                            className="flex gap-2 text-[10px] text-muted-foreground uppercase tracking-tight font-mono">
+                                            {item.type === "weapon" ? (
+                                                <>
+                                                    <span>Dmg: {item.damage}</span>
+                                                    <span>Range: {item.range}</span>
+                                                </>
+                                            ) : (
+                                                <span>Defense: {item.defense}</span>
+                                            )}
                                         </div>
                                     </DropdownMenuItem>
                                 ))}
@@ -153,11 +216,12 @@ export function EquipmentPanel({equipment, inventory, onAccessoryChange, onEquip
                                 {(inventory.filter(i => i.type === 'armor') as ArmorItem[]).map((item) => (
                                     <DropdownMenuItem
                                         key={item.uid}
-                                        onClick={() => onEquipmentChange?.("armor", item.uid)}
+                                        onClick={() => onEquipmentChange?.("armor", item)}
                                         className="flex flex-col items-start gap-0.5"
                                     >
                                         <span className="font-medium text-sm">{item.name}</span>
-                                        <div className="flex gap-3 text-[10px] text-muted-foreground uppercase font-mono">
+                                        <div
+                                            className="flex gap-3 text-[10px] text-muted-foreground uppercase font-mono">
                                             {/* FIX: Accessing the nested value property */}
                                             <span>Def: {item.defense.value}</span>
                                             <span>Stab: {item.stability}</span>
@@ -195,7 +259,7 @@ export function EquipmentPanel({equipment, inventory, onAccessoryChange, onEquip
                 </div>
 
                 <div className="space-y-2 max-h-96 overflow-y-auto pr-1 custom-scrollbar">
-                    {filteredAccessories.map(({ key, label, icon }) => {
+                    {filteredAccessories.map(({key, label, icon}) => {
                         // item is now a full MiscItem object from your HydratedCharacter
                         const item = equipment.accessories[key];
                         const availableItems = getItemsForSlot(key);
@@ -235,7 +299,7 @@ export function EquipmentPanel({equipment, inventory, onAccessoryChange, onEquip
                                         {/* Updated: Accessing .name from the hydrated object */}
                                         {item?.name || "Empty"}
                                     </span>
-                                                <ChevronDown className="w-3.5 h-3.5 shrink-0 ml-2 opacity-50" />
+                                                <ChevronDown className="w-3.5 h-3.5 shrink-0 ml-2 opacity-50"/>
                                             </Button>
                                         </DropdownMenuTrigger>
 
@@ -244,11 +308,11 @@ export function EquipmentPanel({equipment, inventory, onAccessoryChange, onEquip
                                                 className="text-muted-foreground focus:text-foreground italic cursor-pointer"
                                                 onClick={() => onAccessoryChange(key, null)}
                                             >
-                                                <X className="w-4 h-4 mr-2" />
+                                                <X className="w-4 h-4 mr-2"/>
                                                 <span>Unequip</span>
                                             </DropdownMenuItem>
 
-                                            <DropdownMenuSeparator />
+                                            <DropdownMenuSeparator/>
 
                                             {availableItems.map((invItem) => (
                                                 <DropdownMenuItem

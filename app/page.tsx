@@ -21,57 +21,60 @@ import {Button} from "@/components/ui/button"
 import {useCharacterIO} from '@/hooks/CharacterLoader';
 import rulesData from "@/lib/rules.json";
 import {useDerivedStats} from "@/components/character-sheet/hooks/statCalculator";
-import {Equipment} from "@/lib/equipment-data";
+import {Equipment, EQUIPMENT_RULES} from "@/lib/equipment-data";
 import {useCharacter} from "@/hooks/ItemLoader";
+import {useDataLoader} from "@/components/character-sheet/hooks/DataLoader";
 
-type ActionFilter = "all" | "attack" | "skill" | "spell" | "reaction" | "utility"
+type ActionFilter = "all" | "equipment" | "weaponmaster" | "sorcerer" | "scout" | "Melee" | "Weapon" | "Spell"
 type ViewMode = "grid" | "list"
 
 export default function CharacterSheet() {
-    // Read in raw data from file
-    const {character: rawCharacter, setCharacter, importJSON, exportJSON} = useCharacterIO();
-
-    // 2. Wait for the raw data to exist
-    if (!rawCharacter) return <div>Loading character data...</div>;
-
-    // Hydrate character with data from rules
-    const {character} = useCharacter(rawCharacter, rulesData);
-
-    if (!character) return <div>Loading rules...</div>;
-
-    const derived = useDerivedStats(character, rulesData);
+    // 1. Centralized Data Source
+    const {
+        character,
+        derived,
+        setCharacter,
+        importJSON,
+        exportJSON,
+        isLoading
+    } = useDataLoader(rulesData);
 
     const [actionFilter, setActionFilter] = useState<ActionFilter>("all")
     const [viewMode, setViewMode] = useState<ViewMode>("grid")
     const [showDamageCalculator, setShowDamageCalculator] = useState(false)
-    const currentWeapon = character.inventory.find(
-        item => item.uid === character.equipment.activeWeapon?.uid
-    ) || null;
     const {theme, setTheme} = useTheme()
 
-    // Get weapons from inventory
+    if (isLoading || !character) return <div className="p-8 text-center">Loading...</div>;
+
+    const currentWeapon = character.inventory.find(
+        (item: any) => item.uid === character.activeWeaponUid
+    ) || null;
+
     const availableWeapons = [
         ...character.inventory
-            .filter(item => item.type === "weapon")
-            .map(item => ({
+            .filter((item: any) => item.type === "weapon")
+            .map((item: any) => ({
                 uid: item.uid,
                 name: item.name,
-                damage: (item as any).damage || "0"
+                damage: item.damage || "0"
             })),
         {uid: "empty", name: "Empty", damage: "0"}
     ];
 
-    const filteredActions = character.actions.filter(action =>
-        actionFilter === "all" || action.type === actionFilter
-    )
+    // 4. FIXED: Filter uses the hydrated actions from the loader
+    const filteredActions = (character.actions || []).filter((action: any) =>
+        actionFilter === "all" || action.type === actionFilter || action.source === actionFilter
+    );
 
     const filterOptions: { value: ActionFilter; label: string }[] = [
         {value: "all", label: "All"},
-        {value: "attack", label: "Attacks"},
-        {value: "skill", label: "Skills"},
-        {value: "spell", label: "Spells"},
-        {value: "reaction", label: "Reactions"},
-        {value: "utility", label: "Utility"}
+        {value: "equipment", label: "Equipment"},
+        {value: "weaponmaster", label: "Weaponmaster"},
+        {value: "sorcerer", label: "Sorcerer"},
+        {value: "scout", label: "Scout"},
+        {value: "Melee", label: "Melee"},
+        {value: "Weapon", label: "Weapon"},
+        {value: "Spell", label: "Spell"},
     ]
 
     //<editor-fold desc="Update Handlers">
@@ -131,7 +134,7 @@ export default function CharacterSheet() {
 
     // Accessory change handler
     const handleAccessoryChange = (slot: keyof Equipment["accessories"], uid: string | null) => {
-        setCharacter(prev => ({
+        setCharacter((prev: any) => ({
             ...prev,
             equipment: {
                 ...prev.equipment,
@@ -140,21 +143,25 @@ export default function CharacterSheet() {
                     [slot]: uid
                 }
             }
-        }))
-    }
+        }));
+    };
 
     // Equipment change handler
-    const handleEquipmentChange = (slot: "activeWeapon" | "armor", value: string | null) => {
-        const finalValue = value === "empty" ? null : value;
+    const handleEquipmentChange = (slot: "activeWeapon" | "offhand" | "armor", item: any) => {
 
-        setCharacter(prev => ({
-            ...prev,
-            equipment: {
-                ...prev.equipment,
-                [slot]: finalValue
-            }
-        }));
-        // The derived variable above handles it.
+        const currentKey = slot;
+
+        setCharacter((prev: any) => {
+            // Get the specific key updates from the rules brain
+            const result = EQUIPMENT_RULES.getNewState(currentKey, item, prev);
+
+            // We return the result directly because it now contains
+            // the correctly structured 'equipment' object.
+            return {
+                ...prev,
+                ...result
+            };
+        });
     };
 
     // Dropdown logic for selecting focus feats
@@ -440,7 +447,7 @@ export default function CharacterSheet() {
                                                     {availableWeapons.map((weapon) => (
                                                         <DropdownMenuItem
                                                             key={weapon.uid}
-                                                            onClick={() => handleEquipmentChange("activeWeapon", weapon.uid)}
+                                                            onClick={() => handleEquipmentChange("activeWeapon", weapon)}
                                                             className="justify-between"
                                                         >
                                                             <span className="font-medium">{weapon.name}</span>

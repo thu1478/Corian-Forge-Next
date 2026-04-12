@@ -1,4 +1,12 @@
-import {ArmorItem, Equipment, InventoryEntry, InventoryItem, MiscItem, WeaponItem} from "@/lib/equipment-data";
+import {
+    ArmorItem,
+    Equipment,
+    InventoryEntry,
+    InventoryItem,
+    MiscItem,
+    ShieldItem,
+    WeaponItem
+} from "@/lib/equipment-data";
 import {
     ActionCard,
     Bond,
@@ -81,6 +89,7 @@ export interface HydratedCharacter extends Omit<Character, 'equipment' | 'invent
     inventory: InventoryItem[];
     equipment: {
         activeWeapon: WeaponItem | null;
+        offhand: WeaponItem | ShieldItem | null;
         armor: ArmorItem | null;
         accessories: Record<string, MiscItem | null>;
     };
@@ -155,229 +164,6 @@ export const defaultCharacter: Character = {
 
     // Actions
     actions: [
-        {
-            id: "1",
-            name: "Swing",
-            type: "action",
-            description: "Swing your weapon",
-            apCost: 2,
-            range: "Wpn",
-            damageType: DamageType.Slashing,
-            powerRoll: {
-                rollStats: [CharAttribute.Might, CharAttribute.Dexterity],
-                // Tier 1
-                tier1Dmg: 0,
-                tier1Wpn: true,
-
-                // Tier 2
-                tier2Dmg: 1,
-                tier2Wpn: true,
-
-                // Tier 3
-                tier3Dmg: 2,
-                tier3Wpn: true,
-                tier3Effect: {
-                    type: 'Condition',
-                    effect: Condition.BLEEDING,
-                    duration: PotencyDuration.TurnEnd
-                }
-            },
-            tags: ["Melee", "Weapon"],
-            source: "Equipment"
-        },
-        {
-            id: "2",
-            name: "Stab",
-            type: "action",
-            description: "Stab with the weapon",
-            apCost: 2,
-            range: "Wpn",
-            damageType: DamageType.Slashing,
-            powerRoll: {
-                rollStats: [CharAttribute.Might, CharAttribute.Dexterity],
-                // Tier 1
-                tier1Dmg: 0,
-                tier1Wpn: true,
-
-                // Tier 2
-                tier2Dmg: 1,
-                tier2Wpn: true,
-                tier2Effect: {
-                    type: 'Condition',
-                    effect: Condition.HEMORRHAGE,
-                    duration: PotencyDuration.None
-                },
-
-                // Tier 3
-                tier3Dmg: 2,
-                tier3Wpn: true,
-                tier3Effect: {
-                    type: 'Condition',
-                    effect: Condition.HEMORRHAGE,
-                    duration: PotencyDuration.None
-                }
-            },
-            tags: ["Melee", "Weapon"],
-            source: "Equipment"
-        },
-        {
-            id: "3",
-            name: "Raise Shield",
-            type: "action",
-            description: "Raise your shield",
-            apCost: 2,
-            tags: [],
-            source: "Equipment"
-        },
-        {
-            id: "4",
-            name: "Icicle Lance",
-            type: "action",
-            description: "Fire two sharp icicles at multiple targets",
-            apCost: 2,
-            mpCost: 8,
-            focusCost: 1,
-            range: "10",
-            damageType: DamageType.Water,
-            powerRoll: {
-                rollStats: [CharAttribute.Reason],
-                // Tier 1
-                tier1Dmg: 3,
-                tier1Wpn: false,
-
-                // Tier 2
-                tier2Dmg: 4,
-                tier2Wpn: false,
-
-                // Tier 3
-                tier3Dmg: 6,
-                tier3Wpn: false,
-                tier3Effect: {
-                    type: 'Condition',
-                    srcStats: [CharAttribute.Reason],
-                    targetStats: [CharAttribute.Dexterity],
-                    effect: Condition.SLOWED,
-                    duration: PotencyDuration.TurnEnd,
-                    strength: PotencyStrength.Strong
-                }
-            },
-            tags: ["Ranged", "Spell", "Multi(2)"],
-            source: "Sorcerer"
-        },
-        {
-            id: "5",
-            name: "Fireball",
-            type: "action",
-            description: "Choose a target. The target must be a creature. Charge up a powerful concentration of flames that explodes in a 3x3 area once it hits its target dealing fire (fire) damage to all creatures in the area. The target is pushed away from the caster, but other creatures in the area are pushed away from the target. If you take at least 10 damage in one turn the explosive orb explodes prematurely on your location. In this case the push affecting you is changed to vertical push upwards. After the attack flames remain in the area for 1 minute",
-            apCost: 2,
-            focusCost: 3,
-            mpCost: 10,
-            range: "10",
-            damageType: DamageType.Water,
-            powerRoll: {
-                rollStats: [CharAttribute.Reason],
-                // Tier 1
-                tier1Dmg: 5,
-                tier1Wpn: false,
-                tier1Effect: {
-                    type: 'ForcedMovement',
-                    effect: 'push',
-                    distance: 2
-                },
-
-                // Tier 2
-                tier2Dmg: 7,
-                tier2Wpn: false,
-                tier2Effect: {
-                    type: 'ForcedMovement',
-                    effect: 'push',
-                    distance: 3
-                },
-
-                // Tier 3
-                tier3Dmg: 9,
-                tier3Wpn: false,
-                tier3Effect: {
-                    type: 'ForcedMovement',
-                    effect: 'push',
-                    distance: 4
-                },
-            },
-            tags: ["Ranged", "Spell", "Area", "Delay"],
-            source: "Sorcerer"
-        },
-        {
-            id: "6",
-            name: "Steal",
-            type: "action",
-            description: "Attempt to steal something. You may only steal from each such enemy once per combat",
-            apCost: 1,
-            range: "1",
-            powerRoll: {
-                rollStats: [CharAttribute.Dexterity],
-                tier1Effect: {
-                    type: 'Special',
-                    effect: "You get 10 Zenny"
-                },
-
-                // Tier 2
-                tier2Effect: {
-                    type: 'Special',
-                    effect: "You get 1 IP and 20 Zenny"
-                },
-
-                // Tier 3
-                tier3Effect: {
-                    type: 'Special',
-                    effect: "You get 3 IP and 50 Zenny"
-                },
-            },
-            tags: ["Melee"],
-            source: "Scout"
-        },
-        {
-            id: "7",
-            name: "Flashbang",
-            type: "action",
-            description: "Throw a flashbang to blind enemies in a 2x2 area",
-            apCost: 1,
-            focusCost: 5,
-            ipCost: 3,
-            range: "3",
-            powerRoll: {
-                rollStats: [CharAttribute.Dexterity],
-                tier1Effect: {
-                    type: 'Condition',
-                    srcStats: [CharAttribute.Dexterity],
-                    targetStats: [CharAttribute.Dexterity],
-                    effect: Condition.SHAKEN,
-                    duration: PotencyDuration.RoundEnd,
-                    strength: PotencyStrength.Weak
-                },
-
-                // Tier 2
-                tier2Effect: {
-                    type: 'Condition',
-                    srcStats: [CharAttribute.Dexterity],
-                    targetStats: [CharAttribute.Dexterity],
-                    effect: Condition.SHAKEN,
-                    duration: PotencyDuration.RoundEnd,
-                    strength: PotencyStrength.Average
-                },
-
-                // Tier 3
-                tier3Effect: {
-                    type: 'Condition',
-                    srcStats: [CharAttribute.Dexterity],
-                    targetStats: [CharAttribute.Dexterity],
-                    effect: Condition.SHAKEN,
-                    duration: PotencyDuration.RoundEnd,
-                    strength: PotencyStrength.Strong
-                },
-            },
-            tags: ["Ranged, Area"],
-            source: "Scout"
-        }
     ],
 
     // Traits
@@ -428,10 +214,11 @@ export const defaultCharacter: Character = {
     money: 127,
     ip: 15,
     inventory: [
-        { id: "i-w1", uid: "i-w1-v4n9z2" },
+        { id: "sword_w1", uid: "sword_w1-v4n9z2" },
+        { id: "shield_s1", uid: "shield_s1-v4n9z2" },
         { id: "i-w1", uid: "i-w1-v4n9z6" },
-        { id: "i-w2", uid: "i-w2-x7m3k1" },
-        { id: "i-w3", uid: "i-w3-p9l5r8" },
+        { id: "wand_w2", uid: "wand_w2-x7m3k1" },
+        { id: "dagger_w1", uid: "dagger_w1-p9l5r8" },
         { id: "i-a1", uid: "i-a1-q2w4e6" },
         { id: "i-a2", uid: "i-a2-t8y1u3" },
         { id: "i-a3", uid: "i-a3-i0o2p4" },
@@ -445,7 +232,8 @@ export const defaultCharacter: Character = {
 
     // Equipment
     equipment: {
-        activeWeapon: "i-w1-v4n9z2",
+        activeWeapon: "sword_w1-v4n9z2",
+        offhand: "shield_s1-v4n9z2",
         armor: "i-a1-q2w4e6",
         accessories: {
             head: null,

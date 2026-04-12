@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import {Character, HydratedCharacter} from "@/lib/character-data";
-import { WeaponItem, ArmorItem, MiscItem } from "@/lib/equipment-data";
+import {WeaponItem, ArmorItem, MiscItem, ShieldItem} from "@/lib/equipment-data";
 
 export function useCharacter(rawCharacter: Character | null, rules: any) {
     const hydratedCharacter = useMemo((): HydratedCharacter | null => {
@@ -29,6 +29,7 @@ export function useCharacter(rawCharacter: Character | null, rules: any) {
         const equipment = rawCharacter.equipment;
         const hydratedEquipment = {
             activeWeapon: fullInventory.find(i => i.uid === equipment.activeWeapon) as WeaponItem || null,
+            offhand: fullInventory.find(i => i.uid === equipment.offhand) as (WeaponItem | ShieldItem) || null,
             armor: fullInventory.find(i => i.uid === equipment.armor) as ArmorItem || null,
             accessories: Object.fromEntries(
                 Object.entries(equipment.accessories).map(([slot, uid]) => [

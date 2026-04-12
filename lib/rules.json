@@ -135,7 +135,7 @@
   "races": {
   },
   "items": {
-    "i-w1": {
+    "sword_w1": {
       "name": "Shadowsteel Longsword",
       "quantity": 1,
       "description": "A fancy shadow-touched longsword",
@@ -152,9 +152,10 @@
       "type": "weapon",
       "damage": 4,
       "damageType": "slashing",
-      "range": 1
+      "range": 1,
+      "actionIDs": ["generic/swing"]
     },
-    "i-w2": {
+    "wand_w2": {
       "name": "Arcane Wand",
       "quantity": 1,
       "description": "Channels arcane energy",
@@ -172,7 +173,7 @@
       "damageType": "",
       "range": 1
     },
-    "i-w3": {
+    "dagger_w1": {
       "name": "Dagger",
       "quantity": 1,
       "description": "A useful tool",
@@ -189,8 +190,25 @@
       ],
       "type": "weapon",
       "damage": 4,
-      "damageType": "slashing",
-      "range": 1
+      "damageType": "piercing",
+      "range": 1,
+      "actionIDs": ["generic/stab"]
+    },
+    "shield_s1": {
+      "name": "Iron Shield",
+      "quantity": 1,
+      "description": "A shield",
+      "value": 100,
+      "allowedSlots": [
+        "rightHand",
+        "leftHand"
+      ],
+      "tags": [
+      ],
+      "type": "shield",
+      "defense": 2,
+      "range": 1,
+      "actionIDs": ["generic/raise_shield"]
     },
     "i-a1": {
       "name": "Leather Armor of Shadows",
@@ -319,6 +337,246 @@
       "tags": [],
       "value": 24,
       "type": "misc"
+    }
+  },
+  "actionCards": {
+    "generic/swing": {
+      "name": "Swing",
+      "type": "action",
+      "description": "Swing your weapon",
+      "apCost": 2,
+      "range": "Wpn",
+      "damageType": "slashing",
+      "powerRoll": {
+        "rollStats": [
+          "might",
+          "dexterity"
+        ],
+        "tier1Dmg": 0,
+        "tier1Wpn": true,
+        "tier2Dmg": 1,
+        "tier2Wpn": true,
+        "tier3Dmg": 2,
+        "tier3Wpn": true,
+        "tier3Effect": {
+          "type": "Condition",
+          "effect": "bleeding",
+          "duration": "turnEnd"
+        }
+      },
+      "tags": [
+        "Melee",
+        "Weapon"
+      ],
+      "source": "equipment"
+    },
+    "generic/stab": {
+      "name": "Stab",
+      "type": "action",
+      "description": "Stab with the weapon",
+      "apCost": 2,
+      "range": "Wpn",
+      "damageType": "slashing",
+      "powerRoll": {
+        "rollStats": [
+          "might",
+          "dexterity"
+        ],
+        "tier1Dmg": 0,
+        "tier1Wpn": true,
+        "tier2Dmg": 1,
+        "tier2Wpn": true,
+        "tier2Effect": {
+          "type": "Condition",
+          "effect": "hemorrhage",
+          "duration": "none"
+        },
+        "tier3Dmg": 2,
+        "tier3Wpn": true,
+        "tier3Effect": {
+          "type": "Condition",
+          "effect": "hemorrhage",
+          "duration": "none"
+        }
+      },
+      "tags": [
+        "Melee",
+        "Weapon"
+      ],
+      "source": "equipment"
+    },
+    "generic/raise_shield": {
+      "name": "Raise Shield",
+      "type": "action",
+      "description": "Raise your shield",
+      "apCost": 2,
+      "tags": [],
+      "source": "equipment"
+    },
+    "sorcerer/icicle_lance": {
+      "name": "Icicle Lance",
+      "type": "action",
+      "description": "Fire two sharp icicles at multiple targets",
+      "apCost": 2,
+      "mpCost": 8,
+      "focusCost": 1,
+      "range": "10",
+      "damageType": "water",
+      "powerRoll": {
+        "rollStats": [
+          "reason"
+        ],
+        "tier1Dmg": 3,
+        "tier1Wpn": false,
+        "tier2Dmg": 4,
+        "tier2Wpn": false,
+        "tier3Dmg": 6,
+        "tier3Wpn": false,
+        "tier3Effect": {
+          "type": "Condition",
+          "srcStats": [
+            "reason"
+          ],
+          "targetStats": [
+            "dexterity"
+          ],
+          "effect": "slowed",
+          "duration": "turnEnd",
+          "strength": "strong"
+        }
+      },
+      "tags": [
+        "Ranged",
+        "Spell",
+        "Multi(2)"
+      ],
+      "source": "sorcerer"
+    },
+    "sorcerer/fireball": {
+      "name": "Fireball",
+      "type": "action",
+      "description": "Choose a target. The target must be a creature. Charge up a powerful concentration of flames that explodes in a 3x3 area once it hits its target dealing fire (fire) damage to all creatures in the area. The target is pushed away from the caster, but other creatures in the area are pushed away from the target. If you take at least 10 damage in one turn the explosive orb explodes prematurely on your location. In this case the push affecting you is changed to vertical push upwards. After the attack flames remain in the area for 1 minute",
+      "apCost": 2,
+      "focusCost": 3,
+      "mpCost": 10,
+      "range": "10",
+      "damageType": "fire",
+      "powerRoll": {
+        "rollStats": [
+          "reason"
+        ],
+        "tier1Dmg": 5,
+        "tier1Wpn": false,
+        "tier1Effect": {
+          "type": "ForcedMovement",
+          "effect": "push",
+          "distance": 2
+        },
+        "tier2Dmg": 7,
+        "tier2Wpn": false,
+        "tier2Effect": {
+          "type": "ForcedMovement",
+          "effect": "push",
+          "distance": 3
+        },
+        "tier3Dmg": 9,
+        "tier3Wpn": false,
+        "tier3Effect": {
+          "type": "ForcedMovement",
+          "effect": "push",
+          "distance": 4
+        }
+      },
+      "tags": [
+        "Ranged",
+        "Spell",
+        "Area",
+        "Delay"
+      ],
+      "source": "sorcerer"
+    },
+    "scout/steal": {
+      "name": "Steal",
+      "type": "action",
+      "description": "Attempt to steal something. You may only steal from each such enemy once per combat",
+      "apCost": 1,
+      "range": "1",
+      "powerRoll": {
+        "rollStats": [
+          "dexterity"
+        ],
+        "tier1Effect": {
+          "type": "Special",
+          "effect": "You get 10 Zenny"
+        },
+        "tier2Effect": {
+          "type": "Special",
+          "effect": "You get 1 IP and 20 Zenny"
+        },
+        "tier3Effect": {
+          "type": "Special",
+          "effect": "You get 3 IP and 50 Zenny"
+        }
+      },
+      "tags": [
+        "Melee"
+      ],
+      "source": "scout"
+    },
+    "scout/flashbang": {
+      "name": "Flashbang",
+      "type": "action",
+      "description": "Throw a flashbang to blind enemies in a 2x2 area",
+      "apCost": 1,
+      "focusCost": 5,
+      "ipCost": 3,
+      "range": "3",
+      "powerRoll": {
+        "rollStats": [
+          "dexterity"
+        ],
+        "tier1Effect": {
+          "type": "Condition",
+          "srcStats": [
+            "dexterity"
+          ],
+          "targetStats": [
+            "dexterity"
+          ],
+          "effect": "shaken",
+          "duration": "roundEnd",
+          "strength": "weak"
+        },
+        "tier2Effect": {
+          "type": "Condition",
+          "srcStats": [
+            "dexterity"
+          ],
+          "targetStats": [
+            "dexterity"
+          ],
+          "effect": "shaken",
+          "duration": "roundEnd",
+          "strength": "average"
+        },
+        "tier3Effect": {
+          "type": "Condition",
+          "srcStats": [
+            "dexterity"
+          ],
+          "targetStats": [
+            "dexterity"
+          ],
+          "effect": "shaken",
+          "duration": "roundEnd",
+          "strength": "strong"
+        }
+      },
+      "tags": [
+        "Ranged",
+        "Area"
+      ],
+      "source": "scout"
     }
   }
 }
