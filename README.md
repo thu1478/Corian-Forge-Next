@@ -11,6 +11,8 @@
 ```npm run start```
 
 ## TODO List
+### Structure
+- [] Split data loading into one-time load and user-input refresh
 ### UI
 - [ ] Split character into Features (skills, traits, etc) and Character (background)
 ### Character Data

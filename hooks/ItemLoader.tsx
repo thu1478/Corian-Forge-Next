@@ -1,8 +1,9 @@
 import { useMemo } from "react";
-import {Character, HydratedCharacter} from "@/lib/character-data";
+import {CharacterSaveData} from "@/lib/character-data";
 import {WeaponItem, ArmorItem, MiscItem, ShieldItem} from "@/lib/equipment-data";
+import {HydratedCharacter} from "@/lib/HydratedChar";
 
-export function useCharacter(rawCharacter: Character | null, rules: any) {
+export function hydrateItemData(rawCharacter: CharacterSaveData | null, rules: any) {
     const hydratedCharacter = useMemo((): HydratedCharacter | null => {
         if (!rawCharacter || !rules) return null;
 

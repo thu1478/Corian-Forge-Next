@@ -1,10 +1,12 @@
 "use client"
 
-import {FocusFeature, getAttributeModifier, Reaction} from "@/lib/character-data"
-import {Target, Zap, Lock, Unlock, ChevronDown} from "lucide-react"
+import {getAttributeModifier} from "@/lib/character-data"
+import {ChevronDown, Lock, Target, Zap} from "lucide-react"
 import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger} from "@/components/ui/dropdown-menu";
 import {Button} from "@/components/ui/button";
 import {cn} from "@/lib/utils";
+import {FocusFeature, Reaction} from "@/lib/rules";
+import {ActionCardComponent} from "@/components/character-sheet/combatPage/action-card-manager";
 
 interface FocusReactionsPanelProps {
     rules: Record<string, any>;
@@ -135,18 +137,20 @@ export function FocusReactionsPanel({
                 <div className="space-y-4">
                     {[0, 1].map((slotIndex) => {
                         const currentReaction = knownReactions.find(f => f.slotIndex === slotIndex);
-                        const allRuleReactions = Object.values(rules?.classes || {}).flatMap((c: any) => c.reactions || []);
-                        const currentReactionRule = allRuleReactions.find(r => r.id === currentReaction?.id);
-                        const currentReactionName = currentReactionRule?.name || "";
 
                         // 1. Calculate the "Live" Max based on current Attributes
-                        const statKey = currentReactionRule?.chargeStat;
+                        const statKey = currentReaction?.chargeStat;
                         const score = statKey ? (attributes[statKey] || 10) : 10;
                         const liveMax = statKey ? getAttributeModifier(score) : 0;
 
                         // 2. Determine how many pips to show and fill
                         // We use liveMax to ensure the UI stays in sync with stats
                         const displayCharges = Math.min(currentReaction?.charges ?? liveMax, liveMax);
+
+                        // 3. Extract action card data
+                        const actionCardData = currentReaction?.actionCard
+                            ? Object.values(currentReaction.actionCard)[0] as any
+                            : null;
 
                         return (
                             <div key={slotIndex}
@@ -155,7 +159,7 @@ export function FocusReactionsPanel({
                                     <DropdownMenuTrigger asChild>
                                         <Button variant="outline"
                                                 className="w-full justify-between bg-background border-orange-300 dark:border-orange-700/50 text-sm font-bold h-10">
-                                            <span>{currentReactionName || "-- Select Reaction --"}</span>
+                                            <span>{currentReaction?.name || "-- Select Reaction --"}</span>
                                             <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0"/>
                                         </Button>
                                     </DropdownMenuTrigger>
@@ -165,13 +169,13 @@ export function FocusReactionsPanel({
                                             No Selection
                                         </DropdownMenuItem>
                                         {knownReactions.map((rx) => {
-                                            const rule = allRuleReactions.find(r => r.id === rx.id);
+                                            // const rule = knownReactions.find(r => r.id === rx.id);
                                             const isDisabled = rx.slotIndex >= 0 && rx.slotIndex !== slotIndex;
                                             return (
                                                 <DropdownMenuItem key={rx.id}
                                                                   onClick={() => onSelectReaction(slotIndex, rx.id)}
                                                                   disabled={isDisabled}>
-                                                    {rule?.name || "Unknown Reaction"}
+                                                    {rx?.name || "Unknown Reaction"}
                                                 </DropdownMenuItem>
                                             );
                                         })}
@@ -188,7 +192,7 @@ export function FocusReactionsPanel({
                                 {statKey} Charges
                             </span>
                                                 <div className="flex gap-1.5">
-                                                    {Array.from({ length: liveMax }).map((_, i) => {
+                                                    {Array.from({length: liveMax}).map((_, i) => {
                                                         const isFilled = i < displayCharges;
                                                         const isLastFilled = i === displayCharges - 1;
 
@@ -216,11 +220,22 @@ export function FocusReactionsPanel({
                                             </div>
                                         )}
                                         <p className="text-sm font-medium text-amber-700 dark:text-amber-400 px-2 py-1 bg-amber-50 dark:bg-amber-900/30 rounded border border-amber-200 dark:border-amber-700/40">
-                                            Trigger: {currentReactionRule?.trigger}
+                                            Trigger: {currentReaction.trigger}
                                         </p>
                                         <p className="text-base text-foreground/80 leading-relaxed italic">
-                                            {currentReactionRule?.description || "No description available."}
+                                            {currentReaction.description || "No description available."}
                                         </p>
+                                        {/* --- ACTION CARD INTEGRATION --- */}
+                                        {actionCardData && (
+                                            <div className="pt-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                                                <div className="text-[10px] font-black uppercase tracking-widest text-orange-800/50 dark:text-orange-400/50 mb-2 ml-1">
+                                                </div>
+                                                <ActionCardComponent
+                                                    action={actionCardData}
+                                                    attributes={attributes as any}
+                                                />
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>

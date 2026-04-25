@@ -44,6 +44,147 @@
         "name": "Battle Sense (Melee)",
         "description": "The first time per round an enemy takes damage from a melee attack you gain 1 Focus"
       },
+      "passives": {
+        "weaponBond": {
+          "name": "Weapon Bond",
+          "minLevel": 1,
+          "description": "Choose a melee weapon you are wielding. You bond to that weapon, ignoring the Weakened effect and dealing +1 damage for attacks using that weapon. You can change your bonded weapon after a Long Rest."
+        },
+        "weaponBond2": {
+          "name": "Weapon Bond2",
+          "minLevel": 1,
+          "description": "test description"
+        },
+        "bladestorm": {
+          "name": "Bladestorm",
+          "minLevel": 3,
+          "description": "You can add multi(2) to any melee attack by spending 5 Mana. If it already has multi(2) then it is upgraded to multi(3). This attack cannot have Delay."
+        }
+      },
+      "actions": {
+        "honedStrike": {
+          "minLevel": 1,
+          "actionCard": {
+            "name": "Honed Strike",
+            "type": "action",
+            "description": "Strike forward with precision",
+            "apCost": 2,
+            "focusCost": 3,
+            "range": "Wpn",
+            "powerRoll": {
+              "rollStats": [
+                "might",
+                "dexterity"
+              ],
+              "tier1Dmg": 3,
+              "tier1Wpn": true,
+              "tier2Dmg": 4,
+              "tier2Wpn": true,
+              "tier3Dmg": 6,
+              "tier3Wpn": true
+            },
+            "tags": [
+              "Melee",
+              "Weapon",
+              "1H",
+              "Penetrate(3)"
+            ]
+          }
+        },
+        "partingSlash": {
+          "minLevel": 1,
+          "actionCard": {
+            "name": "Parting Slash",
+            "type": "action",
+            "description": "Attack a target and then shift 2. You must hit a target to use this",
+            "apCost": 2,
+            "focusCost": 1,
+            "range": "Wpn",
+            "powerRoll": {
+              "rollStats": [
+                "might",
+                "dexterity"
+              ],
+              "tier1Dmg": 2,
+              "tier1Wpn": true,
+              "tier2Dmg": 3,
+              "tier2Wpn": true,
+              "tier3Dmg": 5,
+              "tier3Wpn": true
+            },
+            "tags": [
+              "Melee",
+              "Weapon"
+            ]
+          }
+        },
+        "disarmingStrike": {
+          "minLevel": 3,
+          "actionCard": {
+            "name": "Disarming Strike",
+            "type": "action",
+            "description": "Try to weaken your foe's grip on their weapon as you hit them",
+            "apCost": 2,
+            "focusCost": 5,
+            "range": "Wpn",
+            "powerRoll": {
+              "rollStats": [
+                "might",
+                "dexterity"
+              ],
+              "tier1Dmg": 4,
+              "tier1Wpn": true,
+              "tier1Effect": {
+                "type": "Condition",
+                "srcStats": [
+                  "might",
+                  "dexterity"
+                ],
+                "targetStats": [
+                  "might"
+                ],
+                "effect": "weakened",
+                "duration": "saveEnd",
+                "strength": "weak"
+              },
+              "tier2Dmg": 6,
+              "tier2Wpn": true,
+              "tier2Effect": {
+                "type": "Condition",
+                "srcStats": [
+                  "might",
+                  "dexterity"
+                ],
+                "targetStats": [
+                  "might"
+                ],
+                "effect": "weakened",
+                "duration": "saveEnd",
+                "strength": "average"
+              },
+              "tier3Dmg": 8,
+              "tier3Wpn": true,
+              "tier3Effect": {
+                "type": "Condition",
+                "srcStats": [
+                  "might",
+                  "dexterity"
+                ],
+                "targetStats": [
+                  "might"
+                ],
+                "effect": "weakened",
+                "duration": "saveEnd",
+                "strength": "strong"
+              }
+            },
+            "tags": [
+              "Melee",
+              "Weapon"
+            ]
+          }
+        }
+      },
       "reactions": [
         {
           "id": "counterattack",
@@ -77,6 +218,83 @@
         "name": "Ambient Mana",
         "description": "The first time per round an enemy takes magic damage you gain 1 Focus"
       },
+      "actions": {
+        "acidSplash": {
+          "minLevel": 1,
+          "actionCard": {
+            "name": "Acid Splash",
+            "type": "action",
+            "description": "Launch acid at some nearby enemies to deal nature damage",
+            "apCost": 2,
+            "focusCost": 1,
+            "range": "3",
+            "powerRoll": {
+              "rollStats": [
+                "reason",
+                "willpower"
+              ],
+              "tier1Dmg": 2,
+              "tier2Dmg": 3,
+              "tier3Dmg": 5
+            },
+            "tags": [
+              "Ranged",
+              "Spell",
+              "Multi(3)"
+            ]
+          }
+        },
+        "flamePillar": {
+          "minLevel": 1,
+          "actionCard": {
+            "name": "Flame Pillar",
+            "type": "action",
+            "description": "Prepare to unleash columns of flames in a 3x3 area that deal fire damage",
+            "apCost": 2,
+            "focusCost": 3,
+            "range": "10",
+            "powerRoll": {
+              "rollStats": [
+                "reason"
+              ],
+              "tier1Dmg": 4,
+              "tier2Dmg": 7,
+              "tier3Dmg": 10
+            },
+            "tags": [
+              "Ranged",
+              "Spell",
+              "Area",
+              "Delay",
+              "Maintain"
+            ]
+          }
+        },
+        "shadowSpears": {
+          "minLevel": 1,
+          "actionCard": {
+            "name": "Shadow Spears",
+            "type": "action",
+            "description": "Several large shadowy spears erupt around the target",
+            "apCost": 2,
+            "focusCost": 5,
+            "range": "10",
+            "powerRoll": {
+              "rollStats": [
+                "reason",
+                "willpower"
+              ],
+              "tier1Dmg": 5,
+              "tier2Dmg": 7,
+              "tier3Dmg": 9
+            },
+            "tags": [
+              "Ranged",
+              "Spell"
+            ]
+          }
+        }
+      },
       "reactions": [
         {
           "id": "pairedCasting",
@@ -91,10 +309,34 @@
           "id": "returnFire",
           "name": "Return Fire",
           "type": "Reaction",
-          "level": 3,
+          "minLevel": 3,
           "chargeStat": "",
           "trigger": "You are attacked by a ranged attack",
-          "description": "After the attack you fire back with Flare Arrow"
+          "description": "After the attack you fire back with Flare Arrow",
+          "actionCard": {
+            "flareArrow": {
+              "name": "Flare Arrow",
+              "type": "reaction",
+              "description": "Fire a magical flaming arrow in retaliation that deals fire damage",
+              "focusCost": 1,
+              "mpCost": 5,
+              "range": "8",
+              "damageType": "fire",
+              "powerRoll": {
+                "rollStats": [
+                  "reason"
+                ],
+                "tier1Dmg": 3,
+                "tier2Dmg": 4,
+                "tier3Dmg": 6
+              },
+              "tags": [
+                "Ranged",
+                "Spell"
+              ],
+              "source": "sorcerer"
+            }
+          }
         }
       ]
     },
@@ -153,6 +395,7 @@
       "damage": 4,
       "damageType": "slashing",
       "range": 1,
+      "attributes": ["might"],
       "actionIDs": ["generic/swing"]
     },
     "wand_w2": {
@@ -189,9 +432,10 @@
         "throwing"
       ],
       "type": "weapon",
-      "damage": 4,
+      "damage": 2,
       "damageType": "piercing",
       "range": 1,
+      "attributes": ["dexterity"],
       "actionIDs": ["generic/stab"]
     },
     "shield_s1": {

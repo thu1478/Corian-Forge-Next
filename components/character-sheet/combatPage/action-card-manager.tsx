@@ -1,10 +1,10 @@
 "use client"
 
-import { useState } from "react" // Added useState
+import {useState} from "react" // Added useState
 import {cn} from "@/lib/utils"
-import {Zap, Droplets, Target, Clock, Crosshair, Swords, Shield, Wrench, ChevronDown} from "lucide-react" // Added ChevronDown
+import {ChevronDown, Clock, Crosshair, Droplets, Swords, Target, Wrench, Zap} from "lucide-react" // Added ChevronDown
 import {InventoryItem} from "@/lib/equipment-data";
-import {ActionCard, PotencyEffect, PotencyDuration, PowerRoll} from "@/components/rules/rules";
+import {ActionCard, CharAttribute, PotencyEffect, PowerRoll} from "@/lib/rules";
 import {getAttributeModifier} from "@/lib/character-data";
 
 interface ActionCardProps {
@@ -29,7 +29,7 @@ const typeConfig = {
         badge: "bg-red-200 text-red-800 dark:bg-red-900/80 dark:text-red-200"
     },
     reaction: {
-        icon: Shield,
+        icon: Zap,
         bg: "bg-gradient-to-br from-amber-100 to-amber-50 dark:from-amber-950/50 dark:to-amber-900/30",
         border: "border-amber-300 dark:border-amber-800/60",
         accent: "text-amber-700 dark:text-amber-400",
@@ -79,11 +79,13 @@ export function ActionCardComponent({
 
             {/* Cost Row */}
             <div className="flex flex-wrap gap-2 mb-4">
-                <div
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/20 border border-primary/40">
-                    <Zap className="w-4 h-4 text-primary"/>
-                    <span className="text-base font-bold text-primary">{action.apCost} AP</span>
-                </div>
+                {action.apCost && (
+                    <div
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/20 border border-primary/40">
+                        <Zap className="w-4 h-4 text-primary"/>
+                        <span className="text-base font-bold text-primary">{action.apCost} AP</span>
+                    </div>
+                )}
 
                 {action.mpCost !== undefined && action.mpCost > 0 && (
                     <div
@@ -175,12 +177,30 @@ export function ActionCardComponent({
                         "transition-all duration-200",
                         isExpanded ? "p-2 space-y-1 block opacity-100" : "hidden opacity-0"
                     )}>
-                        <TierRow label="<=11" roll={action.powerRoll} tier={1} badgeStyle={config.badge}
-                                 attributes={attributes}/>
-                        <TierRow label="12-16" roll={action.powerRoll} tier={2} badgeStyle={config.badge}
-                                 attributes={attributes}/>
-                        <TierRow label=">=17" roll={action.powerRoll} tier={3} badgeStyle={config.badge}
-                                 attributes={attributes}/>
+                        <TierRow
+                            label="<=11"
+                            roll={action.powerRoll}
+                            tier={1}
+                            badgeStyle={config.badge}
+                            attributes={attributes}
+                            currentWeapon={currentWeapon} // Pass it here
+                        />
+                        <TierRow
+                            label="12-16"
+                            roll={action.powerRoll}
+                            tier={2}
+                            badgeStyle={config.badge}
+                            attributes={attributes}
+                            currentWeapon={currentWeapon} // Pass it here
+                        />
+                        <TierRow
+                            label=">=17"
+                            roll={action.powerRoll}
+                            tier={3}
+                            badgeStyle={config.badge}
+                            attributes={attributes}
+                            currentWeapon={currentWeapon} // Pass it here
+                        />
                     </div>
                 </div>
             )}
@@ -198,12 +218,13 @@ export function ActionCardComponent({
     )
 }
 
-function TierRow({label, roll, tier, badgeStyle, attributes}: {
+function TierRow({label, roll, tier, badgeStyle, attributes, currentWeapon}: {
     label: string,
     roll: PowerRoll,
     tier: number,
     badgeStyle: string,
-    attributes: ActionCardProps['attributes']
+    attributes: ActionCardProps['attributes'],
+    currentWeapon?: InventoryItem | null
 }) {
     const baseDmg = roll[`tier${tier}Dmg` as keyof PowerRoll] as number || 0;
     const hasWpn = roll[`tier${tier}Wpn` as keyof PowerRoll] as boolean || false;
@@ -211,7 +232,23 @@ function TierRow({label, roll, tier, badgeStyle, attributes}: {
 
     const statModifiers = roll.rollStats.map(stat => getAttributeModifier(attributes[stat as keyof typeof attributes]));
     const highestMod = Math.max(...statModifiers);
-    const finalDmg = (hasWpn ? highestMod : 0) + baseDmg;
+    // const finalDmg = (hasWpn ? highestMod : 0) + baseDmg;
+
+    // 2. Weapon Damage Matching Logic
+    let weaponBonus = 0;
+    if (currentWeapon && currentWeapon.type === "weapon" && currentWeapon.attributes) {
+        // Check if weapon attributes overlap with card's rollStats
+        const isCompatible = currentWeapon.attributes.some((attr) =>
+            roll.rollStats.includes(attr as CharAttribute)
+        );
+
+        if (isCompatible) {
+            weaponBonus = currentWeapon.damage || 0;
+        }
+    }
+
+    // 3. Final Damage = (Tier Scaling ? Highest Mod : 0) + Base + Weapon Bonus
+    const finalDmg = (hasWpn ? highestMod : 0) + baseDmg + weaponBonus;
 
     const getPotencyThreshold = (p: PotencyEffect) => {
         if (p.type === 'Special' || p.strength === undefined || !p.srcStats) return null;

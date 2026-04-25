@@ -1,11 +1,11 @@
 "use client"
 
-import { Character } from "@/lib/character-data"
+import { CharacterSaveData } from "@/lib/character-data"
 import { Sparkles } from "lucide-react"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 
 interface FeaturesProps {
-  features: Character['features']
+  features: CharacterSaveData['features']
 }
 
 export function Features({ features }: FeaturesProps) {

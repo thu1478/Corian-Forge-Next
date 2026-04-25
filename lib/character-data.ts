@@ -1,25 +1,8 @@
-import {
-    ArmorItem,
-    Equipment,
-    InventoryEntry,
-    InventoryItem,
-    MiscItem,
-    ShieldItem,
-    WeaponItem
-} from "@/lib/equipment-data";
-import {
-    ActionCard,
-    Bond,
-    CharacterClass,
-    CharAttribute, Condition,
-    DamageType,
-    FocusFeature, PotencyDuration, PotencyStrength,
-    Reaction,
-    Skill,
-    Trait
-} from "@/components/rules/rules";
+import {Equipment, InventoryEntry,} from "@/lib/equipment-data";
+import {Bond, CharacterClass, FocusFeature, Skill, Trait} from "@/lib/rules";
+import {ActionRef, ReactionRef} from "@/lib/baseRefs";
 
-export interface Character {
+export interface CharacterSaveData {
     // Character Info
     name: string
     age: number
@@ -59,10 +42,10 @@ export interface Character {
 
     // Focus Features & Reactions
     focusFeatures: FocusFeature[]
-    reactions: Reaction[]
+    reactions: ReactionRef[]
 
     // Actions
-    actions: ActionCard[]
+    actions: ActionRef[]
 
     // Traits
     traits: Trait[]
@@ -85,17 +68,7 @@ export interface Character {
     bonds: Bond[]
 }
 
-export interface HydratedCharacter extends Omit<Character, 'equipment' | 'inventory'> {
-    inventory: InventoryItem[];
-    equipment: {
-        activeWeapon: WeaponItem | null;
-        offhand: WeaponItem | ShieldItem | null;
-        armor: ArmorItem | null;
-        accessories: Record<string, MiscItem | null>;
-    };
-}
-
-export const defaultCharacter: Character = {
+export const defaultCharacter: CharacterSaveData = {
     // Character Info
     name: "Kira Shadowmend",
     age: 27,
@@ -160,10 +133,20 @@ export const defaultCharacter: Character = {
             slotIndex: -1,
             charges: 0
         },
+        {
+            id: "returnFire",
+            slotIndex: -1,
+            charges: 0
+        },
     ],
 
     // Actions
     actions: [
+        {id: "honedStrike"},
+        {id: "partingSlash"},
+        {id: "acidSplash"},
+        {id: "shadowSpears"},
+        {id: "scout/flashbang"}
     ],
 
     // Traits
@@ -191,7 +174,7 @@ export const defaultCharacter: Character = {
             name: "Dual Wielder",
             source: "feat",
             description: "You gain +1 Defense while wielding two weapons, and can draw or stow two weapons at once."
-        }
+        },
     ],
 
     // Languages
@@ -212,11 +195,10 @@ export const defaultCharacter: Character = {
 
     // Inventory
     money: 127,
-    ip: 15,
+    ip: 3,
     inventory: [
         { id: "sword_w1", uid: "sword_w1-v4n9z2" },
         { id: "shield_s1", uid: "shield_s1-v4n9z2" },
-        { id: "i-w1", uid: "i-w1-v4n9z6" },
         { id: "wand_w2", uid: "wand_w2-x7m3k1" },
         { id: "dagger_w1", uid: "dagger_w1-p9l5r8" },
         { id: "i-a1", uid: "i-a1-q2w4e6" },

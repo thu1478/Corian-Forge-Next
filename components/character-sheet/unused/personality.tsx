@@ -1,10 +1,10 @@
 "use client"
 
-import { Character } from "@/lib/character-data"
+import { CharacterSaveData } from "@/lib/character-data"
 import { Heart, Lightbulb, Link2, AlertTriangle } from "lucide-react"
 
 interface PersonalityProps {
-  character: Character
+  character: CharacterSaveData
 }
 
 export function Personality({ character }: PersonalityProps) {

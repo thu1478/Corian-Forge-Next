@@ -1,3 +1,5 @@
+import {CharAttribute} from "@/lib/rules";
+
 export const EQUIPMENT_RULES = {
     getNewState: (slot: string, item: any, prev: any) => {
         const incomingUid = item?.uid || null;
@@ -36,10 +38,6 @@ export const EQUIPMENT_RULES = {
             console.log("slot: " + prev.equipment[slot])
             console.log("isShield: " + isShield)
 
-            // If moving a shield to main hand, or weapon to offhand where shield is...
-            // "Bump" logic: Shields go to inventory (null), weapons swap places.
-            const shouldBump = (slot === "activeWeapon" && isShield);
-
             updates[otherKey] = isShield ? null : currentSlotValue;
         }
 
@@ -77,6 +75,7 @@ export interface WeaponItem extends BaseItem {
     damage: number;
     damageType: string;
     range: number;
+    attributes: CharAttribute[]
 }
 
 export interface ShieldItem extends BaseItem {

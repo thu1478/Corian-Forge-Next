@@ -1,15 +1,15 @@
 "use client"
 
-import { Character, getAbilityModifier, formatModifier } from "@/lib/character-data"
-import { Circle, CircleDot } from "lucide-react"
+import {CharacterSaveData, formatModifier, getAbilityModifier} from "@/lib/character-data"
+import {Circle, CircleDot} from "lucide-react"
 
 interface SkillsListProps {
-  skills: Character['skills']
-  abilities: Character['abilities']
+  skills: CharacterSaveData['skills']
+  abilities: CharacterSaveData['abilities']
   proficiencyBonus: number
 }
 
-const abilityAbbreviations: Record<keyof Character['abilities'], string> = {
+const abilityAbbreviations: Record<keyof CharacterSaveData['abilities'], string> = {
   strength: "STR",
   dexterity: "DEX",
   constitution: "CON",
@@ -19,9 +19,8 @@ const abilityAbbreviations: Record<keyof Character['abilities'], string> = {
 }
 
 export function SkillsList({ skills, abilities, proficiencyBonus }: SkillsListProps) {
-  const calculateSkillBonus = (skill: Character['skills'][0]) => {
-    const abilityMod = getAbilityModifier(abilities[skill.ability])
-    let bonus = abilityMod
+  const calculateSkillBonus = (skill: CharacterSaveData['skills'][0]) => {
+    let bonus = getAbilityModifier(abilities[skill.ability])
     if (skill.proficient) bonus += proficiencyBonus
     if (skill.expertise) bonus += proficiencyBonus
     return bonus

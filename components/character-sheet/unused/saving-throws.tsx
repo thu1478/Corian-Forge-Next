@@ -1,20 +1,20 @@
 "use client"
 
-import { Character, getAbilityModifier, formatModifier } from "@/lib/character-data"
+import { CharacterSaveData, getAbilityModifier, formatModifier } from "@/lib/character-data"
 import { Circle, CircleDot } from "lucide-react"
 
 interface SavingThrowsProps {
-  abilities: Character['abilities']
-  savingThrows: Character['savingThrows']
+  abilities: CharacterSaveData['abilities']
+  savingThrows: CharacterSaveData['savingThrows']
   proficiencyBonus: number
 }
 
-const abilityNames: (keyof Character['abilities'])[] = [
+const abilityNames: (keyof CharacterSaveData['abilities'])[] = [
   'strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'
 ]
 
 export function SavingThrows({ abilities, savingThrows, proficiencyBonus }: SavingThrowsProps) {
-  const calculateSaveBonus = (ability: keyof Character['abilities']) => {
+  const calculateSaveBonus = (ability: keyof CharacterSaveData['abilities']) => {
     const abilityMod = getAbilityModifier(abilities[ability])
     return savingThrows[ability] ? abilityMod + proficiencyBonus : abilityMod
   }

@@ -1,11 +1,11 @@
 "use client"
 
-import { Character } from "@/lib/character-data"
+import { CharacterSaveData } from "@/lib/character-data"
 import { Backpack, Check } from "lucide-react"
 
 interface EquipmentProps {
-  equipment: Character['equipment']
-  currency: Character['currency']
+  equipment: CharacterSaveData['equipment']
+  currency: CharacterSaveData['currency']
 }
 
 export function Equipment({ equipment, currency }: EquipmentProps) {

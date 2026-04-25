@@ -1,12 +1,12 @@
 "use client"
 
-import { Character } from "@/lib/character-data"
+import { CharacterSaveData } from "@/lib/character-data"
 import { Crown, Scroll, Star } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 
 interface CharacterHeaderProps {
-  character: Character
+  character: CharacterSaveData
 }
 
 export function CharacterHeader({ character }: CharacterHeaderProps) {

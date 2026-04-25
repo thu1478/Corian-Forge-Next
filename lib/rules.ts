@@ -1,4 +1,6 @@
 //<editor-fold desc="Character data">
+import {ActionRef, ReactionRef} from "@/lib/baseRefs";
+
 export const CharAttribute = {
     Might: "might",
     Dexterity: "dexterity",
@@ -13,10 +15,12 @@ export interface FocusFeature {
     slotIndex: number
 }
 
-export interface Reaction {
-    id: string
-    slotIndex: number
-    charges: number
+export interface Reaction extends ReactionRef {
+    name: string
+    description: string
+    trigger: string
+    chargeStat ?: string
+    actionCard ?: ActionCard
 }
 
 export interface CharacterClass {
@@ -139,8 +143,7 @@ export interface PowerRoll {
 
 //</editor-fold>
 
-export interface ActionCard {
-    id: string
+export interface ActionCard extends ActionRef {
     name: string
     type: "action" | "reaction" | "freeReaction"
     description: string

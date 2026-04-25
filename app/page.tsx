@@ -18,11 +18,8 @@ import {ChevronDown, Filter, LayoutGrid, List, Moon, Package, Sparkles, Sun, Swo
 import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,} from "@/components/ui/dropdown-menu"
 import {cn} from "@/lib/utils"
 import {Button} from "@/components/ui/button"
-import {useCharacterIO} from '@/hooks/CharacterLoader';
 import rulesData from "@/lib/rules.json";
-import {useDerivedStats} from "@/components/character-sheet/hooks/statCalculator";
 import {Equipment, EQUIPMENT_RULES} from "@/lib/equipment-data";
-import {useCharacter} from "@/hooks/ItemLoader";
 import {useDataLoader} from "@/components/character-sheet/hooks/DataLoader";
 
 type ActionFilter = "all" | "equipment" | "weaponmaster" | "sorcerer" | "scout" | "Melee" | "Weapon" | "Spell"
