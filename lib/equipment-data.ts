@@ -34,10 +34,6 @@ export const EQUIPMENT_RULES = {
             // Find if the thing we're bumping is a Shield
             const isShield = prev.equipment[slot].includes("shield")
 
-            console.log("other: " + otherKey)
-            console.log("slot: " + prev.equipment[slot])
-            console.log("isShield: " + isShield)
-
             updates[otherKey] = isShield ? null : currentSlotValue;
         }
 

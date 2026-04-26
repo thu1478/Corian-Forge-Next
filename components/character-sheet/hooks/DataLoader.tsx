@@ -79,8 +79,8 @@ export function useDataLoader(rulesDataParam: any) {
 
         const fullyHydrated = hydrateCharacter(hydratedItemsChar, rulesDataParam);
 
-        console.log("Fully hydrated")
-        console.log(fullyHydrated);
+        // console.log("Fully hydrated")
+        // console.log(fullyHydrated);
         return {
             ...fullyHydrated,
             actions: hydratedActions,

@@ -46,7 +46,7 @@ export function useActions(
             for (const className of Object.keys(rulesData.classes)) {
                 const classData = (rulesData as any).classes[className];
                 const wrapper = classData.actions?.[id];
-                if (wrapper?.actionCard) return { ...wrapper.actionCard, id };
+                if (wrapper?.actionCard) return { ...wrapper.actionCard, id, source: className };
             }
             return null;
         }).filter((a): a is ActionCard => a !== null);

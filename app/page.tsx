@@ -16,13 +16,14 @@ import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs"
 import {ScrollArea} from "@/components/ui/scroll-area"
 import {ChevronDown, Filter, LayoutGrid, List, Moon, Package, Sparkles, Sun, Swords, User} from "lucide-react"
 import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,} from "@/components/ui/dropdown-menu"
-import {cn} from "@/lib/utils"
+import {capitalizeFirstLetter, cn} from "@/lib/utils"
 import {Button} from "@/components/ui/button"
 import rulesData from "@/lib/rules.json";
 import {Equipment, EQUIPMENT_RULES} from "@/lib/equipment-data";
 import {useDataLoader} from "@/components/character-sheet/hooks/DataLoader";
+import {CharacterClass} from "@/lib/rules";
 
-type ActionFilter = "all" | "equipment" | "weaponmaster" | "sorcerer" | "scout" | "Melee" | "Weapon" | "Spell"
+type ActionFilter = string;
 type ViewMode = "grid" | "list"
 
 export default function CharacterSheet() {
@@ -38,6 +39,7 @@ export default function CharacterSheet() {
 
     const [actionFilter, setActionFilter] = useState<ActionFilter>("all")
     const [viewMode, setViewMode] = useState<ViewMode>("grid")
+    const [allCollapsed, setAllCollapsed] = useState(false)
     const [showDamageCalculator, setShowDamageCalculator] = useState(false)
     const {theme, setTheme} = useTheme()
 
@@ -59,20 +61,41 @@ export default function CharacterSheet() {
     ];
 
     // 4. FIXED: Filter uses the hydrated actions from the loader
-    const filteredActions = (character.actions || []).filter((action: any) =>
-        actionFilter === "all" || action.type === actionFilter || action.source === actionFilter
-    );
+    const filteredActions = (character.actions || []).filter((action: any) => {
+        if (actionFilter === "all") return true;
 
-    const filterOptions: { value: ActionFilter; label: string }[] = [
-        {value: "all", label: "All"},
-        {value: "equipment", label: "Equipment"},
-        {value: "weaponmaster", label: "Weaponmaster"},
-        {value: "sorcerer", label: "Sorcerer"},
-        {value: "scout", label: "Scout"},
-        {value: "Melee", label: "Melee"},
-        {value: "Weapon", label: "Weapon"},
-        {value: "Spell", label: "Spell"},
-    ]
+        const filterLower = actionFilter.toLowerCase();
+
+        // 1. Source check (matches class ID or 'equipment')
+        const source = (action.source || "").toLowerCase();
+        if (source === filterLower) return true;
+
+        // 2. Tag check (matches 'Weapon', 'Spell', etc.)
+        if (action.tags && Array.isArray(action.tags)) {
+            return action.tags.some((tag: string) =>
+                tag.toLowerCase() === filterLower
+            );
+        }
+
+        return false;
+    });
+
+    const filterOptions = [
+        { value: "all", label: "All" },
+        { value: "equipment", label: "Equipment" },
+        // Dynamically add class filters
+        ...(character.classes || []).map((c: CharacterClass) => ({
+            value: c.id.toLowerCase(),
+            label: capitalizeFirstLetter(c.id)
+        })),
+        // Specific Tag Filters
+        { value: "Weapon", label: "Weapon" },
+        { value: "Spell", label: "Spell" },
+        { value: "Melee", label: "Melee" },
+        { value: "Ranged", label: "Ranged" },
+    ];
+
+    console.log("Filter:", actionFilter, "Sample Action Source:", filteredActions[2]?.source, "Sample Tags:", filteredActions[0]?.tags);
 
     //<editor-fold desc="Update Handlers">
     // Resource update handlers
@@ -398,7 +421,23 @@ export default function CharacterSheet() {
                                             <Sparkles className="w-5 h-5 text-primary"/>
                                             Actions
                                         </h2>
+                                        {/*Collapse All button*/}
                                         <div className="flex items-center gap-2">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => setAllCollapsed(!allCollapsed)}
+                                                className="h-8 text-[10px] font-black uppercase tracking-widest gap-2"
+                                            >
+                                                <ChevronDown className={cn(
+                                                    "w-3 h-3 transition-transform duration-300",
+                                                    allCollapsed ? "-rotate-90" : "rotate-0"
+                                                )} />
+                                                {allCollapsed ? "Expand All" : "Collapse All"}
+                                            </Button>
+
+                                            <div className="w-[1px] h-4 bg-border mx-1" />
+
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
@@ -505,6 +544,7 @@ export default function CharacterSheet() {
                                                     attributes={derived.attributes}
                                                     disabled={(action.focusCost || 0) > character.focus}
                                                     currentWeapon={currentWeapon}
+                                                    forceCollapsed={allCollapsed}
                                                 />
                                             ))}
                                         </div>

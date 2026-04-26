@@ -128,16 +128,16 @@ export function useDerivedStats(character: any, rulesData: any) {
         .filter(e => e.type === "Language")
         .map(e => e.value)
 
-    console.log(
-        `%c Traits Hydrated: ${activeTraits.length} `,
-        'background: #222; color: #bada55; font-weight: bold;'
-    );
-    console.table(activeTraits.map(t => ({
-        uid: t.uid,
-        id: t.id,
-        name: t.name,
-        effects: t.effects?.map(e => `${e.type}: ${e.value}`).join(", ")
-    })));
+    // console.log(
+    //     `%c Traits Hydrated: ${activeTraits.length} `,
+    //     'background: #222; color: #bada55; font-weight: bold;'
+    // );
+    // console.table(activeTraits.map(t => ({
+    //     uid: t.uid,
+    //     id: t.id,
+    //     name: t.name,
+    //     effects: t.effects?.map(e => `${e.type}: ${e.value}`).join(", ")
+    // })));
 
     return {
         characterLevel,
