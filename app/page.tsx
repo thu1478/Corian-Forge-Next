@@ -77,7 +77,7 @@ export default function CharacterSheet() {
     //<editor-fold desc="Update Handlers">
     // Resource update handlers
     const updateHp = (current: number) => {
-        const clampedHp = Math.min(Math.max(current, derived.deathThreshold), derived.maxHp);
+        const clampedHp = Math.min(Math.max(current, derived.deathThreshold), derived.maxHP);
 
         setCharacter(prev => ({
             ...prev,
@@ -93,11 +93,14 @@ export default function CharacterSheet() {
     }
 
     const updateMp = (current: number) => {
+        // Clamp between 0 and the trait/gear-boosted Max MP
+        const clampedMp = Math.min(Math.max(current, 0), derived.maxMP);
+
         setCharacter(prev => ({
             ...prev,
-            mp: current
-        }))
-    }
+            mp: clampedMp
+        }));
+    };
 
     const updateFocus = (current: number) => {
         setCharacter(prev => ({
@@ -106,9 +109,15 @@ export default function CharacterSheet() {
         }));
     }
 
-    const updateIp = (value: number) => {
-        setCharacter(prev => ({...prev, ip: value}))
-    }
+    const updateIp = (current: number) => {
+        // Clamp between 0 and the trait/gear-boosted Max IP
+        const clampedIp = Math.min(Math.max(current, 0), derived.maxIP);
+
+        setCharacter(prev => ({
+            ...prev,
+            ip: clampedIp
+        }));
+    };
 
     const updateProfileImage = (url: string) => {
         setCharacter(prev => ({...prev, profileImage: url}))
@@ -120,7 +129,7 @@ export default function CharacterSheet() {
 
     // Damage calculator handler
     const handleApplyDamage = (newHp: number, newBarrier: number) => {
-        const clampedHp = Math.min(newHp, derived.maxHp);
+        const clampedHp = Math.min(newHp, derived.maxHP);
 
         setCharacter(prev => ({
             ...prev,
@@ -337,25 +346,25 @@ export default function CharacterSheet() {
                                 {/* Resources */}
                                 <ResourceBars
                                     hp={{
-                                        current: Math.min(character.hp, derived.maxHp),
-                                        max: derived.maxHp,
+                                        current: Math.min(character.hp, derived.maxHP),
+                                        max: derived.maxHP,
                                         min: derived.deathThreshold
                                     }}
                                     barrier={character.barrier}
                                     mp={{
-                                        current: Math.min(character.mp, derived.maxMp),
-                                        max: derived.maxMp
+                                        current: Math.min(character.mp, derived.maxMP),
+                                        max: derived.maxMP
                                     }}
                                     ip={{
-                                        current: Math.min(character.ip, derived.maxIp),
-                                        max: derived.maxIp
+                                        current: Math.min(character.ip, derived.maxIP),
+                                        max: derived.maxIP
                                     }}
                                     onHpChange={updateHp}
                                     onBarrierChange={updateBarrier}
                                     onMpChange={updateMp}
                                     onIpChange={updateIp}
                                     onOpenDamageCalculator={() => setShowDamageCalculator(true)}
-                                    attributes={character.attributes}
+                                    attributes={derived.attributes}
                                     knownClasses={character.classes}
                                 />
 
@@ -363,19 +372,20 @@ export default function CharacterSheet() {
                                 <CombatStatsPanel
                                     defense={derived.defense}
                                     stability={derived.stability}
-                                    speed={character.speed}
-                                    resistances={character.resistances}
-                                    vulnerabilities={character.vulnerabilities}
+                                    speed={derived.speed}
+                                    resistances={derived.resistances}
+                                    vulnerabilities={derived.vulnerabilities}
                                 />
 
                                 {/* Attributes */}
-                                <AttributesPanel attributes={character.attributes}/>
+                                <AttributesPanel attributes={derived.attributes}/>
 
                                 {/* Other Stats */}
                                 <OtherStats
                                     xp={character.xp}
                                     inspiration={character.inspiration}
                                     victories={character.victories}
+                                    onUpdateInspiration={(value) => setCharacter(prev => ({...prev, inspiration: value}))}
                                 />
                             </div>
 
@@ -492,7 +502,7 @@ export default function CharacterSheet() {
                                                 <ActionCardComponent
                                                     key={action.id}
                                                     action={action}
-                                                    attributes={character.attributes}
+                                                    attributes={derived.attributes}
                                                     disabled={(action.focusCost || 0) > character.focus}
                                                     currentWeapon={currentWeapon}
                                                 />
@@ -516,7 +526,7 @@ export default function CharacterSheet() {
                                     onSelectFeat={handleSelectFeat}
                                     knownReactions={character.reactions}
                                     onSelectReaction={handleSelectReaction}
-                                    attributes={character.attributes}
+                                    attributes={derived.attributes}
                                     onUpdateReactionCharges={handleUpdateReactionCharges}
                                 />
                             </div>
@@ -571,8 +581,8 @@ export default function CharacterSheet() {
                                     classes={character.classes}
                                     rules={rulesData.classes}
                                 />
-                                <LanguagesPanel languages={character.languages}/>
-                                <TraitsPanel traits={character.traits}/>
+                                <LanguagesPanel languages={derived.languages}/>
+                                <TraitsPanel traits={derived.activeTraits}/>
                                 <BondsPanel bonds={character.bonds}/>
                             </div>
                         </div>
@@ -594,7 +604,7 @@ export default function CharacterSheet() {
                 defense={derived.defense}
                 hp={{
                     current: character.hp,
-                    max: derived.maxHp
+                    max: derived.maxHP
                 }}
                 barrier={character.barrier}
                 onApplyDamage={handleApplyDamage}

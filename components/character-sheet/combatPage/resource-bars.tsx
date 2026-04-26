@@ -2,19 +2,7 @@
 
 import {useState} from "react"
 import {cn} from "@/lib/utils"
-import {
-    Heart,
-    Shield,
-    Droplets,
-    Target,
-    Swords,
-    Footprints,
-    ShieldCheck,
-    Gem,
-    Minus,
-    Plus,
-    Calculator
-} from "lucide-react"
+import {Calculator, Droplets, Footprints, Heart, Minus, Plus, Shield, ShieldCheck, Swords} from "lucide-react"
 import {Button} from "@/components/ui/button"
 import {Input} from "@/components/ui/input"
 
@@ -170,7 +158,7 @@ function ResourceBar({label, current, max, min = 0, color, icon, onUpdate, barri
 }
 
 interface ResourceBarsProps {
-    hp: { current: number; max: number, min:number }
+    hp: { current: number; max: number, min: number }
     barrier: number
     mp: { current: number; max: number }
     ip: { current: number; max: number }
@@ -193,8 +181,6 @@ export function ResourceBars({
                                  onMpChange,
                                  onIpChange,
                                  onOpenDamageCalculator,
-                                 attributes,
-                                 knownClasses
                              }: ResourceBarsProps) {
 
     return (
@@ -234,7 +220,8 @@ export function ResourceBars({
                     </div>
 
                     <div className="flex items-center gap-1">
-                        <Button size="sm" variant="ghost" className="h-6 w-6 p-0 hover:bg-destructive/20" onClick={() => onBarrierChange?.(Math.max(0, barrier - 1))}>
+                        <Button size="sm" variant="ghost" className="h-6 w-6 p-0 hover:bg-destructive/20"
+                                onClick={() => onBarrierChange?.(Math.max(0, barrier - 1))}>
                             <Minus className="w-3 h-3"/>
                         </Button>
 
@@ -246,7 +233,8 @@ export function ResourceBars({
                             />
                         </div>
 
-                        <Button size="sm" variant="ghost" className="h-6 w-6 p-0 hover:bg-primary/20" onClick={() => onBarrierChange?.(barrier + 1)}>
+                        <Button size="sm" variant="ghost" className="h-6 w-6 p-0 hover:bg-primary/20"
+                                onClick={() => onBarrierChange?.(barrier + 1)}>
                             <Plus className="w-3 h-3"/>
                         </Button>
                     </div>
@@ -350,9 +338,10 @@ interface OtherStatsProps {
     xp: number
     inspiration: number
     victories: number
+    onUpdateInspiration: (newCount: number) => void;
 }
 
-export function OtherStats({xp, inspiration, victories}: OtherStatsProps) {
+export function OtherStats({xp, inspiration, victories, onUpdateInspiration}: OtherStatsProps) {
     return (
         <div className="p-4 bg-card rounded-xl border border-border">
             <h3 className="text-base font-semibold uppercase tracking-wider text-primary mb-4">Progress</h3>
@@ -363,20 +352,36 @@ export function OtherStats({xp, inspiration, victories}: OtherStatsProps) {
                     <span className="font-mono font-bold text-foreground text-base">{xp.toLocaleString()}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                    <span
-                        className="text-sm text-muted-foreground uppercase tracking-wider font-medium">Inspiration</span>
+    <span className="text-sm text-muted-foreground uppercase tracking-wider font-medium">
+        Inspiration
+    </span>
                     <div className="flex gap-1.5">
-                        {Array.from({length: 3}).map((_, i) => (
-                            <div
-                                key={i}
-                                className={cn(
-                                    "w-5 h-5 rounded-full border-2",
-                                    i < inspiration
-                                        ? "bg-amber-400 border-amber-300"
-                                        : "bg-muted/30 border-border"
-                                )}
-                            />
-                        ))}
+                        {Array.from({length: 5}).map((_, i) => {
+                            // Check if this pip should be filled based on current inspiration count
+                            const isFilled = i < inspiration;
+                            const isLastFilled = i === inspiration - 1;
+
+                            return (
+                                <button
+                                    key={i}
+                                    type="button"
+                                    onClick={() => {
+                                        // Toggle logic: If clicking the current highest pip, go down 1.
+                                        // Otherwise, set to the specific pip index.
+                                        const newVal = isLastFilled ? i : i + 1;
+
+                                        // Replace this with your actual update function (e.g., setInspiration)
+                                        onUpdateInspiration(newVal);
+                                    }}
+                                    className={cn(
+                                        "w-4 h-4 rounded-full border-2 transition-all hover:scale-110 active:scale-95",
+                                        isFilled
+                                            ? "bg-amber-400 border-amber-600 shadow-sm"
+                                            : "bg-muted/30 border-dashed border-muted-foreground/30 hover:border-amber-400/50"
+                                    )}
+                                />
+                            );
+                        })}
                     </div>
                 </div>
                 <div className="flex items-center justify-between">
@@ -400,9 +405,15 @@ function BarrierEditor({value, onSave}: { value: number, onSave: (val: number) =
                 value={tempValue}
                 onChange={(e) => setTempValue(e.target.value)}
                 onFocus={(e) => e.target.select()}
-                onBlur={() => { onSave(parseInt(tempValue) || 0); setIsEditing(false); }}
+                onBlur={() => {
+                    onSave(parseInt(tempValue) || 0);
+                    setIsEditing(false);
+                }}
                 onKeyDown={(e) => {
-                    if (e.key === "Enter") { onSave(parseInt(tempValue) || 0); setIsEditing(false); }
+                    if (e.key === "Enter") {
+                        onSave(parseInt(tempValue) || 0);
+                        setIsEditing(false);
+                    }
                     if (e.key === "Escape") setIsEditing(false);
                 }}
                 className="w-14 h-7 text-sm text-center p-1 font-mono font-bold"
@@ -413,7 +424,10 @@ function BarrierEditor({value, onSave}: { value: number, onSave: (val: number) =
 
     return (
         <button
-            onClick={() => { setTempValue(value.toString()); setIsEditing(true); }}
+            onClick={() => {
+                setTempValue(value.toString());
+                setIsEditing(true);
+            }}
             className="font-mono font-bold text-foreground hover:text-primary transition-colors cursor-pointer text-base w-full text-center"
         >
             {value}

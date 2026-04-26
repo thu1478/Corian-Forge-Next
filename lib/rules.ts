@@ -1,5 +1,5 @@
 //<editor-fold desc="Character data">
-import {ActionRef, ReactionRef} from "@/lib/baseRefs";
+import {ActionRef, ReactionRef, TraitRef} from "@/lib/baseRefs";
 
 export const CharAttribute = {
     Might: "might",
@@ -28,11 +28,19 @@ export interface CharacterClass {
     level: number
 }
 
-export interface Trait {
-    id: string
+export interface TraitEffect {
+    type: "StatChange" | "Resistance" | "Vulnerability" | "AttributeChange" | "GrantActionCard" | "Language"
+    stat?: string
+    value: string
+}
+
+export interface Trait extends TraitRef {
+    uid: string
     name: string
     source: "racial" | "feat" | "class" | "background" | "other"
     description: string
+    minLevel: number
+    effects?: TraitEffect[]
 }
 
 export interface Skill {

@@ -16,41 +16,57 @@ export function useActions(
     actionRefs: any[] = []
 ): ActionCard[] {
     return useMemo(() => {
+
+        const activeWeaponAttributes = inventory
+            .filter((item: any) =>
+                item &&
+                equippedUids.includes(item.uid) &&
+                (item.type === "weapon" || item.type === "shield")
+            )
+            .flatMap((item: any) => item.attributes || []);
+
         // 1. Gather all IDs we need to find
         const itemIds = inventory
             .filter((item: any) => item && equippedUids.includes(item.uid))
             .flatMap((item: any) => item.actionIDs || []);
 
+        // The actions that the character knows not from items
         const savedIds = actionRefs.map(ref => (typeof ref === 'string' ? ref : ref?.id));
-
         const allTargetIds = Array.from(new Set([...itemIds, ...savedIds]));
 
-        // 2. Search rules.json for these IDs
-        return allTargetIds.map(id => {
+        // 2. Hydrate actions from rules
+        const hydratedActions = allTargetIds.map(id => {
             if (!id) return null;
 
-            // CHECK GLOBAL ACTIONS FIRST
+            // Search Global
             const globalCard = (rulesData.actionCards as any)[id];
             if (globalCard) return { ...globalCard, id };
 
-            // CHECK CLASS ACTIONS SECOND
-            // We have to loop through classes because actions are nested inside them
+            // Search Classes (Reaching into .actionCard)
             for (const className of Object.keys(rulesData.classes)) {
                 const classData = (rulesData as any).classes[className];
-                const actionWrapper = classData.actions?.[id];
-
-                if (actionWrapper?.actionCard) {
-                    return {
-                        ...actionWrapper.actionCard,
-                        id,
-                        source: className
-                    };
-                }
+                const wrapper = classData.actions?.[id];
+                if (wrapper?.actionCard) return { ...wrapper.actionCard, id };
             }
-
-            console.warn(`ActionCardLoader: Could not find action with ID "${id}"`);
             return null;
-        }).filter((card): card is ActionCard => card !== null);
+        }).filter((a): a is ActionCard => a !== null);
+
+        // 3. APPLY THE WEAPON ATTRIBUTE FILTER
+        return hydratedActions.filter(action => {
+            const tags = action.tags || [];
+            const isWeaponAction = tags.includes("Weapon");
+
+            // If it's not a weapon action, it's always visible (Spells, generic moves, etc.)
+            if (!isWeaponAction) return true;
+
+            const rollStats = action.powerRoll?.rollStats || [];
+
+            // If it IS a weapon action, check for attribute compatibility
+            // We allow it if the weapon shares at least one stat with the action
+            return rollStats.some(stat =>
+                activeWeaponAttributes.includes(stat)
+            );
+        });
 
     }, [inventory, equippedUids, classNames, actionRefs]);
 }

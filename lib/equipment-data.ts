@@ -67,6 +67,7 @@ interface BaseItem {
     value?: number;
     allowedSlots?: Array<keyof Equipment["accessories"] | "rightHand" | "leftHand" | "armor">;
     actionIDs?: string[];
+    traits?: string[]
 }
 
 // 2. Define specific "Sub-Types"

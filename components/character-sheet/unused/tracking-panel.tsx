@@ -1,9 +1,10 @@
 "use client"
 
 import {useState} from "react"
-import {CharacterClass, Trait, Skill, Bond, getAttributeModifier, formatModifier} from "@/lib/character-data"
 import {cn} from "@/lib/utils"
-import {GraduationCap, Sparkles, Languages, Brain, Heart, Star, Filter} from "lucide-react"
+import {Brain, Filter, GraduationCap, Heart, Languages, Sparkles, Star} from "lucide-react"
+import {Bond, Skill, Trait} from "@/lib/rules";
+import {formatModifier, getAttributeModifier} from "@/lib/character-data";
 
 interface ClassesPanelProps {
     classes: { id: string; level: number }[]; // Character's specific data
@@ -11,7 +12,6 @@ interface ClassesPanelProps {
 }
 
 export function ClassesPanel({classes, rules}: ClassesPanelProps) {
-    const totalLevel = classes.reduce((sum, c) => sum + c.level, 0)
 
     return (
         <div className="p-4 bg-card rounded-xl border border-border">
@@ -106,7 +106,7 @@ export function TraitsPanel({traits}: TraitsPanelProps) {
             <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
                 {filteredTraits.map((trait) => (
                     <div
-                        key={trait.id}
+                        key={trait.uid}
                         className="p-3 rounded-lg bg-muted/10 border border-border/50"
                     >
                         <div className="flex items-center gap-2 mb-2">
@@ -183,7 +183,7 @@ export function SkillsPanel({skills, attributes}: SkillsPanelProps) {
 
             <div className="space-y-2">
                 {skills.map((skill) => {
-                    const modifier = getAttributeModifier(attributes[skill.attribute])
+                    const modifier = getAttributeModifier(attributes[skill.attribute as keyof typeof attributes]);
                     const bonus = skill.hasExpertise ? modifier + 4 : modifier
 
                     return (

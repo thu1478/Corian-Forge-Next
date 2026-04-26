@@ -1,6 +1,6 @@
 import {Equipment, InventoryEntry,} from "@/lib/equipment-data";
-import {Bond, CharacterClass, FocusFeature, Skill, Trait} from "@/lib/rules";
-import {ActionRef, ReactionRef} from "@/lib/baseRefs";
+import {Bond, CharacterClass, FocusFeature, Skill} from "@/lib/rules";
+import {ActionRef, ReactionRef, TraitRef} from "@/lib/baseRefs";
 
 export interface CharacterSaveData {
     // Character Info
@@ -48,7 +48,7 @@ export interface CharacterSaveData {
     actions: ActionRef[]
 
     // Traits
-    traits: Trait[]
+    traits: TraitRef[]
 
     // Languages
     languages: string[]
@@ -103,7 +103,7 @@ export const defaultCharacter: CharacterSaveData = {
     speed: 4,
 
     // Other stats
-    resistances: ["Arcane", "Cold"],
+    resistances: ["Water", "Nature"],
     vulnerabilities: ["Fire"],
     xp: 2450,
     inspiration: 2,
@@ -146,34 +146,37 @@ export const defaultCharacter: CharacterSaveData = {
         {id: "partingSlash"},
         {id: "acidSplash"},
         {id: "shadowSpears"},
-        {id: "scout/flashbang"}
     ],
 
     // Traits
     traits: [
         {
-            id: "t-1",
-            name: "Darkvision",
-            source: "racial",
-            description: "You can see in dim light within 60 feet as if it were bright light."
+            id: "statBuffTest",
+            source: "Innate"
         },
         {
-            id: "t-2",
-            name: "Fey Ancestry",
-            source: "racial",
-            description: "You have advantage on checks against being Charmed."
+            id: "resistTest",
+            source: "Innate"
         },
         {
-            id: "t-3",
-            name: "Arcane Attunement",
-            source: "class",
-            description: "You can sense magical auras within 30 feet."
+            id: "weaponBond",
+            source: "Weaponmaster"
         },
         {
-            id: "t-4",
-            name: "Dual Wielder",
-            source: "feat",
-            description: "You gain +1 Defense while wielding two weapons, and can draw or stow two weapons at once."
+            id: "bladestorm",
+            source: "Weaponmaster"
+        },
+        {
+            id: "statBuffTest2",
+            source: "Innate"
+        },
+        {
+            id: "statBuffTest3",
+            source: "Innate"
+        },
+        {
+            id: "languageTest",
+            source: "Innate"
         },
     ],
 
@@ -197,19 +200,19 @@ export const defaultCharacter: CharacterSaveData = {
     money: 127,
     ip: 3,
     inventory: [
-        { id: "sword_w1", uid: "sword_w1-v4n9z2" },
-        { id: "shield_s1", uid: "shield_s1-v4n9z2" },
-        { id: "wand_w2", uid: "wand_w2-x7m3k1" },
-        { id: "dagger_w1", uid: "dagger_w1-p9l5r8" },
-        { id: "i-a1", uid: "i-a1-q2w4e6" },
-        { id: "i-a2", uid: "i-a2-t8y1u3" },
-        { id: "i-a3", uid: "i-a3-i0o2p4" },
-        { id: "i-a4", uid: "i-a4-a7s9d1" },
-        { id: "i-acc1", uid: "i-acc1-f3g5h7" },
-        { id: "i-acc2", uid: "i-acc2-j9k1l3" },
-        { id: "i-acc3", uid: "i-acc3-z8x0c2" },
-        { id: "i-1", uid: "i-1-v4b6n8" },
-        { id: "i-3", uid: "i-3-m1q3w5" }
+        {id: "sword_w1", uid: "sword_w1-v4n9z2"},
+        {id: "shield_s1", uid: "shield_s1-v4n9z2"},
+        {id: "wand_w2", uid: "wand_w2-x7m3k1"},
+        {id: "dagger_w1", uid: "dagger_w1-p9l5r8"},
+        {id: "i-a1", uid: "i-a1-q2w4e6"},
+        {id: "i-a2", uid: "i-a2-t8y1u3"},
+        {id: "i-a3", uid: "i-a3-i0o2p4"},
+        {id: "i-a4", uid: "i-a4-a7s9d1"},
+        {id: "i-acc1", uid: "i-acc1-f3g5h7"},
+        {id: "i-acc2", uid: "i-acc2-j9k1l3"},
+        {id: "i-acc3", uid: "i-acc3-z8x0c2"},
+        {id: "i-1", uid: "i-1-v4b6n8"},
+        {id: "i-3", uid: "i-3-m1q3w5"}
     ],
 
     // Equipment
