@@ -29,7 +29,235 @@
       "nature",
       "light",
       "dark"
-    ]
+    ],
+    "xpCostPerLvl": {
+      "1": 100,
+      "2": 100,
+      "3": 150,
+      "4": 200,
+      "5": 250,
+      "6": 300,
+      "7": 350,
+      "8": 400,
+      "9": 450,
+      "10": 500
+    },
+    "startingXPPerLvl": {
+      "1": 100,
+      "2": 300,
+      "3": 500,
+      "4": 750,
+      "5": 1050,
+      "6": 1400,
+      "7": 1800,
+      "8": 2300,
+      "9": 2900,
+      "10": 3600
+    },
+    "pointBuy": {
+      "6": -2,
+      "7": -1,
+      "8": 0,
+      "9": 1,
+      "10": 2,
+      "11": 3,
+      "12": 4,
+      "13": 5,
+      "14": 7,
+      "15": 9,
+      "16": 12,
+      "17": 15,
+      "18": 19,
+      "19": 23,
+      "20": 28
+    },
+    "culture": {
+      "environment": {
+        "nomadic": {
+          "name": "Nomadic",
+          "description": "You have lived a nomadic lifestyle",
+          "skillCategories": [
+            "exploration",
+            "interpersonal"
+          ]
+        },
+        "rural": {
+          "name": "Rural",
+          "description": "You have lived in a rural area for most of your life",
+          "skillCategories": [
+            "crafting",
+            "lore"
+          ]
+        }
+      },
+      "organization": {
+        "bureaucratic": {
+          "name": "Bureaucratic",
+          "description": "You have spent a significant portion of your life dealing with paperwork and red tape",
+          "skillCategories": [
+            "intrigue",
+            "interpersonal"
+          ]
+        },
+        "communal": {
+          "name": "Communal",
+          "description": "You have spent a significant portion of your life in a tight-knit community",
+          "skillCategories": [
+            "crafting",
+            "lore"
+          ]
+        }
+      },
+      "upbringing": {
+        "academic": {
+          "name": "Academic",
+          "description": "You have spent a significant portion of your life in an academic setting",
+          "skillCategories": [
+            "medicine",
+            "mechanics",
+            "lore"
+          ]
+        }
+      }
+    },
+    "skills": {
+      "alchemy": {
+        "name": "Alchemy",
+        "description": "The skill of mixing various reagents to create potions, poisons, and other useful substances. It is a Crafting skill.",
+        "categories": [
+          "crafting"
+        ]
+      },
+      "athletics": {
+        "name": "Athletics",
+        "description": "Traversing walls and cliffs",
+        "categories": [
+          "exploration"
+        ]
+      },
+      "animalHandling": {
+        "name": "Animal Handling",
+        "description": "The skill of calming, training, and otherwise interacting with animals. It is an Interpersonal skill.",
+        "categories": [
+          "intepersonal"
+        ]
+      },
+      "search": {
+        "name": "Search",
+        "description": "The skill of finding hidden things.",
+        "categories": [
+          "intrigue"
+        ]
+      },
+      "arcana": {
+        "name": "Arcana",
+        "description": "The skill of understanding magical phenomena, deciphering magical writings, and identifying magical items. It is a Lore skill.",
+        "categories": [
+          "lore"
+        ]
+      },
+      "religion": {
+        "name": "Religion",
+        "description": "The skill of understanding religious phenomena, deciphering religious writings, and identifying religious items. It is a Lore skill.",
+        "categories": [
+          "lore"
+        ]
+      }
+    },
+    "languages": {
+      "common": {
+        "name": "Common",
+        "description": "The most widely spoken language in the world",
+        "effects": [
+          {
+            "type": "Language",
+            "value": "Common"
+          }
+        ]
+      },
+      "elvish": {
+        "name": "Elvish",
+        "description": "Language of the elves",
+        "effects": [
+          {
+            "type": "Language",
+            "value": "Elvish"
+          }
+        ]
+      },
+      "dwarvish": {
+        "name": "Dwarvish",
+        "description": "Language of the dwarves",
+        "effects": [
+          {
+            "type": "Language",
+            "value": "Dwarvish"
+          }
+        ]
+      }
+    },
+    "feats": {
+      "dualWielding": {
+        "name": "Dual Wielding",
+        "minLevel": 1,
+        "description": "If you have already attacked with a one-handed weapon this turn with an action then your next weapon attack this turn using a different one-handed weapon with an action has its AP cost reduced by 1"
+      },
+      "manaStrike": {
+        "name": "Mana Strike",
+        "minLevel": 1,
+        "description": "Once per turn you can spend 2 Mana to add your Rea, WiP, or Pre modifier to your melee weapon attack’s damage."
+      },
+      "aerialMenace": {
+        "name": "Aerial Menac",
+        "minLevel": 3,
+        "description": " Your ranged attacks deal +3 damage against flying targets"
+      },
+      "pistolMaster": {
+        "name": "Pistol Master",
+        "minLevel": 3,
+        "description": "You may treat Pistols as Light weapons. Your Max MP is increased by 6.",
+        "effects": [
+          {
+            "type": "StatChange",
+            "stat": "maxMP",
+            "value": "6"
+          }
+        ]
+      },
+      "pictureOfHealth": {
+        "name": "Picture of Health",
+        "minLevel": 1,
+        "description": "Gain 1 additional Respite",
+        "effects": [
+          {
+            "type": "StatChange",
+            "stat": "maxRespites",
+            "value": "1"
+          }
+        ]
+      },
+      "tenacity": {
+        "name": "Tenacity",
+        "minLevel": 5,
+        "description": "You increase your Max HP by 12",
+        "effects": [
+          {
+            "type": "StatChange",
+            "stat": "maxHP",
+            "value": "12"
+          }
+        ],
+        "prereqs": {
+          "classes": [
+            "brawler",
+            "fury",
+            "guardian",
+            "weaponamster"
+          ],
+          "level": 5
+        }
+      }
+    }
   },
   "classes": {
     "weaponmaster": {
@@ -53,11 +281,16 @@
         "resistTest": {
           "name": "Resistance Test",
           "minLevel": 1,
-          "description": "Gain resistance to Dark damage",
+          "description": "Gain resistance to Dark damage and vulnerability 2 to fire damage",
           "effects": [
             {
               "type": "Resistance",
-              "value": "Dark"
+              "stat": "Dark"
+            },
+            {
+              "type": "Vulnerability",
+              "stat": "Fire",
+              "value": "2"
             }
           ]
         },
@@ -394,6 +627,68 @@
     }
   },
   "races": {
+    "elf": {
+      "description": "Elves are a slender, graceful",
+      "passives": {
+        "fairysGrace": {
+          "name": "Fairy's Grace",
+          "type": "innate",
+          "description": "You can see fairies and other metaphysical beings"
+        },
+        "swimmingGrace": {
+          "name": "Swimming Grace",
+          "type": "innate",
+          "description": "You can hold your breath underwater for an hour and can speak and understand words normally underwater. You can move as easily underwater as you can on land."
+        },
+        "elvish": {
+          "name": "Elvish",
+          "type": "innate",
+          "description": "You are fluent in written and verbal communications in Elvish",
+          "effects": [
+            {
+              "type": "Language",
+              "value": "Elvish"
+            }
+          ]
+        },
+        "elfSpeed": {
+          "name": "Speed",
+          "type": "selectable",
+          "ptCost": 1,
+          "description": "Your Speed is increased by 1",
+          "effects": [
+            {
+              "type": "StatChange",
+              "stat": "speed",
+              "value": "1"
+            }
+          ]
+        },
+        "manasight": {
+          "name": "Manasight",
+          "type": "selectable",
+          "ptCost": 1,
+          "description": "You can see through most obscuring effects like smoke or fog. You don’t take a bane against concealed creatures"
+        },
+        "elfVuln": {
+          "name": "Vulnerability",
+          "type": "selectable",
+          "ptCost": 2,
+          "description": "Gain VU(2) to either fire or earth damage",
+          "selectAmount": 1,
+          "effects": [
+            {
+              "type": "Vulnerability",
+              "value": "Fire"
+            },
+            {
+              "type": "Vulnerability",
+              "value": "Earth"
+            }
+          ]
+        }
+      }
+    }
   },
   "items": {
     "sword_w1": {
@@ -479,7 +774,9 @@
       "type": "shield",
       "defense": 2,
       "range": 1,
-      "actionIDs": ["generic/raise_shield"]
+      "actionIDs": [
+        "generic/raise_shield"
+      ]
     },
     "i-a1": {
       "name": "Leather Armor of Shadows",

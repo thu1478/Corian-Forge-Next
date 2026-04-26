@@ -34,8 +34,6 @@ export interface CharacterSaveData {
     speed: number
 
     // Other stats
-    resistances: string[]
-    vulnerabilities: string[]
     xp: number
     inspiration: number
     victories: number
@@ -103,8 +101,6 @@ export const defaultCharacter: CharacterSaveData = {
     speed: 4,
 
     // Other stats
-    resistances: ["Water", "Nature"],
-    vulnerabilities: ["Fire"],
     xp: 2450,
     inspiration: 2,
     victories: 7,

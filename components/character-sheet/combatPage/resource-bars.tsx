@@ -269,7 +269,7 @@ interface CombatStatsPanelProps {
     stability: number
     speed: number
     resistances: string[]
-    vulnerabilities: string[]
+    vulnerabilities: Record<string,number>
 }
 
 export function CombatStatsPanel({defense, stability, speed, resistances, vulnerabilities}: CombatStatsPanelProps) {
@@ -317,15 +317,16 @@ export function CombatStatsPanel({defense, stability, speed, resistances, vulner
                         ))}
                     </div>
                 )}
-                {vulnerabilities.length > 0 && (
+                {Object.keys(vulnerabilities).length > 0 && (
                     <div className="flex flex-wrap items-center gap-2">
-                        <span
-                            className="text-xs text-red-700 dark:text-red-400 uppercase tracking-wider font-semibold">Vuln:</span>
-                        {vulnerabilities.map((v) => (
-                            <span key={v}
-                                  className="text-xs px-2 py-1 rounded bg-red-100 border border-red-300 text-red-700 dark:bg-red-900/40 dark:border-red-700/50 dark:text-red-300 font-medium">
-                {v}
-              </span>
+            <span className="text-xs text-red-700 dark:text-red-400 uppercase tracking-wider font-semibold">
+                Vuln:
+            </span>
+                        {Object.entries(vulnerabilities).map(([type, value]) => (
+                            <span key={type} className="text-xs px-2 py-1 rounded bg-red-100 border border-red-300 text-red-700 dark:bg-red-900/40 dark:border-red-700/50 dark:text-red-300 font-medium flex items-center gap-1">
+                    {type}
+                                <span className="opacity-60 font-bold">+{value}</span>
+                </span>
                         ))}
                     </div>
                 )}

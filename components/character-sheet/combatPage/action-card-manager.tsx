@@ -54,6 +54,7 @@ export function ActionCardComponent({
                                     }: ActionCardProps) {
     // Each card maintains its own independent state
     const [isExpanded, setIsExpanded] = useState(true);
+    const [isPowerRollExpanded, setIsPowerRollExpanded] = useState(true);
 
     // Effect to listen to the "Global Collapse" button from parent
     useEffect(() => {
@@ -96,7 +97,7 @@ export function ActionCardComponent({
             {/* COLLAPSIBLE CONTENT CONTAINER */}
             <div className={cn(
                 "transition-all duration-300 ease-in-out",
-                isExpanded ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"
+                isExpanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0 pointer-events-none overflow-hidden"
             )}>
 
                 {/* Cost Row */}
@@ -170,14 +171,14 @@ export function ActionCardComponent({
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
-                                setIsExpanded(!isExpanded);
+                                setIsPowerRollExpanded(!isPowerRollExpanded);
                             }}
                             className="w-full px-3 py-2 flex items-center justify-between border-b border-border/20 hover:bg-foreground/5 transition-colors group"
                         >
                             <div className="flex items-center gap-2">
                                 <ChevronDown className={cn(
                                     "w-4 h-4 opacity-30 transition-transform duration-200",
-                                    !isExpanded && "-rotate-90"
+                                    !isPowerRollExpanded && "-rotate-90"
                                 )}/>
                                 <span
                                     className="text-[10px] font-black uppercase tracking-widest opacity-50 group-hover:opacity-100">
@@ -203,7 +204,7 @@ export function ActionCardComponent({
                         {/* Tier Rows - Animated visibility */}
                         <div className={cn(
                             "transition-all duration-200",
-                            isExpanded ? "p-2 space-y-1 block opacity-100" : "hidden opacity-0"
+                            isPowerRollExpanded ? "p-2 space-y-1 block opacity-100" : "hidden opacity-0"
                         )}>
                             <TierRow
                                 label="<=11"

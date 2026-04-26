@@ -111,12 +111,24 @@ export function useDerivedStats(character: any, rulesData: any) {
     const resistances = activeTraits
         .flatMap(t => t.effects || [])
         .filter(e => e.type === "Resistance")
-        .map(e => e.value);
+        .map(e => e.stat)
+        .filter((stat): stat is string => !!stat);
 
     const vulnerabilities = activeTraits
         .flatMap(t => t.effects || [])
         .filter(e => e.type === "Vulnerability")
-        .map(e => e.value);
+        .reduce((acc: Record<string, number>, effect) => {
+            const type = effect.stat; // e.g., "Fire"
+            // const amount = parseInt(effect.value) || 0; // e.g., 2
+
+            // If multiple traits give the same vulnerability, we stack the numbers
+            if (type) {
+                const amount = parseInt(effect.value) || 0;
+                acc[type] = (acc[type] || 0) + amount;
+            }
+
+            return acc;
+        }, {});
 
     const grantedActionIds = activeTraits
         .flatMap(t => t.effects || [])
