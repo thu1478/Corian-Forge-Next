@@ -5,6 +5,7 @@ import {useTheme} from "next-themes"
 import {CharacterSheetView} from "@/components/character-sheet/CharacterSheetView"
 import {Button} from "@/components/ui/button"
 import {Moon, PlusCircle, Sun, Swords} from "lucide-react"
+import CharacterCreator from "@/components/character-creator/CharacterCreator";
 
 type AppMode = "sheet" | "creator"
 
@@ -69,9 +70,7 @@ export default function Page() {
                 {mode === "sheet" ? (
                     <CharacterSheetView />
                 ) : (
-                    <div className="container mx-auto px-4 py-20 text-center">
-                        <h2 className="text-2xl font-bold">Character Creator</h2>
-                    </div>
+                    <CharacterCreator />
                 )}
             </div>
 

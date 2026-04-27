@@ -261,10 +261,6 @@ function TierRow({label, roll, tier, badgeStyle, attributes, currentWeapon}: {
     const hasWpn = roll[`tier${tier}Wpn` as keyof PowerRoll] as boolean || false;
     const potency = roll[`tier${tier}Effect` as keyof PowerRoll] as PotencyEffect | undefined;
 
-    const statModifiers = roll.rollStats.map(stat => getAttributeModifier(attributes[stat as keyof typeof attributes]));
-    const highestMod = Math.max(...statModifiers);
-    // const finalDmg = (hasWpn ? highestMod : 0) + baseDmg;
-
     // 2. Weapon Damage Matching Logic
     let weaponBonus = 0;
     if (currentWeapon && currentWeapon.type === "weapon" && currentWeapon.attributes) {
@@ -279,7 +275,7 @@ function TierRow({label, roll, tier, badgeStyle, attributes, currentWeapon}: {
     }
 
     // 3. Final Damage = (Tier Scaling ? Highest Mod : 0) + Base + Weapon Bonus
-    const finalDmg = (hasWpn ? highestMod : 0) + baseDmg + weaponBonus;
+    const finalDmg = (hasWpn ? weaponBonus : 0) + baseDmg;
 
     const getPotencyThreshold = (p: PotencyEffect) => {
         if (p.type === 'Special' || p.strength === undefined || !p.srcStats) return null;

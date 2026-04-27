@@ -43,6 +43,12 @@ export interface Trait extends TraitRef {
     effects?: TraitEffect[]
 }
 
+export interface RacialPassive extends Trait {
+    source: "racial"
+    type?: "innate" | "selectable"
+    ptCost?: number
+}
+
 export interface Skill {
     name: string
     attribute: "might" | "dexterity" | "reason" | "willpower" | "presence"

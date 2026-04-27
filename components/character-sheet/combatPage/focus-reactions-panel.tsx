@@ -233,6 +233,7 @@ export function FocusReactionsPanel({
                                                 <ActionCardComponent
                                                     action={actionCardData}
                                                     attributes={attributes as any}
+                                                    forceCollapsed={false}
                                                 />
                                             </div>
                                         )}

@@ -252,7 +252,7 @@
             "brawler",
             "fury",
             "guardian",
-            "weaponamster"
+            "weaponmaster"
           ],
           "level": 5
         }
@@ -628,6 +628,7 @@
   },
   "races": {
     "elf": {
+      "name": "Elf",
       "description": "Elves are a slender, graceful",
       "passives": {
         "fairysGrace": {
@@ -686,6 +687,41 @@
               "value": "Earth"
             }
           ]
+        }
+      }
+    },
+    "human": {
+      "name": "Human",
+      "description": "Human is human",
+      "passives": {
+        "mundaneSenses": {
+          "name": "Mundane Senses",
+          "type": "innate",
+          "description": "You can tell if something is magical just by touching it. You cannot use this to perceive fairies or other metaphysical beings."
+        },
+        "longHistory": {
+          "name": "Long History",
+          "type": "selectable",
+          "ptCost": 1,
+          "description": "Grant an additional +1 bonus when invoking the Arcana or History skill"
+        },
+        "defyFate": {
+          "name": "Defy Fate",
+          "type": "selectable",
+          "ptCost": 2,
+          "description": "Once per long rest you may reroll a Power Roll or saving throw"
+        },
+        "marchOnward": {
+          "name": "March Onward",
+          "type": "selectable",
+          "ptCost": 1,
+          "description": "When slowed your Speed is reduced to 3 instead of 2"
+        },
+        "vulnerableMind": {
+          "name": "Vulnerable Mind",
+          "type": "selectable",
+          "ptCost": -1,
+          "description": "Your Willpower modifier gains a -1 penalty only for the sake of resisting Potencies."
         }
       }
     }
