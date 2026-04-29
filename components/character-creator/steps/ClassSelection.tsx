@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ArrowLeftIcon, PlusIcon, MinusIcon, CheckCircleIcon } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import rulesData from "@/lib/rules.json";
@@ -10,6 +10,8 @@ type LevelKey = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10";
 
 interface ClassSelectionProps {
     selectedOptions: { id: string; source: string }[];
+    classes: { id: string; level: number }[];
+    currentAdventurerLevel: number;
     attributes: {
         might: number; dexterity: number; reason: number; willpower: number; presence: number;
     };
@@ -21,15 +23,25 @@ interface ClassSelectionProps {
 
 const ClassSelection: React.FC<ClassSelectionProps> = ({
                                                            selectedOptions,
+                                                           classes,
+                                                           currentAdventurerLevel,
                                                            attributes,
                                                            onUpdateLevel,
                                                            onUpdateClassData,
                                                            onBack,
                                                            onNext
                                                        }) => {
-    const [adventurerLevel, setAdventurerLevel] = useState<number>(1);
-    const [localClasses, setLocalClasses] = useState<{ id: string; level: number }[]>([]);
+    const [adventurerLevel, setAdventurerLevel] = useState<number>(currentAdventurerLevel);
+    const [localClasses, setLocalClasses] = useState<{ id: string; level: number }[]>(classes);
     const [expandedClassId, setExpandedClassId] = useState<string | null>(null);
+
+    useEffect(() => {
+        setLocalClasses(classes);
+    }, [classes]);
+
+    useEffect(() => {
+        setAdventurerLevel(currentAdventurerLevel);
+    }, [currentAdventurerLevel]);
 
     // --- SYSTEM MATH ---
     const getStartingXP = (lvl: number) => (rulesData.system.startingXPPerLvl as Record<LevelKey, number>)[lvl.toString() as LevelKey] || 0;
@@ -47,6 +59,11 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
     const totalBudget = getStartingXP(adventurerLevel);
     const spentBudget = localClasses.reduce((sum, c) => sum + calculateClassXPCost(c.level), 0);
     const remainingAdventurerXP = totalBudget - spentBudget;
+    const hasAtLeastOneClass = localClasses.some((c) => c.level > 0);
+    const allClassXPAssigned = localClasses.every((c) => {
+        const spentInClass = selectedOptions.filter((o) => o.source === c.id).length;
+        return spentInClass === getMaxClassXP(c.level);
+    });
 
     // --- SELECTION LOGIC ---
     const handleToggleTalent = (optionId: string, sourceClassId: string) => {
@@ -232,7 +249,12 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
                             <div className="flex justify-between items-start mb-6">
                                 <div>
                                     <h2 className="text-3xl font-black uppercase italic tracking-tighter">{classData.name}</h2>
-                                    <span className="text-[10px] font-black uppercase text-primary/60 tracking-widest">{classData.attribute}</span>
+                                    <span className="text-[10px] font-black uppercase text-primary/60 tracking-widest">
+                                        Focus: {classData.focusFeat?.name ?? "None"}
+                                    </span>
+                                    <div className="text-xs text-muted-foreground mt-2">
+                                        Next level XP cost: {currentLevel >= 10 ? "MAX" : nextCost}
+                                    </div>
                                 </div>
                                 <div className="flex items-center gap-1 bg-secondary rounded-full p-1 border border-border">
                                     <button onClick={() => handleClassLevelChange(id, -1)} className="p-1"><MinusIcon size={14}/></button>
@@ -249,7 +271,18 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
             </div>
             <footer className="mt-20 flex justify-between items-center border-t border-border pt-10">
                 <button onClick={onBack} className="font-black uppercase text-[10px] text-muted-foreground hover:text-foreground tracking-widest">Back</button>
-                <button onClick={onNext} className="px-12 py-4 bg-primary text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-primary/20 hover:scale-105">Finalize</button>
+                <button
+                    onClick={onNext}
+                    disabled={!hasAtLeastOneClass || remainingAdventurerXP < 0 || !allClassXPAssigned}
+                    className={cn(
+                        "px-12 py-4 rounded-2xl font-black uppercase text-xs tracking-widest",
+                        hasAtLeastOneClass && remainingAdventurerXP >= 0 && allClassXPAssigned
+                            ? "bg-primary text-white shadow-xl shadow-primary/20 hover:scale-105"
+                            : "bg-muted text-muted-foreground cursor-not-allowed"
+                    )}
+                >
+                    Finalize
+                </button>
             </footer>
         </div>
     );

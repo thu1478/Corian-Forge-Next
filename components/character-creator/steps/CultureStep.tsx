@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
-import { rules } from './rules';
+import React, { useMemo, useState } from "react";
+import rulesData from "@/lib/rules.json";
 import { ChevronRightIcon, ChevronLeftIcon, CheckIcon } from 'lucide-react';
 interface CultureStepProps {
   cultureEnvironment: string | null;
   cultureOrganization: string | null;
   cultureUpbringing: string | null;
   selectedSkills: string[];
+  globalSkillCounts: Record<string, number>;
   onSelectEnvironment: (id: string) => void;
   onSelectOrganization: (id: string) => void;
   onSelectUpbringing: (id: string) => void;
@@ -18,6 +19,7 @@ export function CultureStep({
   cultureOrganization,
   cultureUpbringing,
   selectedSkills,
+  globalSkillCounts,
   onSelectEnvironment,
   onSelectOrganization,
   onSelectUpbringing,
@@ -31,27 +33,27 @@ export function CultureStep({
   const allChoicesMade =
   cultureEnvironment && cultureOrganization && cultureUpbringing;
   const isComplete = allChoicesMade && selectedSkills.length === 3;
+  const culture = rulesData.system.culture;
+  const allSkills = rulesData.system.skills;
+
   // Gather unlocked categories
-  const unlockedCategories = new Set<string>();
-  if (cultureEnvironment) {
-    rules.system.culture.environment[
-    cultureEnvironment]?.
-    skillCategories.forEach((c) => unlockedCategories.add(c));
-  }
-  if (cultureOrganization) {
-    rules.system.culture.organization[
-    cultureOrganization]?.
-    skillCategories.forEach((c) => unlockedCategories.add(c));
-  }
-  if (cultureUpbringing) {
-    rules.system.culture.upbringing[cultureUpbringing]?.skillCategories.forEach(
-      (c) => unlockedCategories.add(c)
-    );
-  }
+  const unlockedCategories = useMemo(() => {
+    const set = new Set<string>();
+    if (cultureEnvironment) {
+      culture.environment[cultureEnvironment as keyof typeof culture.environment]?.skillCategories.forEach((c) => set.add(c));
+    }
+    if (cultureOrganization) {
+      culture.organization[cultureOrganization as keyof typeof culture.organization]?.skillCategories.forEach((c) => set.add(c));
+    }
+    if (cultureUpbringing) {
+      culture.upbringing[cultureUpbringing as keyof typeof culture.upbringing]?.skillCategories.forEach((c) => set.add(c));
+    }
+    return set;
+  }, [cultureEnvironment, cultureOrganization, cultureUpbringing, culture.environment, culture.organization, culture.upbringing]);
   // Filter skills based on unlocked categories
-  const availableSkills = Object.entries(rules.system.skills).filter(
+  const availableSkills = Object.entries(allSkills).filter(
     ([_, skill]) => {
-      return skill.categories.some((c) => unlockedCategories.has(c));
+      return skill.categories.some((c) => unlockedCategories.has(c) || (c === "intepersonal" && unlockedCategories.has("interpersonal")));
     }
   );
   const renderSection = (
@@ -71,23 +73,22 @@ export function CultureStep({
             onSelect(id);
             if (nextTab) setActiveTab(nextTab);
           }}
-          className={`text-left p-5 rounded-xl transition-all duration-200 border-2 flex flex-col ${isSelected ? 'bg-gray-800/80 border-purple-500 ring-2 ring-purple-500/20 shadow-lg shadow-purple-900/20' : 'bg-gray-900/50 border-gray-800 hover:border-gray-600 hover:bg-gray-800/50'}`}>
+          className={`text-left p-5 rounded-xl transition-all duration-200 border-2 flex flex-col ${isSelected ? 'bg-purple-100/60 dark:bg-purple-900/20 border-purple-500 ring-2 ring-purple-500/20 shadow-lg shadow-purple-900/20' : 'bg-card border-border hover:border-muted-foreground/50 hover:bg-muted/20'}`}>
           
             <div className="flex justify-between items-start mb-2">
-              <h3 className="text-xl font-bold text-gray-100">{item.name}</h3>
+              <h3 className="text-xl font-bold text-foreground">{item.name}</h3>
               {isSelected && <CheckIcon className="w-5 h-5 text-purple-400" />}
             </div>
-            <p className="text-sm text-gray-400 mb-4 flex-grow">
+            <p className="text-sm text-muted-foreground mb-4 flex-grow">
               {item.description}
             </p>
             <div className="flex flex-wrap gap-2 mt-auto">
               {item.skillCategories.map((cat: string) =>
-            <span
+<span
               key={cat}
-              className="text-xs font-semibold px-2 py-1 rounded bg-gray-950 text-amber-400 border border-gray-800 uppercase">
-              
-                  {cat}
-                </span>
+              className="text-xs font-semibold px-2 py-1 rounded bg-slate-100 text-slate-600 border border-slate-300 uppercase dark:bg-background dark:text-amber-500 dark:border-border">
+                {cat}
+              </span>
             )}
             </div>
           </button>);
@@ -98,33 +99,33 @@ export function CultureStep({
   return (
     <div className="flex flex-col h-full animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="mb-8">
-        <h2 className="text-3xl font-bold text-gray-100 mb-2">
+        <h2 className="text-4xl font-black tracking-tight italic uppercase mb-2">
           Culture & Background
         </h2>
-        <p className="text-gray-400">
+        <p className="text-slate-500 dark:text-slate-400 text-lg font-medium">
           Choose your environment, organization, and upbringing to unlock
           skills.
         </p>
       </div>
 
-      <div className="flex gap-2 mb-6 border-b border-gray-800 pb-2 overflow-x-auto">
+      <div className="flex gap-2 mb-6 border-b border-border pb-2 overflow-x-auto">
         <button
           onClick={() => setActiveTab('environment')}
-          className={`px-4 py-2 font-bold rounded-t-lg transition-colors whitespace-nowrap ${activeTab === 'environment' ? 'bg-gray-800 text-purple-400 border-b-2 border-purple-500' : 'text-gray-500 hover:text-gray-300'}`}>
+          className={`px-4 py-2 font-bold rounded-t-lg transition-colors whitespace-nowrap ${activeTab === 'environment' ? 'bg-card text-purple-500 border-b-2 border-purple-500' : 'text-muted-foreground hover:text-foreground'}`}>
           
           1. Environment {cultureEnvironment && '✓'}
         </button>
         <button
           onClick={() => setActiveTab('organization')}
           disabled={!cultureEnvironment}
-          className={`px-4 py-2 font-bold rounded-t-lg transition-colors whitespace-nowrap ${activeTab === 'organization' ? 'bg-gray-800 text-purple-400 border-b-2 border-purple-500' : 'text-gray-500 hover:text-gray-300'} disabled:opacity-50 disabled:cursor-not-allowed`}>
+          className={`px-4 py-2 font-bold rounded-t-lg transition-colors whitespace-nowrap ${activeTab === 'organization' ? 'bg-card text-purple-500 border-b-2 border-purple-500' : 'text-muted-foreground hover:text-foreground'} disabled:opacity-50 disabled:cursor-not-allowed`}>
           
           2. Organization {cultureOrganization && '✓'}
         </button>
         <button
           onClick={() => setActiveTab('upbringing')}
           disabled={!cultureOrganization}
-          className={`px-4 py-2 font-bold rounded-t-lg transition-colors whitespace-nowrap ${activeTab === 'upbringing' ? 'bg-gray-800 text-purple-400 border-b-2 border-purple-500' : 'text-gray-500 hover:text-gray-300'} disabled:opacity-50 disabled:cursor-not-allowed`}>
+          className={`px-4 py-2 font-bold rounded-t-lg transition-colors whitespace-nowrap ${activeTab === 'upbringing' ? 'bg-card text-purple-500 border-b-2 border-purple-500' : 'text-muted-foreground hover:text-foreground'} disabled:opacity-50 disabled:cursor-not-allowed`}>
           
           3. Upbringing {cultureUpbringing && '✓'}
         </button>
@@ -134,7 +135,7 @@ export function CultureStep({
         {activeTab === 'environment' &&
         renderSection(
           'Environment',
-          rules.system.culture.environment,
+          culture.environment,
           cultureEnvironment,
           onSelectEnvironment,
           'organization'
@@ -142,7 +143,7 @@ export function CultureStep({
         {activeTab === 'organization' &&
         renderSection(
           'Organization',
-          rules.system.culture.organization,
+          culture.organization,
           cultureOrganization,
           onSelectOrganization,
           'upbringing'
@@ -150,29 +151,29 @@ export function CultureStep({
         {activeTab === 'upbringing' &&
         renderSection(
           'Upbringing',
-          rules.system.culture.upbringing,
+          culture.upbringing,
           cultureUpbringing,
           onSelectUpbringing
         )}
 
         {allChoicesMade &&
-        <div className="mt-8 pt-8 border-t border-gray-800 animate-in fade-in duration-500">
+        <div className="mt-8 pt-8 border-t border-border animate-in fade-in duration-500">
             <div className="flex justify-between items-end mb-6">
               <div>
-                <h3 className="text-2xl font-bold text-gray-100 mb-1">
+                <h3 className="text-2xl font-bold text-foreground mb-1">
                   Skill Selection
                 </h3>
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-muted-foreground">
                   Choose 3 skills from your unlocked categories. Selecting a
                   skill twice grants Expertise.
                 </p>
               </div>
-              <div className="bg-gray-900 border border-gray-700 rounded-xl p-3 text-center min-w-[100px]">
-                <div className="text-xs text-gray-500 uppercase font-bold mb-1">
+              <div className="bg-card border border-border rounded-xl p-3 text-center min-w-[100px]">
+                <div className="text-xs text-muted-foreground uppercase font-bold mb-1">
                   Picks Left
                 </div>
                 <div
-                className={`text-2xl font-black ${3 - selectedSkills.length === 0 ? 'text-green-400' : 'text-amber-400'}`}>
+                  className={`text-2xl font-black ${3 - selectedSkills.length === 0 ? 'text-green-500' : 'text-amber-500'}`}>
                 
                   {3 - selectedSkills.length}
                 </div>
@@ -181,40 +182,56 @@ export function CultureStep({
 
             <div className="flex flex-wrap gap-3">
               {availableSkills.map(([id, skill]) => {
-              const count = selectedSkills.filter((s) => s === id).length;
-              const canSelect = selectedSkills.length < 3 || count > 0; // Can deselect if already picked
+              const count = globalSkillCounts[id] || 0;
+              const inCulture = selectedSkills.includes(id);
+              const wouldGainExpertise = count === 1 && !inCulture;
+              const atExpertiseCap = count >= 2 && !inCulture;
+              const canSelect = !atExpertiseCap && (selectedSkills.length < 3 || inCulture);
               return (
                 <button
                   key={id}
                   onClick={() => {
-                    if (count === 2) {
-                      // If expertise, clicking again removes both (or one depending on logic, let's remove one)
+                    if (inCulture) {
                       onToggleSkill(id);
-                    } else if (selectedSkills.length < 3) {
+                    } else if (selectedSkills.length < 3 && !atExpertiseCap) {
                       onToggleSkill(id);
-                    } else if (count > 0) {
-                      onToggleSkill(id); // Deselect
                     }
                   }}
-                  disabled={!canSelect && count === 0}
-                  className={`flex flex-col items-start p-3 rounded-xl border-2 transition-all text-left w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.75rem)] ${count === 2 ? 'bg-purple-900/40 border-purple-500 ring-1 ring-purple-500/50' : count === 1 ? 'bg-gray-800 border-purple-500/50' : 'bg-gray-900/50 border-gray-800 hover:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed'}`}>
+                  disabled={!canSelect}
+                  className={`flex flex-col items-start p-3 rounded-xl border-2 transition-all text-left w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.75rem)] ${
+                    count >= 2
+                      ? "bg-purple-900/40 border-purple-500 ring-1 ring-purple-500/50"
+                      : count === 1
+                        ? "bg-muted border-purple-500/50"
+                        : "bg-card border-border hover:border-muted-foreground/60"
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}>
                   
                     <div className="flex justify-between items-start w-full mb-1">
-                      <span className="font-bold text-gray-200">
+                      <span className="font-bold text-foreground">
                         {skill.name}
                       </span>
                       {count > 0 &&
                     <span
-                      className={`text-xs font-bold px-2 py-0.5 rounded ${count === 2 ? 'bg-purple-500 text-white' : 'bg-gray-700 text-purple-300'}`}>
+                      className={`text-xs font-bold px-2 py-0.5 rounded ${count === 2 ? 'bg-purple-500 text-white' : 'bg-muted text-purple-300'}`}>
                       
                           {count === 2 ? 'Expertise' : 'Proficient'}
                         </span>
                     }
                     </div>
-                    <span className="text-[10px] uppercase font-bold text-amber-500 mb-2">
+                    {wouldGainExpertise && (
+                      <span className="text-[10px] font-bold text-purple-300 mb-1">
+                        Next pick grants Expertise
+                      </span>
+                    )}
+                    {atExpertiseCap && (
+                      <span className="text-[10px] font-bold text-red-300 mb-1">
+                        Expertise already reached
+                      </span>
+                    )}
+                    <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-amber-500 mb-2">
                       {skill.categories.join(', ')}
                     </span>
-                    <p className="text-xs text-gray-400 line-clamp-2">
+                    <p className="text-xs text-muted-foreground line-clamp-2">
                       {skill.description}
                     </p>
                   </button>);
@@ -230,17 +247,17 @@ export function CultureStep({
         }
       </div>
 
-      <div className="flex justify-between mt-8 pt-4 border-t border-gray-800/50">
+      <div className="flex justify-between mt-8 pt-4 border-t border-border">
         <button
           onClick={onBack}
-          className="flex items-center gap-2 px-6 py-3 rounded-lg font-bold text-gray-300 bg-gray-800 hover:bg-gray-700 transition-colors">
+          className="flex items-center gap-2 px-6 py-3 rounded-lg font-bold text-secondary-foreground bg-secondary hover:opacity-90 transition-colors">
           
           <ChevronLeftIcon className="w-5 h-5" /> Back
         </button>
         <button
           onClick={onNext}
           disabled={!isComplete}
-          className={`flex items-center gap-2 px-6 py-3 rounded-lg font-bold transition-all ${isComplete ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-900/30' : 'bg-gray-800 text-gray-500 cursor-not-allowed'}`}>
+          className={`flex items-center gap-2 px-6 py-3 rounded-lg font-bold transition-all ${isComplete ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-900/30' : 'bg-muted text-muted-foreground cursor-not-allowed'}`}>
           
           Next Step <ChevronRightIcon className="w-5 h-5" />
         </button>

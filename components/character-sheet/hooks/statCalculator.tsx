@@ -27,6 +27,11 @@ export function useDerivedStats(character: any, rulesData: any) {
                 }
             }
 
+            // Search feats from system definitions
+            if (!ruleData) {
+                ruleData = rulesData.system?.feats?.[tRef.id];
+            }
+
             // Check for item passives (Crucial for Earring/WeaponBond)
             if (!ruleData && tRef.itemId) {
                 const sourceItem = character.inventory?.find((i: any) => String(i.uid) === String(tRef.itemId));
@@ -139,6 +144,11 @@ export function useDerivedStats(character: any, rulesData: any) {
         .flatMap(t => t.effects || [])
         .filter(e => e.type === "Language")
         .map(e => e.value)
+    
+    // Also include legacy languages from save data (backward compatibility)
+    const legacyLanguages = character?.languages || [];
+    
+    const allLanguages = ["Common", ...languages, ...legacyLanguages].filter((v, i, a) => a.indexOf(v) === i);
 
     // console.log(
     //     `%c Traits Hydrated: ${activeTraits.length} `,
@@ -163,10 +173,10 @@ export function useDerivedStats(character: any, rulesData: any) {
         speed: 4 + getClassBonus(character, rulesData, "speed") + getGearBonus(character, "speed") + getTraitStatBonus(activeTraits, "speed"),
         // UI/System Exports
         activeTraits,
-        resistances,
+resistances,
         vulnerabilities,
         grantedActionIds,
-        languages
+        languages: allLanguages
     };
 }
 

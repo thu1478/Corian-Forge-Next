@@ -47,9 +47,7 @@ export interface CharacterSaveData {
 
     // Traits
     traits: TraitRef[]
-
-    // Languages
-    languages: string[]
+    // Languages - REMOVED: Now handled via Language trait effects
 
     // Skills
     skills: Skill[]
@@ -175,9 +173,6 @@ export const defaultCharacter: CharacterSaveData = {
             source: "Innate"
         },
     ],
-
-    // Languages
-    languages: ["Common", "Elvish", "Draconic"],
 
     // Skills
     skills: [

@@ -41,6 +41,7 @@ export function hydrateItemData(rawCharacter: CharacterSaveData | null, rules: a
         };
 
         return {
+            resistances: [], vulnerabilities: {},
             ...rawCharacter,
             inventory: fullInventory,
             equipment: hydratedEquipment

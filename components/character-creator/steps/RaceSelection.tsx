@@ -12,7 +12,6 @@ interface RaceSelectionProps {
 }
 
 export function RaceSelection({ raceId, raceSelectablePassives, onSelectRace, onToggleSelectable, onNext }: RaceSelectionProps) {
-    const STEPS = ["Race", "Class", "Abilities", "Culture", "Occupation", "Feats", "Review"];
     const [expandedRaceId, setExpandedRaceId] = useState<string | null>(null);
 
     const ALL_RACES = useMemo(() => {
@@ -45,27 +44,6 @@ export function RaceSelection({ raceId, raceSelectablePassives, onSelectRace, on
 
     return (
         <div className="w-full max-w-7xl mx-auto px-8 py-8 min-h-screen flex flex-col text-slate-900 dark:text-slate-100">
-
-            {/* STEP TRACKER - High Contrast Refinement */}
-            <div className="flex items-center justify-center gap-4 mb-12 border-b border-slate-200 dark:border-slate-800 pb-6">
-                {STEPS.map((step, idx) => {
-                    const isActive = step === "Race";
-                    return (
-                        <React.Fragment key={step}>
-                            <div className={`text-[12px] font-black uppercase tracking-[0.2em] transition-colors ${
-                                isActive
-                                    ? 'text-purple-600 dark:text-purple-400'
-                                    : 'text-slate-600 dark:text-slate-500' // Darker slate for better visibility
-                            }`}>
-                                {idx + 1}. {step}
-                            </div>
-                            {idx < STEPS.length - 1 && (
-                                <div className="w-6 h-[2px] bg-slate-300 dark:bg-slate-700" /> // Slightly more substantial divider
-                            )}
-                        </React.Fragment>
-                    );
-                })}
-            </div>
 
             {expandedRaceId ? (
                 /* --- EXPANDED VIEW --- */
@@ -181,9 +159,28 @@ export function RaceSelection({ raceId, raceSelectablePassives, onSelectRace, on
                                         </div>
                                     </div>
 
+                                    <div className="mb-4 space-y-2">
+                                        <div className="text-[10px] font-black uppercase tracking-widest text-slate-500">Innate</div>
+                                        <div className="flex flex-wrap gap-2">
+                                            {race.passives.filter((p) => p.type === "innate").map((p) => (
+                                                <span key={p.uid} title={p.description} className="text-xs px-2 py-1 rounded border border-slate-300 dark:border-slate-700">
+                                                    {p.name}
+                                                </span>
+                                            ))}
+                                        </div>
+                                        <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-2">Selectable</div>
+                                        <div className="flex flex-wrap gap-2">
+                                            {race.passives.filter((p) => p.type === "selectable").map((p) => (
+                                                <span key={p.uid} title={p.description} className="text-xs px-2 py-1 rounded border border-amber-300 dark:border-amber-700">
+                                                    {p.name} ({p.ptCost ?? 0})
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+
                                     <div className="flex gap-4 mt-auto pt-6">
                                         <button onClick={() => setExpandedRaceId(rId)} className="flex-1 py-4 rounded-xl font-black text-xs uppercase tracking-widest bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 transition-all">
-                                            Modify Build
+                                            Details
                                         </button>
                                         {isSelected && pts === 3 && (
                                             <button onClick={onNext} className="flex-1 py-4 rounded-xl font-black text-xs uppercase tracking-widest bg-purple-600 text-white shadow-md transition-all">
