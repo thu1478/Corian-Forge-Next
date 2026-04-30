@@ -13,12 +13,16 @@ import { CharacterProfile } from "@/components/character-sheet/characterPage/cha
 import { DamageCalculator } from "@/components/character-sheet/combatPage/damage-calculator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Input } from "@/components/ui/input"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { ChevronDown, Filter, LayoutGrid, List, Package, Sparkles, Swords, User } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { capitalizeFirstLetter, cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { makeContainerId, makeInventoryUid } from "@/lib/inventory-filters"
+import { unequipInventoryUids } from "@/lib/inventory-helpers"
 import rulesData from "@/lib/rules.json";
-import { Equipment, EQUIPMENT_RULES } from "@/lib/equipment-data";
+import { Equipment, EQUIPMENT_RULES, type InventoryContainer } from "@/lib/equipment-data";
 import { useDataLoader } from "@/components/character-sheet/hooks/DataLoader";
 import { CharacterClass } from "@/lib/rules";
 
@@ -36,6 +40,7 @@ export function CharacterSheetView() {
     } = useDataLoader(rulesData);
 
     const [actionFilter, setActionFilter] = useState<ActionFilter>("all")
+    const [actionSearch, setActionSearch] = useState("")
     const [viewMode, setViewMode] = useState<ViewMode>("grid")
     const [allCollapsed, setAllCollapsed] = useState(false)
     const [showDamageCalculator, setShowDamageCalculator] = useState(false)
@@ -58,15 +63,94 @@ export function CharacterSheetView() {
     ];
 
     const filteredActions = (character.actions || []).filter((action: any) => {
-        if (actionFilter === "all") return true;
-        const filterLower = actionFilter.toLowerCase();
-        const source = (action.source || "").toLowerCase();
-        if (source === filterLower) return true;
-        if (action.tags && Array.isArray(action.tags)) {
-            return action.tags.some((tag: string) => tag.toLowerCase() === filterLower);
+        if (actionFilter !== "all") {
+            const filterLower = actionFilter.toLowerCase();
+            const source = (action.source || "").toLowerCase();
+            const sourceMatch = source === filterLower;
+            const tagMatch =
+                action.tags &&
+                Array.isArray(action.tags) &&
+                action.tags.some((tag: string) => tag.toLowerCase() === filterLower);
+            if (!sourceMatch && !tagMatch) return false;
         }
-        return false;
+        const q = actionSearch.trim().toLowerCase();
+        if (q) {
+            const inName = String(action.name ?? "").toLowerCase().includes(q);
+            const inDesc = String(action.description ?? "").toLowerCase().includes(q);
+            const inTags =
+                Array.isArray(action.tags) &&
+                action.tags.some((tag: string) => String(tag).toLowerCase().includes(q));
+            if (!inName && !inDesc && !inTags) return false;
+        }
+        return true;
     });
+
+    const handleAddInventoryItem = (itemId: string) => {
+        const uid = makeInventoryUid(itemId);
+        setCharacter((prev: any) => ({
+            ...prev,
+            inventory: [...(prev.inventory || []), { id: itemId, uid }],
+        }));
+    };
+
+    const handleMoveItemToContainer = (itemUid: string, containerId: string | null) => {
+        setCharacter((prev: any) => ({
+            ...prev,
+            inventory: (prev.inventory || []).map((e: any) =>
+                e.uid === itemUid
+                    ? { ...e, containerId: containerId === null ? null : containerId }
+                    : e
+            ),
+        }));
+    };
+
+    const handleAddContainer = (name: string) => {
+        setCharacter((prev: any) => ({
+            ...prev,
+            containers: [...(prev.containers || []), { id: makeContainerId(), name: name.trim() || "Container" }],
+        }));
+    };
+
+    const handleRenameContainer = (id: string, name: string) => {
+        setCharacter((prev: any) => ({
+            ...prev,
+            containers: (prev.containers || []).map((c: any) =>
+                c.id === id ? { ...c, name: name.trim() || c.name } : c
+            ),
+        }));
+    };
+
+    const handleRemoveContainer = (id: string) => {
+        setCharacter((prev: any) => ({
+            ...prev,
+            containers: (prev.containers || []).filter((c: any) => c.id !== id),
+            inventory: (prev.inventory || []).map((e: any) =>
+                e.containerId === id ? { ...e, containerId: null } : e
+            ),
+        }));
+    };
+
+    const handleReorderContainers = (next: InventoryContainer[]) => {
+        setCharacter((prev: any) => ({ ...prev, containers: next }));
+    };
+
+    const handleRemoveInventoryItem = (itemUid: string) => {
+        setCharacter((prev: any) => ({
+            ...prev,
+            inventory: (prev.inventory || []).filter((e: any) => e.uid !== itemUid),
+            equipment: unequipInventoryUids(prev.equipment, [itemUid]),
+        }));
+    };
+
+    const handleSetItemQuantity = (itemUid: string, quantity: number) => {
+        const q = Math.max(1, Math.floor(quantity));
+        setCharacter((prev: any) => ({
+            ...prev,
+            inventory: (prev.inventory || []).map((e: any) =>
+                e.uid === itemUid ? { ...e, quantity: q } : e
+            ),
+        }));
+    };
 
     const filterOptions = [
         { value: "all", label: "All" },
@@ -96,6 +180,21 @@ export function CharacterSheetView() {
     const updateIp = (current: number) => {
         const clampedIp = Math.min(Math.max(current, 0), derived.maxIP);
         setCharacter(prev => ({ ...prev, ip: clampedIp }));
+    };
+    const adjustMoneyBy = (delta: number) => {
+        setCharacter((prev: any) => ({
+            ...prev,
+            money: Math.max(0, Math.floor(Number(prev.money ?? 0) + delta)),
+        }));
+    };
+    const adjustIpBy = (delta: number) => {
+        setCharacter((prev: any) => ({
+            ...prev,
+            ip: Math.min(
+                Math.max(0, Math.floor(Number(prev.ip ?? 0) + delta)),
+                derived.maxIP
+            ),
+        }));
     };
     const updateProfileImage = (url: string) => setCharacter(prev => ({ ...prev, profileImage: url }))
     const updateBackstory = (backstory: string) => setCharacter(prev => ({ ...prev, backstory }))
@@ -199,7 +298,7 @@ export function CharacterSheetView() {
                         </TabsList>
                     </div>
 
-                    {/*Resource tab*/}
+                    {/*Combat tab*/}
                     <TabsContent value="combat">
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                             {/*Resource section*/}
@@ -288,14 +387,58 @@ export function CharacterSheetView() {
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-2">
-                                        <Filter className="w-4 h-4 text-muted-foreground shrink-0"/>
-                                        {filterOptions.map(option => (
-                                            <button key={option.value} onClick={() => setActionFilter(option.value)} className={cn("px-3 py-1.5 rounded-full text-xs font-medium transition-colors whitespace-nowrap", actionFilter === option.value ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted")}>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <Button
+                                                    type="button"
+                                                    variant={actionSearch.trim() ? "secondary" : "outline"}
+                                                    size="icon"
+                                                    className="h-8 w-8 shrink-0"
+                                                    title="Search actions"
+                                                >
+                                                    <Filter className="w-4 h-4" />
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-80" align="start">
+                                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                                                    Search actions
+                                                </p>
+                                                <Input
+                                                    placeholder="Name, tag, description…"
+                                                    value={actionSearch}
+                                                    onChange={(e) => setActionSearch(e.target.value)}
+                                                    className="h-9"
+                                                />
+                                                {actionSearch.trim() !== "" && (
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="mt-2 h-8 px-2 text-xs"
+                                                        onClick={() => setActionSearch("")}
+                                                    >
+                                                        Clear search
+                                                    </Button>
+                                                )}
+                                            </PopoverContent>
+                                        </Popover>
+                                        {filterOptions.map((option) => (
+                                            <button
+                                                key={option.value}
+                                                type="button"
+                                                onClick={() => setActionFilter(option.value)}
+                                                className={cn(
+                                                    "px-3 py-1.5 rounded-full text-xs font-medium transition-colors whitespace-nowrap",
+                                                    actionFilter === option.value
+                                                        ? "bg-primary text-primary-foreground"
+                                                        : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                                                )}
+                                            >
                                                 {option.label}
                                             </button>
                                         ))}
                                     </div>
-                                    <ScrollArea className="h-[calc(100vh-320px)]">
+                                    <ScrollArea className="h-[calc(100vh-150px)]">
                                         <div className={cn(viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 gap-4" : "space-y-4")}>
                                             {filteredActions.map((action) => (
                                                 <ActionCardComponent key={action.id} action={action} attributes={derived.attributes} disabled={(action.focusCost || 0) > character.focus} currentWeapon={currentWeapon} forceCollapsed={allCollapsed} />
@@ -315,10 +458,28 @@ export function CharacterSheetView() {
                     <TabsContent value="tracking">
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             <EquipmentPanel equipment={character.equipment} inventory={character.inventory} onAccessoryChange={handleAccessoryChange} onEquipmentChange={handleEquipmentChange} />
-                            <InventoryPanel inventory={character.inventory} money={character.money} ip={character.ip} />
+                            <InventoryPanel
+                                inventory={character.inventory}
+                                containers={character.containers ?? []}
+                                money={character.money}
+                                ip={character.ip}
+                                maxIp={derived.maxIP}
+                                onAdjustMoney={adjustMoneyBy}
+                                onAdjustIp={adjustIpBy}
+                                itemCatalog={rulesData.items as Record<string, Record<string, unknown>>}
+                                onAddInventoryItem={handleAddInventoryItem}
+                                onMoveItemToContainer={handleMoveItemToContainer}
+                                onAddContainer={handleAddContainer}
+                                onRenameContainer={handleRenameContainer}
+                                onRemoveContainer={handleRemoveContainer}
+                                onReorderContainers={handleReorderContainers}
+                                onRemoveInventoryItem={handleRemoveInventoryItem}
+                                onSetItemQuantity={handleSetItemQuantity}
+                            />
                         </div>
                     </TabsContent>
 
+                    {/*Character tab*/}
                     <TabsContent value="character">
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                             <div className="lg:col-span-8">

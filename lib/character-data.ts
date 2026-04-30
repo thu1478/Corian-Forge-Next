@@ -1,4 +1,4 @@
-import {Equipment, InventoryEntry,} from "@/lib/equipment-data";
+import {Equipment, InventoryContainer, InventoryEntry,} from "@/lib/equipment-data";
 import {Bond, CharacterClass, FocusFeature, Skill} from "@/lib/rules";
 import {ActionRef, ReactionRef, TraitRef} from "@/lib/baseRefs";
 
@@ -56,6 +56,8 @@ export interface CharacterSaveData {
     money: number
     ip: number
     inventory: InventoryEntry[]
+    /** Named bags for organizing inventory (items reference `containerId`). */
+    containers: InventoryContainer[]
 
     // Equipment
     equipment: Equipment
@@ -210,6 +212,7 @@ export const defaultCharacter: CharacterSaveData = {
         {id: "i-1", uid: "i-1-v4b6n8"},
         {id: "i-3", uid: "i-3-m1q3w5"}
     ],
+    containers: [],
 
     // Equipment
     equipment: {

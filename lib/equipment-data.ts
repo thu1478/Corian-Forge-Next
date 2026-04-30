@@ -31,8 +31,15 @@ export const EQUIPMENT_RULES = {
         const isMovingFromOtherSlot = currentOtherValue === incomingUid;
 
         if (isMovingFromOtherSlot) {
-            // Find if the thing we're bumping is a Shield
-            const isShield = prev.equipment[slot].includes("shield")
+            // If the hand we're equipping *into* had a shield, clear the other hand instead of swapping
+            // (shield rules / one-handed flow). `currentSlotValue` may be null when that hand was empty.
+            const slotUid = currentSlotValue;
+            const invItem = Array.isArray(prev.inventory)
+                ? prev.inventory.find((i: any) => i && String(i.uid) === String(slotUid))
+                : null;
+            const isShield =
+                invItem?.type === "shield" ||
+                (typeof slotUid === "string" && slotUid.includes("shield"));
 
             updates[otherKey] = isShield ? null : currentSlotValue;
         }
@@ -47,9 +54,18 @@ export const EQUIPMENT_RULES = {
     }
 };
 
+export interface InventoryContainer {
+    id: string;
+    name: string;
+}
+
 export interface InventoryEntry {
     id: string;
     uid: string;
+    /** Stack count; defaults from item rules when omitted. */
+    quantity?: number;
+    /** Items with no container (or null) sit in the main pack. */
+    containerId?: string | null;
 }
 
 interface BaseItem {
@@ -59,6 +75,7 @@ interface BaseItem {
     quantity: number;
     description: string;
     tags: string[];
+    containerId?: string | null;
     charges?: { current: number; max: number };
     value?: number;
     allowedSlots?: Array<keyof Equipment["accessories"] | "rightHand" | "leftHand" | "armor">;

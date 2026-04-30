@@ -55,6 +55,7 @@ export function createEmptyCreatorCharacter(): CharacterSaveData {
             },
         },
         bonds: [],
+        containers: [],
         cultureEnvironment: null,
         cultureOrganization: null,
         cultureUpbringing: null,
@@ -283,6 +284,14 @@ function mergeImportedCharData(json: any, empty: CharacterSaveData): CharacterSa
         },
         bonds: Array.isArray(json.bonds) ? json.bonds : empty.bonds,
         traits: [],
+        containers: Array.isArray(json.containers)
+            ? json.containers
+                  .filter((c: any) => c && c.id != null && c.name != null)
+                  .map((c: any) => ({
+                      id: String(c.id),
+                      name: String(c.name),
+                  }))
+            : empty.containers,
         cultureEnvironment:
             json.cultureEnvironment != null && json.cultureEnvironment !== ""
                 ? String(json.cultureEnvironment)

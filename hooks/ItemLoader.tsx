@@ -20,6 +20,8 @@ export function hydrateItemData(rawCharacter: CharacterSaveData | null, rules: a
                 ...itemDef, // Spread name, description, type, etc.
                 uid: entry.uid,
                 id: entry.id,
+                quantity: entry.quantity ?? itemDef?.quantity ?? 1,
+                containerId: entry.containerId ?? null,
                 // Fallbacks to prevent UI crashes if itemDef is missing
                 name: itemDef?.name ?? `Unknown (${entry.id})`,
                 description: itemDef?.description ?? ""
