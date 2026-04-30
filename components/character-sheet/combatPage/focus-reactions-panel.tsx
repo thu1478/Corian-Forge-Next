@@ -140,12 +140,13 @@ export function FocusReactionsPanel({
 
                         // 1. Calculate the "Live" Max based on current Attributes
                         const statKey = currentReaction?.chargeStat;
-                        const score = statKey ? (attributes[statKey] || 10) : 10;
-                        const liveMax = statKey ? getAttributeModifier(score) : 0;
+                        const hasStatCharges = statKey && statKey.trim() !== "";
 
                         // 2. Determine how many pips to show and fill
-                        // We use liveMax to ensure the UI stays in sync with stats
-                        const displayCharges = Math.min(currentReaction?.charges ?? liveMax, liveMax);
+                        const maxCharges = hasStatCharges
+                            ? Math.max(0, getAttributeModifier(attributes[statKey] || 10))
+                            : 0;
+                        const currentCharges = Math.min(currentReaction?.charges ?? maxCharges, maxCharges);
 
                         // 3. Extract action card data
                         const actionCardData = currentReaction?.actionCard
@@ -185,16 +186,16 @@ export function FocusReactionsPanel({
                                 {currentReaction && (
                                     <div className="space-y-2 border-t border-orange-200 dark:border-orange-800 pt-2">
                                         {/* CHARGE PIPS */}
-                                        {statKey && liveMax > 0 && (
+                                        {hasStatCharges && (
                                             <div
                                                 className="flex items-center justify-between bg-white/40 dark:bg-black/20 p-2 rounded border border-orange-200 dark:border-orange-800">
                             <span className="text-[10px] font-bold uppercase text-orange-800 dark:text-orange-400">
                                 {statKey} Charges
                             </span>
                                                 <div className="flex gap-1.5">
-                                                    {Array.from({length: liveMax}).map((_, i) => {
-                                                        const isFilled = i < displayCharges;
-                                                        const isLastFilled = i === displayCharges - 1;
+                                                    {Array.from({length: maxCharges}).map((_, i) => {
+                                                        const isFilled = i < currentCharges;
+                                                        const isLastFilled = i === currentCharges - 1;
 
                                                         return (
                                                             <button

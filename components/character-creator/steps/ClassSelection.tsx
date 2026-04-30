@@ -185,8 +185,8 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
         return (
             <div className="p-8 max-w-6xl mx-auto min-h-screen">
                 <div className="flex justify-between items-center mb-12">
-                    <button onClick={() => setExpandedClassId(null)} className="flex items-center gap-2 text-muted-foreground hover:text-primary font-black uppercase text-[10px] tracking-widest transition-colors">
-                        <ArrowLeftIcon size={14} /> Back
+                    <button onClick={() => setExpandedClassId(null)} className="flex items-center gap-2 text-muted-foreground hover:text-primary font-black uppercase text-[14px] tracking-widest transition-colors">
+                        <ArrowLeftIcon size={20} /> Back
                     </button>
                     <div className="bg-card border border-border px-6 py-3 rounded-2xl flex items-center gap-4">
                         <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Class Talents</span>
@@ -246,20 +246,22 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
 
                     return (
                         <div key={id} className={cn("bg-card border-2 rounded-[2.5rem] p-8 transition-all", currentLevel > 0 ? "border-primary shadow-lg shadow-primary/5" : "border-border")}>
-                            <div className="flex justify-between items-start mb-6">
-                                <div>
-                                    <h2 className="text-3xl font-black uppercase italic tracking-tighter">{classData.name}</h2>
-                                    <span className="text-[10px] font-black uppercase text-primary/60 tracking-widest">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-start mb-6">
+                                <div className="min-w-0 flex-1 pr-2">
+                                    <h2 className="text-2xl sm:text-3xl font-black uppercase italic tracking-tighter break-words leading-tight">
+                                        {classData.name}
+                                    </h2>
+                                    <span className="text-[10px] font-black uppercase text-primary/60 tracking-widest block mt-1">
                                         Focus: {classData.focusFeat?.name ?? "None"}
                                     </span>
                                     <div className="text-xs text-muted-foreground mt-2">
                                         Next level XP cost: {currentLevel >= 10 ? "MAX" : nextCost}
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-1 bg-secondary rounded-full p-1 border border-border">
-                                    <button onClick={() => handleClassLevelChange(id, -1)} className="p-1"><MinusIcon size={14}/></button>
-                                    <span className="font-black text-xs px-2">{currentLevel}</span>
-                                    <button onClick={() => handleClassLevelChange(id, 1)} disabled={remainingAdventurerXP < nextCost} className="p-1"><PlusIcon size={14}/></button>
+                                <div className="flex items-center gap-1 bg-secondary rounded-full p-1 border border-border shrink-0 self-start">
+                                    <button type="button" onClick={(e) => { e.stopPropagation(); handleClassLevelChange(id, -1); }} className="p-1 rounded-full hover:bg-background/80"><MinusIcon size={14}/></button>
+                                    <span className="font-black text-xs tabular-nums min-w-[1.25rem] text-center">{currentLevel}</span>
+                                    <button type="button" onClick={(e) => { e.stopPropagation(); handleClassLevelChange(id, 1); }} disabled={remainingAdventurerXP < nextCost} className="p-1 rounded-full hover:bg-background/80 disabled:opacity-40"><PlusIcon size={14}/></button>
                                 </div>
                             </div>
                             <button onClick={() => setExpandedClassId(id)} disabled={currentLevel === 0} className={cn("w-full py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all", currentLevel > 0 ? "bg-primary text-white shadow-xl shadow-primary/20" : "bg-muted text-muted-foreground")}>
@@ -281,7 +283,7 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
                             : "bg-muted text-muted-foreground cursor-not-allowed"
                     )}
                 >
-                    Finalize
+                    Next Step
                 </button>
             </footer>
         </div>

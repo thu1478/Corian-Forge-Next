@@ -41,6 +41,8 @@ export interface Trait extends TraitRef {
     description: string
     minLevel: number
     effects?: TraitEffect[]
+    /** Player must pick this many entries from `effects` (see `selectedEffectIndices` on TraitRef). */
+    selectAmount?: number
 }
 
 export interface RacialPassive extends Trait {

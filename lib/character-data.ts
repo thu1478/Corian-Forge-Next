@@ -62,6 +62,11 @@ export interface CharacterSaveData {
 
     // Bonds
     bonds: Bond[]
+
+    /** Creator / export: culture step keys from rules (e.g. nomadic, bureaucratic). */
+    cultureEnvironment: string | null
+    cultureOrganization: string | null
+    cultureUpbringing: string | null
 }
 
 export const defaultCharacter: CharacterSaveData = {
@@ -230,7 +235,11 @@ export const defaultCharacter: CharacterSaveData = {
         {id: "b-1", target: "Marcus (Party Leader)", type: "loyalty"},
         {id: "b-2", target: "Elara (Sister)", type: "affection"},
         {id: "b-3", target: "The Shadow Guild", type: "mistrust"}
-    ]
+    ],
+
+    cultureEnvironment: null,
+    cultureOrganization: null,
+    cultureUpbringing: null,
 }
 
 export function getAttributeModifier(score: number): number {
@@ -239,4 +248,135 @@ export function getAttributeModifier(score: number): number {
 
 export function formatModifier(modifier: number): string {
     return modifier >= 0 ? `+${modifier}` : `${modifier}`
+}
+
+export interface CharacterStats {
+    might: number
+    dexterity: number
+    reason: number
+    willpower: number
+    presence: number
+}
+
+export interface ClassLevel {
+    id: string
+    level: number
+}
+
+interface ClassBonusRule {
+    stat: string
+    amount: number
+    frequency: number
+}
+
+/** Matches character sheet: max class level, or 1 if multiclass list is empty. */
+export function getCharacterLevelForStats(classes: ClassLevel[]): number {
+    return classes.length > 0
+        ? Math.max(...classes.map(c => c.level))
+        : 1;
+}
+
+export function sumClassStatBonus(
+    classes: ClassLevel[],
+    rulesData: any,
+    statName: string
+): number {
+    return classes.reduce((total: number, cls: ClassLevel) => {
+        const classRule = rulesData?.classes?.[cls.id];
+        const bonus = classRule?.statBonus as ClassBonusRule | undefined;
+        if (bonus && bonus.stat === statName) {
+            const applications = Math.floor(cls.level / (bonus.frequency || 1));
+            return total + applications * bonus.amount;
+        }
+        return total;
+    }, 0);
+}
+
+type TraitLike = { effects?: Array<{ type: string; stat?: string; value: string }> };
+
+/** Sums StatChange effects for a stat key (e.g. might, maxHP). */
+export function sumTraitStatChangeEffects(traits: TraitLike[], statName: string): number {
+    return traits.reduce((total, trait) => {
+        const bonuses =
+            trait.effects?.filter(e => e.type === "StatChange" && e.stat === statName) || [];
+        const sum = bonuses.reduce((s, b) => s + parseInt(b.value, 10), 0);
+        return total + sum;
+    }, 0);
+}
+
+/**
+ * Gear bonuses from equipped items. Slots may be hydrated item objects or inventory UIDs
+ * (same resolution as the character sheet after item hydration).
+ */
+export function sumGearStatBonus(
+    character: { equipment?: any; inventory?: any[] } | null | undefined,
+    statName: string
+): number {
+    if (!character?.equipment) return 0;
+    const eq = character.equipment;
+    const inv = character.inventory || [];
+
+    const resolve = (slot: unknown): any => {
+        if (slot == null) return null;
+        if (typeof slot === "object" && slot !== null && "statBonuses" in (slot as object)) {
+            return slot;
+        }
+        const uid = typeof slot === "string" ? slot : (slot as { uid?: string })?.uid;
+        if (!uid) return null;
+        return inv.find((i: any) => String(i.uid) === String(uid)) ?? null;
+    };
+
+    const equipped = [
+        resolve(eq.activeWeapon),
+        resolve(eq.armor),
+        ...Object.values(eq.accessories || {}).map(resolve),
+    ].filter(Boolean);
+
+    return equipped.reduce(
+        (total: number, item: any) => total + (item.statBonuses?.[statName] ?? 0),
+        0
+    );
+}
+
+/** Character sheet formula for max HP (effective might already includes trait/gear attribute bonuses). */
+export function computeMaxHP(params: {
+    effectiveMight: number;
+    characterLevel: number;
+    classHpBonus: number;
+    gearHpBonus: number;
+    traitMaxHpBonus: number;
+}): number {
+    return (
+        params.effectiveMight +
+        5 * params.characterLevel +
+        params.classHpBonus +
+        params.gearHpBonus +
+        params.traitMaxHpBonus
+    );
+}
+
+/** Character sheet formula for max MP. */
+export function computeMaxMP(params: {
+    effectiveWillpower: number;
+    characterLevel: number;
+    classMpBonus: number;
+    gearMpBonus: number;
+    traitMaxMpBonus: number;
+}): number {
+    return (
+        params.characterLevel +
+        2 * params.effectiveWillpower +
+        params.classMpBonus +
+        params.gearMpBonus +
+        params.traitMaxMpBonus
+    );
+}
+
+/** Character sheet formula for Speed (base 4 + class + gear + trait StatChange on "speed"). */
+export function computeSpeed(params: {
+    classSpeedBonus: number;
+    gearSpeedBonus: number;
+    traitSpeedBonus: number;
+}): number {
+    return 4 + params.classSpeedBonus + params.gearSpeedBonus + params.traitSpeedBonus;
 }

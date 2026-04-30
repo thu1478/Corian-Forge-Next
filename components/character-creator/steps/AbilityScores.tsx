@@ -79,7 +79,7 @@ export function AbilityScores({
             Points Remaining
           </div>
           <div
-            className={`text-3xl font-black ${pointsRemaining === 0 ? 'text-green-500' : 'text-amber-500'}`}>
+            className={`text-3xl font-black tabular-nums ${pointsRemaining === 0 ? 'text-green-700 dark:text-green-500' : 'text-foreground'}`}>
             
             {pointsRemaining}
           </div>
@@ -146,7 +146,7 @@ export function AbilityScores({
                   {currentCost}
                 </div>
 
-                <div className="text-center font-bold text-amber-500">
+                <div className="text-center font-bold text-violet-800 dark:text-violet-300">
                   {bonusCount > 0 ? `+${bonusCount}` : '-'}
                 </div>
 

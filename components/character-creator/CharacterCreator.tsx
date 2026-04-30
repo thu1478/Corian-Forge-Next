@@ -1,7 +1,9 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import rulesData from "@/lib/rules.json";
 import { CharacterSaveData } from "@/lib/character-data";
-import { CharAttribute } from "@/lib/rules";
+import { FeatLevelPick } from "@/lib/baseRefs";
+import { createEmptyCreatorCharacter, parseCreatorImportJson } from "@/lib/creator-import";
+import { UploadIcon } from "lucide-react";
 import { RaceSelection } from "./steps/RaceSelection";
 import ClassSelection from "@/components/character-creator/steps/ClassSelection";
 import { AbilityScores } from "@/components/character-creator/steps/AbilityScores";
@@ -18,50 +20,8 @@ type ClassOptionSelection = { id: string; source: string };
 const STARTING_XP = rulesData.system.startingXPPerLvl as Record<string, number>;
 
 export default function CharacterCreator() {
-    const [charData, setCharData] = useState<CharacterSaveData>({
-        name: "",
-        age: 0,
-        gender: "",
-        race: "",
-        background: "",
-        backstory: "",
-        classes: [],
-        hp: 10,
-        barrier: 0,
-        mp: 10,
-        focus: 0,
-        attributes: {
-            [CharAttribute.Might]: 8,
-            [CharAttribute.Dexterity]: 8,
-            [CharAttribute.Reason]: 8,
-            [CharAttribute.Willpower]: 8,
-            [CharAttribute.Presence]: 8
-        },
-        speed: 4,
-        xp: STARTING_XP["1"] ?? 100,
-        inspiration: 0,
-        victories: 0,
-        focusFeatures: [],
-        reactions: [],
-        actions: [],
-        traits: [],
-        languages: ["Common"],
-        skills: [],
-        money: 0,
-        ip: 0,
-        inventory: [],
-        equipment: {
-            activeWeapon: null,
-            offhand: null,
-            armor: null,
-            accessories: {
-                head: null, face: null, ears: null, neck: null,
-                back: null, hands: null, ringLeft: null, ringRight: null,
-                waist: null, feet: null
-            }
-        },
-        bonds: []
-    });
+    const importInputRef = useRef<HTMLInputElement>(null);
+    const [charData, setCharData] = useState<CharacterSaveData>(() => createEmptyCreatorCharacter());
 
     const STEPS = ["Race", "Class", "Abilities", "Culture", "Occupation", "Feats", "Review"];
     const [currentStep, setCurrentStep] = useState(0);
@@ -74,10 +34,45 @@ export default function CharacterCreator() {
     const [cultureSkills, setCultureSkills] = useState<string[]>([]);
     const [occupationSkills, setOccupationSkills] = useState<string[]>([]);
     const [occupationLanguages, setOccupationLanguages] = useState<string[]>(["common"]);
-    const [selectedFeats, setSelectedFeats] = useState<Partial<Record<number, string>>>({});
+    const [selectedFeats, setSelectedFeats] = useState<Partial<Record<number, FeatLevelPick>>>({});
 
     const handleBack = () => setCurrentStep((prev) => Math.max(0, prev - 1));
     const handleNext = () => setCurrentStep((prev) => Math.min(STEPS.length - 1, prev + 1));
+
+    const applyImportedCharacter = (parsed: ReturnType<typeof parseCreatorImportJson>) => {
+        if ("error" in parsed) {
+            window.alert(parsed.error);
+            return;
+        }
+        setCharData(parsed.charData);
+        setAdventurerLevel(parsed.adventurerLevel);
+        setClassSelections(parsed.classSelections);
+        setLevelBonuses(parsed.levelBonuses);
+        setCultureEnvironment(parsed.charData.cultureEnvironment);
+        setCultureOrganization(parsed.charData.cultureOrganization);
+        setCultureUpbringing(parsed.charData.cultureUpbringing);
+        setCultureSkills(parsed.cultureSkills);
+        setOccupationSkills(parsed.occupationSkills);
+        setOccupationLanguages(parsed.occupationLanguages);
+        setSelectedFeats(parsed.selectedFeats);
+    };
+
+    const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        e.target.value = "";
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            try {
+                const json = JSON.parse(String(reader.result));
+                applyImportedCharacter(parseCreatorImportJson(json, createEmptyCreatorCharacter()));
+            } catch (err) {
+                console.error(err);
+                window.alert("Could not read that file. Choose a valid character JSON export.");
+            }
+        };
+        reader.readAsText(file);
+    };
 
     const handleSelectRace = (id: string) => {
         setCharData((prev) => ({
@@ -87,13 +82,70 @@ export default function CharacterCreator() {
         }));
     };
 
-    const handleTogglePassives = (traitId: string) => {
-        setCharData((prev) => ({
-            ...prev,
-            traits: prev.traits.some((t) => t.id === traitId)
-                ? prev.traits.filter((t) => t.id !== traitId)
-                : [...prev.traits, { id: traitId, source: "racial" }]
-        }));
+    const handleTogglePassives = (
+        traitId: string,
+        options?: { selectedEffectIndices: number[] }
+    ) => {
+        setCharData((prev) => {
+            const nonRacial = prev.traits.filter((t) => t.source !== "racial");
+            const racial = prev.traits.filter((t) => t.source === "racial");
+            const exists = racial.find((t) => t.id === traitId);
+            const raceKey = prev.race?.toLowerCase?.();
+            const passive = raceKey
+                ? (rulesData.races as Record<string, any>)[raceKey]?.passives?.[traitId]
+                : null;
+            const n = passive?.selectAmount;
+            const effects = passive?.effects;
+            const needsEffectChoice =
+                typeof n === "number" &&
+                n > 0 &&
+                Array.isArray(effects) &&
+                effects.length > n;
+
+            const idx = options?.selectedEffectIndices;
+            const indicesValid =
+                Array.isArray(idx) &&
+                needsEffectChoice &&
+                Array.isArray(effects) &&
+                idx.length === n &&
+                idx.every((i) => Number.isInteger(i) && i >= 0 && i < effects.length);
+
+            if (exists && indicesValid) {
+                return {
+                    ...prev,
+                    traits: [
+                        ...nonRacial,
+                        ...racial.filter((t) => t.id !== traitId),
+                        { id: traitId, source: "racial", selectedEffectIndices: idx },
+                    ],
+                };
+            }
+
+            if (exists) {
+                return {
+                    ...prev,
+                    traits: [...nonRacial, ...racial.filter((t) => t.id !== traitId)],
+                };
+            }
+
+            if (needsEffectChoice) {
+                if (!indicesValid) {
+                    return prev;
+                }
+                return {
+                    ...prev,
+                    traits: [
+                        ...nonRacial,
+                        ...racial,
+                        { id: traitId, source: "racial", selectedEffectIndices: idx },
+                    ],
+                };
+            }
+            return {
+                ...prev,
+                traits: [...nonRacial, ...racial, { id: traitId, source: "racial" }],
+            };
+        });
     };
 
     const combinedSkillIds = useMemo(() => [...cultureSkills, ...occupationSkills], [cultureSkills, occupationSkills]);
@@ -107,11 +159,28 @@ export default function CharacterCreator() {
 
     return (
         <div className="w-full max-w-7xl mx-auto px-8 py-8 min-h-screen text-slate-900 dark:text-slate-100">
-            <StepProgress currentStep={currentStep} steps={STEPS} />
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-3 mb-4">
+                <input
+                    ref={importInputRef}
+                    type="file"
+                    accept="application/json,.json"
+                    className="hidden"
+                    onChange={handleImportFile}
+                />
+                <button
+                    type="button"
+                    onClick={() => importInputRef.current?.click()}
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-bold text-sm border-2 border-border bg-card hover:bg-muted/60 text-foreground transition-colors"
+                >
+                    <UploadIcon className="w-4 h-4 shrink-0" aria-hidden />
+                    Import JSON
+                </button>
+            </div>
+            <StepProgress currentStep={currentStep} steps={STEPS} onStepClick={setCurrentStep} />
             {currentStep === 0 && (
                 <RaceSelection
                     raceId={charData.race}
-                    raceSelectablePassives={charData.traits.filter((t) => t.source === "racial").map((t) => t.id)}
+                    racialTraits={charData.traits.filter((t) => t.source === "racial")}
                     onSelectRace={handleSelectRace}
                     onToggleSelectable={handleTogglePassives}
                     onNext={handleNext}
@@ -163,9 +232,18 @@ export default function CharacterCreator() {
                     cultureUpbringing={cultureUpbringing}
                     selectedSkills={cultureSkills}
                     globalSkillCounts={skillCounts}
-                    onSelectEnvironment={setCultureEnvironment}
-                    onSelectOrganization={setCultureOrganization}
-                    onSelectUpbringing={setCultureUpbringing}
+                    onSelectEnvironment={(id) => {
+                        setCultureEnvironment(id);
+                        setCharData((prev) => ({ ...prev, cultureEnvironment: id }));
+                    }}
+                    onSelectOrganization={(id) => {
+                        setCultureOrganization(id);
+                        setCharData((prev) => ({ ...prev, cultureOrganization: id }));
+                    }}
+                    onSelectUpbringing={(id) => {
+                        setCultureUpbringing(id);
+                        setCharData((prev) => ({ ...prev, cultureUpbringing: id }));
+                    }}
                     onToggleSkill={(id) => {
                         setCultureSkills((prev) => {
                             const idx = prev.indexOf(id);
@@ -218,14 +296,14 @@ export default function CharacterCreator() {
                     selectedFeats={selectedFeats}
                     adventurerLevel={adventurerLevel}
                     classes={charData.classes}
-                    onSelectFeat={(level, featId) =>
+                    onSelectFeat={(level, pick) =>
                         setSelectedFeats((prev) => {
-                            if (!featId) {
+                            if (!pick) {
                                 const next = { ...prev };
                                 delete next[level];
                                 return next;
                             }
-                            return { ...prev, [level]: featId };
+                            return { ...prev, [level]: pick };
                         })
                     }
                     onBack={handleBack}
@@ -258,17 +336,7 @@ export default function CharacterCreator() {
                         setOccupationLanguages(["common"]);
                         setSelectedFeats({});
                         setClassSelections([]);
-                        setCharData((prev) => ({
-                            ...prev,
-                            race: "",
-                            classes: [],
-                            traits: [],
-                            actions: [],
-                            reactions: [],
-                            focusFeatures: [],
-                            skills: [],
-                            languages: ["Common"]
-                        }));
+                        setCharData(createEmptyCreatorCharacter());
                     }}
                 />
             )}

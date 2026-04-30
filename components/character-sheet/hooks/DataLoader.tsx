@@ -145,8 +145,8 @@ export function discoverAllTraitRefs(character: any, rulesData?: any) {
     const traitMap = new Map<string, any>();
 
     // 1. Process Innate Racial Traits (Auto-granted based on race)
-    if (character.race && rulesData?.races?.[character.race]?.passives) {
-      Object.entries(rulesData.races[character.race].passives).forEach(([id, passive]: [string, any]) => {
+    if (character.race && rulesData?.races?.[character.race.toLowerCase()]?.passives) {
+      Object.entries(rulesData.races[character.race.toLowerCase()].passives).forEach(([id, passive]: [string, any]) => {
         if (passive.type === "innate") {
           traitMap.set(id, {
             id,
@@ -162,11 +162,20 @@ export function discoverAllTraitRefs(character: any, rulesData?: any) {
     baseRefs.forEach((t: any) => {
       const id = typeof t === 'object' ? (t.id || Object.keys(t)[0]) : t;
       const declaredSource = typeof t === "object" && typeof t.source === "string" ? t.source.toLowerCase() : "other";
-      traitMap.set(id, {
+      const existing = traitMap.get(id);
+      const next: any = {
+        ...(existing || {}),
         id,
         source: declaredSource,
-        inlineDefinition: (typeof t === 'object' && !t.id) ? t[id] : null
-      });
+      };
+      if (typeof t === "object") {
+        if (!t.id && t[id]) next.inlineDefinition = t[id];
+        if (t.itemId) next.itemId = t.itemId;
+        if (Array.isArray(t.selectedEffectIndices)) {
+          next.selectedEffectIndices = t.selectedEffectIndices;
+        }
+      }
+      traitMap.set(id, next);
     });
 
     // 2. Identify Unique Active Item UIDs

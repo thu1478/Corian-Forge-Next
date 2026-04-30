@@ -1,97 +1,119 @@
 import {Trait} from "@/lib/rules";
+import {
+    computeMaxHP,
+    computeMaxMP,
+    computeSpeed,
+    getCharacterLevelForStats,
+    sumClassStatBonus,
+    sumGearStatBonus,
+    sumTraitStatChangeEffects,
+} from "@/lib/character-data";
+import {
+    resolveTraitEffectsAfterSelection,
+    vulnerabilityAmount,
+    vulnerabilityDamageType,
+} from "@/lib/trait-selection";
 import {useMemo} from "react";
+
+/** Hydrate trait refs into full Trait objects (shared with character creator review). */
+export function hydrateTraitRefs(traitRefs: any[], character: any, rulesData: any): Trait[] {
+    if (!character) return [];
+
+    return traitRefs.reduce((acc: Trait[], tRef: any) => {
+        let ruleData = rulesData.passives?.[tRef.id];
+        const raceKey = character.race?.toLowerCase?.();
+
+        if (!ruleData) {
+            for (const charClass of character.classes || []) {
+                const classId = typeof charClass === "object" ? (charClass.id || charClass.name) : charClass;
+                const classRegistry = rulesData.classes?.[classId];
+                if (classRegistry?.passives?.[tRef.id]) {
+                    ruleData = classRegistry.passives[tRef.id];
+                    break;
+                }
+            }
+        }
+
+        if (!ruleData && raceKey) {
+            ruleData = rulesData.races?.[raceKey]?.passives?.[tRef.id];
+        }
+
+        if (!ruleData) {
+            ruleData = rulesData.system?.feats?.[tRef.id];
+        }
+
+        if (!ruleData && tRef.itemId) {
+            const sourceItem = character.inventory?.find((i: any) => String(i.uid) === String(tRef.itemId));
+            const traitDefinition = sourceItem?.traits?.find((t: any) =>
+                typeof t === "object" && t[tRef.id]
+            );
+
+            if (traitDefinition) {
+                ruleData = traitDefinition[tRef.id];
+            }
+        }
+
+        if (!ruleData && tRef.inlineDefinition) {
+            ruleData = tRef.inlineDefinition;
+        }
+
+        if (ruleData || tRef.id) {
+            const merged: Trait = {
+                name: tRef.id,
+                description: "",
+                ...ruleData,
+                ...tRef,
+                uid: tRef.id,
+                source: tRef.source || ruleData?.source || "other"
+            };
+            const resolved = resolveTraitEffectsAfterSelection(
+                merged,
+                tRef.selectedEffectIndices
+            );
+            if (resolved) {
+                merged.effects = resolved;
+            }
+            acc.push(merged);
+        }
+        return acc;
+    }, []);
+}
 
 export function useDerivedStats(character: any, rulesData: any) {
 
     const activeTraits: Trait[] = useMemo(() => {
         if (!character) return [];
-
-        // 1. Use ONLY the unique list from the loader (this is the 8 traits)
         const allRefs = character.traitRefs || [];
+        return hydrateTraitRefs(allRefs, character, rulesData);
+    }, [character, rulesData]);
 
-        // 2. Hydrate all references into full Trait objects
-        // We keep all your logic here so nothing "vanishes"
-        return allRefs.reduce((acc: Trait[], tRef: any) => {
-            // Check Global Passives
-            let ruleData = rulesData.passives?.[tRef.id];
-
-            // Search class passives
-            if (!ruleData) {
-                for (const charClass of (character.classes || [])) {
-                    const classId = typeof charClass === 'object' ? (charClass.id || charClass.name) : charClass;
-                    const classRegistry = rulesData.classes?.[classId];
-                    if (classRegistry?.passives?.[tRef.id]) {
-                        ruleData = classRegistry.passives[tRef.id];
-                        break;
-                    }
-                }
-            }
-
-            // Search feats from system definitions
-            if (!ruleData) {
-                ruleData = rulesData.system?.feats?.[tRef.id];
-            }
-
-            // Check for item passives (Crucial for Earring/WeaponBond)
-            if (!ruleData && tRef.itemId) {
-                const sourceItem = character.inventory?.find((i: any) => String(i.uid) === String(tRef.itemId));
-                const traitDefinition = sourceItem?.traits?.find((t: any) =>
-                    typeof t === 'object' && t[tRef.id]
-                );
-
-                if (traitDefinition) {
-                    ruleData = traitDefinition[tRef.id];
-                }
-            }
-
-            // Final check for inline data passed from the loader
-            if (!ruleData && tRef.inlineDefinition) {
-                ruleData = tRef.inlineDefinition;
-            }
-
-            // Push if we found data OR if it's a known ref (to prevent vanishing)
-            if (ruleData || tRef.id) {
-                acc.push({
-                    name: tRef.id,
-                    description: "",
-                    ...ruleData,
-                    ...tRef,
-                    uid: tRef.id, // Identity lock
-                    source: tRef.source || ruleData?.source || "other"
-                });
-            }
-            return acc;
-        }, []);
-    }, [character?.traitRefs, rulesData]);
-
-    // CHARACTER LEVEL = MAX(CLASS LEVELS)
-    const characterLevel = character.classes.length > 0
-        ? Math.max(...character.classes.map((c: { level: any; }) => c.level))
-        : 1;
-
-    // 3. FINAL DERIVATIONS
+    const characterLevel = getCharacterLevelForStats(character.classes || []);
 
     // Attributes (Traits can buff the core attribute)
     const attributes = {
-        might: character.attributes.might + getTraitStatBonus(activeTraits, "might") + getGearBonus(character, "might"),
-        dexterity: character.attributes.dexterity + getTraitStatBonus(activeTraits, "dexterity") + getGearBonus(character, "dexterity"),
-        reason: character.attributes.reason + getTraitStatBonus(activeTraits, "reason") + getGearBonus(character, "reason"),
-        willpower: character.attributes.willpower + getTraitStatBonus(activeTraits, "willpower") + getGearBonus(character, "willpower"),
-        presence: character.attributes.presence + getTraitStatBonus(activeTraits, "presence") + getGearBonus(character, "presence"),
+        might: character.attributes.might + sumTraitStatChangeEffects(activeTraits, "might") + sumGearStatBonus(character, "might"),
+        dexterity: character.attributes.dexterity + sumTraitStatChangeEffects(activeTraits, "dexterity") + sumGearStatBonus(character, "dexterity"),
+        reason: character.attributes.reason + sumTraitStatChangeEffects(activeTraits, "reason") + sumGearStatBonus(character, "reason"),
+        willpower: character.attributes.willpower + sumTraitStatChangeEffects(activeTraits, "willpower") + sumGearStatBonus(character, "willpower"),
+        presence: character.attributes.presence + sumTraitStatChangeEffects(activeTraits, "presence") + sumGearStatBonus(character, "presence"),
     };
 
-    // HP
-    const maxHP = attributes.might + (5 * characterLevel) +
-        getClassBonus(character, rulesData, "hp") +
-        getGearBonus(character, "hp") +
-        getTraitStatBonus(activeTraits, "maxHP");
+    const maxHP = computeMaxHP({
+        effectiveMight: attributes.might,
+        characterLevel,
+        classHpBonus: sumClassStatBonus(character.classes || [], rulesData, "hp"),
+        gearHpBonus: sumGearStatBonus(character, "hp"),
+        traitMaxHpBonus: sumTraitStatChangeEffects(activeTraits, "maxHP"),
+    });
     const deathThreshold = Math.floor(maxHP * -0.5);
 
-    // MP
-    const maxMP = characterLevel + (2 * attributes.willpower) +
-        getClassBonus(character, rulesData, "mp") +
-        getGearBonus(character, "mp") +
-        getTraitStatBonus(activeTraits, "maxMP");
+    const maxMP = computeMaxMP({
+        effectiveWillpower: attributes.willpower,
+        characterLevel,
+        classMpBonus: sumClassStatBonus(character.classes || [], rulesData, "mp"),
+        gearMpBonus: sumGearStatBonus(character, "mp"),
+        traitMaxMpBonus: sumTraitStatChangeEffects(activeTraits, "maxMP"),
+    });
 
     // DEFENSE
     const armorItem = character.equipment.armor;
@@ -103,15 +125,15 @@ export function useDerivedStats(character: any, rulesData: any) {
     };
 
     const defense = calculateArmorBase() +
-        getClassBonus(character, rulesData, "defense") +
-        getGearBonus(character, "defense") +
-        getTraitStatBonus(activeTraits, "defense");
+        sumClassStatBonus(character.classes || [], rulesData, "defense") +
+        sumGearStatBonus(character, "defense") +
+        sumTraitStatChangeEffects(activeTraits, "defense");
 
     // STABILITY: Might + Willpower + Class Bonuses
     const stability = (armorItem?.stability ?? 0) +
-        getClassBonus(character, rulesData, "stability") +
-        getGearBonus(character, "stability") +
-        getTraitStatBonus(activeTraits, "stability");
+        sumClassStatBonus(character.classes || [], rulesData, "stability") +
+        sumGearStatBonus(character, "stability") +
+        sumTraitStatChangeEffects(activeTraits, "stability");
 
     const resistances = activeTraits
         .flatMap(t => t.effects || [])
@@ -123,15 +145,10 @@ export function useDerivedStats(character: any, rulesData: any) {
         .flatMap(t => t.effects || [])
         .filter(e => e.type === "Vulnerability")
         .reduce((acc: Record<string, number>, effect) => {
-            const type = effect.stat; // e.g., "Fire"
-            // const amount = parseInt(effect.value) || 0; // e.g., 2
-
-            // If multiple traits give the same vulnerability, we stack the numbers
-            if (type) {
-                const amount = parseInt(effect.value) || 0;
-                acc[type] = (acc[type] || 0) + amount;
-            }
-
+            const type = vulnerabilityDamageType(effect);
+            if (!type) return acc;
+            const amount = vulnerabilityAmount(effect);
+            acc[type] = (acc[type] || 0) + amount;
             return acc;
         }, {});
 
@@ -167,10 +184,14 @@ export function useDerivedStats(character: any, rulesData: any) {
         maxHP,
         deathThreshold,
         maxMP,
-        maxIP: 4 + getClassBonus(character, rulesData, "ip") + getGearBonus(character, "ip") + getTraitStatBonus(activeTraits, "maxIP"),
+        maxIP: 4 + sumClassStatBonus(character.classes || [], rulesData, "ip") + sumGearStatBonus(character, "ip") + sumTraitStatChangeEffects(activeTraits, "maxIP"),
         defense,
         stability,
-        speed: 4 + getClassBonus(character, rulesData, "speed") + getGearBonus(character, "speed") + getTraitStatBonus(activeTraits, "speed"),
+        speed: computeSpeed({
+            classSpeedBonus: sumClassStatBonus(character.classes || [], rulesData, "speed"),
+            gearSpeedBonus: sumGearStatBonus(character, "speed"),
+            traitSpeedBonus: sumTraitStatChangeEffects(activeTraits, "speed"),
+        }),
         // UI/System Exports
         activeTraits,
 resistances,
@@ -179,36 +200,3 @@ resistances,
         languages: allLanguages
     };
 }
-
-const getTraitStatBonus = (traits: Trait[], statName: string) => {
-    return traits.reduce((total, trait) => {
-        // Find ALL effects that match the stat, not just the first one
-        const bonuses = trait.effects?.filter(e => e.type === "StatChange" && e.stat === statName) || [];
-        const sum = bonuses.reduce((s, b) => s + parseInt(b.value), 0);
-        return total + sum;
-    }, 0);
-};
-
-const getClassBonus = (character: any, rulesData: any, statName: string) => {
-    return character.classes.reduce((total: number, cls: any) => {
-        const classRule = rulesData.classes?.[cls.id];
-        const bonus = classRule?.statBonus;
-        if (bonus && bonus.stat === statName) {
-            const applications = Math.floor(cls.level / bonus.frequency);
-            return total + (applications * bonus.amount);
-        }
-        return total;
-    }, 0);
-};
-
-const getGearBonus = (character: any, statName: string) => {
-    const equipped = [
-        character.equipment.activeWeapon,
-        character.equipment.armor,
-        ...Object.values(character.equipment.accessories || {})
-    ].filter(Boolean);
-
-    return equipped.reduce((total: number, item: any) => {
-        return total + (item.statBonuses?.[statName] ?? 0);
-    }, 0);
-};

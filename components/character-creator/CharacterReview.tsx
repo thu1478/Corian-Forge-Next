@@ -1,6 +1,18 @@
 import React, { useMemo } from "react";
 import rulesData from "@/lib/rules.json";
-import { CharacterSaveData } from "@/lib/character-data";
+import {
+  CharacterSaveData,
+  computeMaxHP,
+  computeMaxMP,
+  computeSpeed,
+  getCharacterLevelForStats,
+  sumClassStatBonus,
+  sumGearStatBonus,
+  sumTraitStatChangeEffects,
+} from "@/lib/character-data";
+import { FeatLevelPick } from "@/lib/baseRefs";
+import { discoverAllTraitRefs } from "@/components/character-sheet/hooks/DataLoader";
+import { hydrateTraitRefs } from "@/components/character-sheet/hooks/statCalculator";
 import { ChevronLeftIcon, DownloadIcon, RotateCcwIcon, Heart, Droplets, Footprints, Swords } from "lucide-react";
 
 type AttributeKey = "might" | "dexterity" | "reason" | "willpower" | "presence";
@@ -10,7 +22,7 @@ interface CharacterReviewProps {
   adventurerLevel: number;
   levelBonuses: Partial<Record<number, AttributeKey>>;
   classSelections: { id: string; source: string }[];
-  selectedFeats: Partial<Record<number, string>>;
+  selectedFeats: Partial<Record<number, FeatLevelPick>>;
   selectedSkillIds: string[];
   occupationLanguages: string[];
   onUpdateField: (field: string, value: string | number) => void;
@@ -46,16 +58,48 @@ export function CharacterReview({
     return attrs;
   }, [charData.attributes, levelBonuses]);
 
+  /** Same trait refs as export JSON so review stats match the character sheet after import. */
+  const traitsAlignedWithExport = useMemo(() => {
+    const raceKey = charData.race?.toLowerCase?.();
+    const innateRefs =
+      raceKey && (rulesData.races as Record<string, any>)[raceKey]?.passives
+        ? Object.entries((rulesData.races as Record<string, any>)[raceKey].passives)
+            .filter(([, passive]: [string, any]) => passive.type === "innate")
+            .map(([id]) => ({ id, source: "racial" as const }))
+        : [];
+    const classTraits: { id: string; source: string }[] = [];
+    classSelections.forEach((sel) => {
+      const classData = (rulesData.classes as Record<string, any>)[sel.source];
+      if (classData?.passives?.[sel.id]) {
+        classTraits.push({ id: sel.id, source: "class" });
+      }
+    });
+    const featTraits = Object.entries(selectedFeats)
+      .filter(([, p]) => p?.id)
+      .map(([_, p]) => ({
+        id: p!.id,
+        source: "feat" as const,
+        ...(p!.selectedEffectIndices?.length
+          ? { selectedEffectIndices: p!.selectedEffectIndices }
+          : {}),
+      }));
+    return [...innateRefs, ...charData.traits, ...classTraits, ...featTraits];
+  }, [charData.race, charData.traits, classSelections, selectedFeats]);
+
+  const charForDerivedStats = useMemo(
+    () => ({ ...charData, traits: traitsAlignedWithExport }),
+    [charData, traitsAlignedWithExport]
+  );
+
   const exportCharacter = () => {
     const raceData = (rulesData.races as Record<string, any>)[charData.race];
-    const raceTraits = raceData
-      ? Object.entries(raceData.passives || {})
-          .filter(([id, passive]: [string, any]) =>
-            passive.type === "innate" || charData.traits.some((t) => t.id === id)
-          )
-          .map(([id]) => ({ id, source: "racial" }))
-      : [];
-
+    const raceKey = charData.race?.toLowerCase?.();
+    const innateTraitRefs =
+      raceKey && (rulesData.races as Record<string, any>)[raceKey]?.passives
+        ? Object.entries((rulesData.races as Record<string, any>)[raceKey].passives)
+            .filter(([, passive]: [string, any]) => passive.type === "innate")
+            .map(([id]) => ({ id, source: "racial" as const }))
+        : [];
     const classTraits: { id: string; source: string }[] = [];
     const actions: { id: string }[] = [];
     const reactions: { id: string; slotIndex: number; charges: number }[] = [];
@@ -68,9 +112,15 @@ export function CharacterReview({
       }
     });
 
-    const featTraits = Object.values(selectedFeats)
-      .filter(Boolean)
-      .map((id) => ({ id: id as string, source: "feat" }));
+    const featTraits = Object.entries(selectedFeats)
+      .filter(([, p]) => p?.id)
+      .map(([_, p]) => ({
+        id: p!.id,
+        source: "feat" as const,
+        ...(p!.selectedEffectIndices?.length
+          ? { selectedEffectIndices: p!.selectedEffectIndices }
+          : {}),
+      }));
 
     const skillCounts: Record<string, number> = {};
     selectedSkillIds.forEach((skillId) => {
@@ -97,7 +147,7 @@ export function CharacterReview({
       xp: (rulesData.system.startingXPPerLvl as Record<string, number>)[String(adventurerLevel)] ?? charData.xp,
       actions,
       reactions,
-      traits: [...raceTraits, ...classTraits, ...featTraits],
+      traits: [...innateTraitRefs, ...charData.traits, ...classTraits, ...featTraits],
       focusFeatures: charData.classes.map((c) => ({ classSrc: c.id, slotIndex: -1 })),
       skills,
       languages: Array.from(new Set(languageNames.map((name) => String(name))))
@@ -117,23 +167,59 @@ export function CharacterReview({
   };
 
   const summaryStats = useMemo(() => {
-    let maxHP = 10;
-    let maxMP = 10;
-    let speed = 4;
-    charData.classes.forEach((c) => {
-      const classDef = (rulesData.classes as Record<string, any>)[c.id];
-      const bonus = classDef?.statBonus;
-      if (!bonus) return;
-      const total = (bonus.amount ?? 0) * c.level;
-      if (bonus.stat === "hp") maxHP += total;
-      if (bonus.stat === "mp") maxMP += total;
-    });
-    return { maxHP, maxMP, speed };
-  }, [charData.classes]);
+    const traitRefs = discoverAllTraitRefs(charForDerivedStats, rulesData);
+    const activeTraits = hydrateTraitRefs(traitRefs, charForDerivedStats, rulesData);
+    const characterLevel = getCharacterLevelForStats(charData.classes);
+    const effectiveMight =
+      finalAttributes.might +
+      sumTraitStatChangeEffects(activeTraits, "might") +
+      sumGearStatBonus(charForDerivedStats, "might");
+    const effectiveWillpower =
+      finalAttributes.willpower +
+      sumTraitStatChangeEffects(activeTraits, "willpower") +
+      sumGearStatBonus(charForDerivedStats, "willpower");
+    return {
+      maxHP: computeMaxHP({
+        effectiveMight,
+        characterLevel,
+        classHpBonus: sumClassStatBonus(charData.classes, rulesData, "hp"),
+        gearHpBonus: sumGearStatBonus(charForDerivedStats, "hp"),
+        traitMaxHpBonus: sumTraitStatChangeEffects(activeTraits, "maxHP"),
+      }),
+      maxMP: computeMaxMP({
+        effectiveWillpower,
+        characterLevel,
+        classMpBonus: sumClassStatBonus(charData.classes, rulesData, "mp"),
+        gearMpBonus: sumGearStatBonus(charForDerivedStats, "mp"),
+        traitMaxMpBonus: sumTraitStatChangeEffects(activeTraits, "maxMP"),
+      }),
+      speed: computeSpeed({
+        classSpeedBonus: sumClassStatBonus(charData.classes, rulesData, "speed"),
+        gearSpeedBonus: sumGearStatBonus(charForDerivedStats, "speed"),
+        traitSpeedBonus: sumTraitStatChangeEffects(activeTraits, "speed"),
+      }),
+    };
+  }, [charData.classes, charForDerivedStats, finalAttributes.might, finalAttributes.willpower]);
 
   const resolvedTraits = useMemo(() => {
     const raceDef = (rulesData.races as Record<string, any>)[charData.race];
-    return charData.traits.map((t) => {
+    
+    // 1. Get innate racial traits (automatically granted with race)
+    const innateTraits: { id: string; name: string; description: string }[] = [];
+    if (raceDef?.passives) {
+      Object.entries(raceDef.passives).forEach(([id, passive]: [string, any]) => {
+        if (passive.type === "innate") {
+          innateTraits.push({
+            id,
+            name: passive.name || id,
+            description: passive.description || "No description available."
+          });
+        }
+      });
+    }
+    
+    // 2. Get user-selected traits
+    const selectedTraits = charData.traits.map((t) => {
       const racePassive = raceDef?.passives?.[t.id];
       const globalPassive = (rulesData.passives as Record<string, any>)?.[t.id];
       let classPassive: any = null;
@@ -152,6 +238,9 @@ export function CharacterReview({
         description: resolved?.description ?? "No description available."
       };
     });
+    
+    // Combine: innate traits first, then selected traits
+    return [...innateTraits, ...selectedTraits];
   }, [charData.race, charData.traits]);
 
   const resolvedSkills = useMemo(() => {
@@ -169,23 +258,40 @@ export function CharacterReview({
     });
   }, [selectedSkillIds]);
 
-  return (
-    <div className="flex flex-col h-[calc(100vh-9rem)] animate-in fade-in slide-in-from-bottom-4 duration-500 p-8 max-w-6xl mx-auto overflow-y-auto">
-      <div className="mb-8 flex justify-between items-end">
-        <div>
-          <h2 className="text-3xl font-bold text-foreground mb-2">Character Review</h2>
-          <p className="text-muted-foreground">Finalize details and export a playable JSON file.</p>
-        </div>
-        <div className="flex gap-3">
-          <button onClick={onStartOver} className="flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-lg font-bold">
-            <RotateCcwIcon className="w-4 h-4" /> Start Over
-          </button>
-          <button onClick={exportCharacter} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-bold">
-            <DownloadIcon className="w-4 h-4" /> Export JSON
-          </button>
-        </div>
-      </div>
+  const resolvedFeats = useMemo(() => {
+    return Object.entries(selectedFeats)
+      .filter(([, p]) => p?.id)
+      .map(([levelKey, p]) => {
+        const def = (rulesData.system.feats as Record<string, any>)[p!.id];
+        return {
+          key: `${levelKey}-${p!.id}`,
+          name: def?.name ?? p!.id,
+          level: Number(levelKey),
+        };
+      })
+      .sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
+  }, [selectedFeats]);
 
+  return (
+    <div className="flex flex-col h-[calc(100vh-9rem)] min-h-0 max-w-6xl mx-auto px-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <header className="shrink-0 pt-8 pb-4 border-b border-border bg-background z-10">
+        <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-end">
+          <div>
+            <h2 className="text-3xl font-bold text-foreground mb-2">Character Review</h2>
+            <p className="text-muted-foreground">Finalize details and export a playable JSON file.</p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <button type="button" onClick={onStartOver} className="flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-lg font-bold">
+              <RotateCcwIcon className="w-4 h-4" /> Start Over
+            </button>
+            <button type="button" onClick={exportCharacter} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-bold">
+              <DownloadIcon className="w-4 h-4" /> Export JSON
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <div className="flex-1 min-h-0 overflow-y-auto py-6">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="space-y-4">
           <div className="space-y-1">
@@ -229,30 +335,84 @@ export function CharacterReview({
               <div className="text-xl font-black">{summaryStats.speed}</div>
             </div>
           </div>
-          <div className="text-sm text-muted-foreground mb-4">
-            <div className="font-bold mb-1 flex items-center gap-1"><Swords className="w-3 h-3" /> Class Levels</div>
-            <div>{charData.classes.length > 0 ? charData.classes.map((c) => `${(rulesData.classes as Record<string, any>)[c.id]?.name ?? c.id} ${c.level}`).join(", ") : "None"}</div>
-          </div>
-          <div className="space-y-2">
-            {ATTRS.map((attr) => {
-              const total = finalAttributes[attr.id];
-              const mod = Math.floor((total - 10) / 2);
-              return (
-                <div key={attr.id} className="flex justify-between text-sm border-b border-border py-1">
-                  <span>{attr.name}</span>
-                  <span>{total} ({mod >= 0 ? `+${mod}` : mod})</span>
+<div className="space-y-1 mb-5">
+            <div className="text-xs uppercase tracking-wider font-bold text-muted-foreground flex items-center gap-1.5">
+              <Swords className="w-3.5 h-3.5 shrink-0" aria-hidden /> Classes
+            </div>
+            <div className="rounded-lg border border-border bg-background/40 p-3">
+              {charData.classes.length === 0 ? (
+                <div className="text-base font-semibold text-foreground">None</div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {charData.classes.map((c) => {
+                    const name = (rulesData.classes as Record<string, any>)[c.id]?.name ?? c.id;
+                    return (
+                      <div
+                        key={c.id}
+                        className="min-w-0 flex-1 basis-[140px] rounded-md border border-border bg-background/60 px-3 py-2.5"
+                      >
+                        <div className="text-sm font-bold text-foreground leading-tight">{name}</div>
+                        <div className="text-lg font-black tabular-nums text-foreground mt-0.5">Level {c.level}</div>
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
+              )}
+            </div>
+          </div>
+          <div className="space-y-1">
+            <div className="text-xs uppercase tracking-wider font-bold text-muted-foreground">Attributes</div>
+            <div className="grid grid-cols-5 gap-1 sm:gap-2 rounded-lg border border-border bg-background/40 p-3">
+              <div className="col-span-5 grid grid-cols-5 gap-1 sm:gap-2 text-center border-b border-border pb-2">
+                {ATTRS.map((attr) => {
+                  const total = finalAttributes[attr.id];
+                  return (
+                    <div key={attr.id} className="min-w-0">
+                      <div className="text-[10px] sm:text-xs font-semibold text-muted-foreground leading-tight truncate" title={attr.name}>
+                        {attr.name}
+                      </div>
+                      <div className="text-lg sm:text-xl font-black tabular-nums">{total}</div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="col-span-5 grid grid-cols-5 gap-1 sm:gap-2 text-center pt-1">
+                {ATTRS.map((attr) => {
+                  const total = finalAttributes[attr.id];
+                  const mod = Math.floor((total - 10) / 2);
+                  const modStr = mod >= 0 ? `+${mod}` : `${mod}`;
+                  return (
+                    <div key={`${attr.id}-mod`} className="text-sm font-semibold tabular-nums text-muted-foreground">
+                      {modStr}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
           <div className="mt-5 border-t border-border pt-4">
             <div className="text-xs uppercase tracking-wider font-bold text-muted-foreground mb-2">Skills</div>
             <div className="flex flex-wrap gap-2 mb-4">
               {resolvedSkills.map((s) => (
-                <span key={s.id} className={`text-xs px-2 py-1 rounded border ${s.expertise ? "bg-purple-900/40 border-purple-500 text-purple-200" : "bg-muted border-border text-foreground"}`}>
+                <span key={s.id} className={`text-xs px-2 py-1 rounded border ${s.expertise ? "bg-purple-100 border-purple-600 text-purple-950 dark:bg-purple-900/40 dark:border-purple-500 dark:text-purple-200" : "bg-muted border-border text-foreground"}`}>
                   {s.name}{s.expertise ? " (Expertise)" : ""}
                 </span>
               ))}
+            </div>
+            <div className="text-xs uppercase tracking-wider font-bold text-muted-foreground mb-2">Feats</div>
+            <div className="flex flex-wrap gap-2 mb-4">
+              {resolvedFeats.length === 0 ? (
+                <span className="text-xs text-muted-foreground">None</span>
+              ) : (
+                resolvedFeats.map((f) => (
+                  <span
+                    key={f.key}
+                    className="text-xs px-2 py-1 rounded border bg-muted border-border text-foreground font-medium"
+                  >
+                    {f.name}
+                  </span>
+                ))
+              )}
             </div>
             <div className="text-xs uppercase tracking-wider font-bold text-muted-foreground mb-2">Traits</div>
             <div className="space-y-2 max-h-56 overflow-auto pr-1">
@@ -266,12 +426,13 @@ export function CharacterReview({
           </div>
         </div>
       </div>
+      </div>
 
-      <div className="mt-8">
-        <button onClick={onBack} className="flex items-center gap-2 px-6 py-3 rounded-lg font-bold text-secondary-foreground bg-secondary">
+      <footer className="shrink-0 py-4 pb-8 border-t border-border bg-background z-10">
+        <button type="button" onClick={onBack} className="flex items-center gap-2 px-6 py-3 rounded-lg font-bold text-secondary-foreground bg-secondary">
           <ChevronLeftIcon className="w-5 h-5" /> Back
         </button>
-      </div>
+      </footer>
     </div>
   );
 }

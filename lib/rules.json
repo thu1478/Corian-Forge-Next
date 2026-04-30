@@ -11,7 +11,6 @@
           "name": "Opportunity Attack",
           "type": "Free Reaction",
           "level": 0,
-          "chargeStat": "",
           "trigger": "A hostile creature leaves your melee range while you have a non-Implement melee weapon equipped",
           "description": "Deal fixed physical damage to the target equal to your melee weapon damage"
         }
@@ -256,6 +255,33 @@
           ],
           "level": 5
         }
+      },
+      "testSelector": {
+        "name": "Test Selector Feat",
+        "minLevel": 1,
+        "description": "Either increase max hp by 5 or max mp by 5",
+        "selectAmount": 1,
+        "effects": [
+          {
+            "type": "StatChange",
+            "stat": "maxHP",
+            "value": "5"
+          },
+          {
+            "type": "StatChange",
+            "stat": "maxMP",
+            "value": "5"
+          }
+        ],
+        "prereqs": {
+          "classes": [
+            "brawler",
+            "fury",
+            "guardian",
+            "weaponmaster"
+          ],
+          "level": 1
+        }
       }
     }
   },
@@ -430,7 +456,6 @@
           "name": "Counterattack",
           "type": "Reaction",
           "level": 1,
-          "chargeStat": "",
           "trigger": "You take damage from an attack",
           "description": "Make an Opportunity Attack against the attacker"
         },
@@ -553,7 +578,6 @@
           "name": "Paired Casting",
           "type": "Reaction",
           "level": 1,
-          "chargeStat": "",
           "trigger": "An ally you can see within 8 tiles casts an attack spell",
           "description": "Increase the damage of that spell by your Reason Modifier"
         },
@@ -562,7 +586,6 @@
           "name": "Return Fire",
           "type": "Reaction",
           "minLevel": 3,
-          "chargeStat": "",
           "trigger": "You are attacked by a ranged attack",
           "description": "After the attack you fire back with Flare Arrow",
           "actionCard": {
@@ -610,7 +633,6 @@
           "name": "Abjuration",
           "type": "Reaction",
           "level": 1,
-          "chargeStat": "",
           "trigger": "You are attacked by a ranged attack",
           "description": "Throw up a magical shield, reducing the damage by 5"
         },
@@ -619,7 +641,6 @@
           "name": "Subjugate",
           "type": "Reaction",
           "level": 3,
-          "chargeStat": "",
           "trigger": "An ally afflicts a hostile creature with Shaken or Dazed",
           "description": "Target the creature with Subjugate"
         }
@@ -680,11 +701,13 @@
           "effects": [
             {
               "type": "Vulnerability",
-              "value": "Fire"
+              "stat": "Fire",
+              "value": "2"
             },
             {
               "type": "Vulnerability",
-              "value": "Earth"
+              "stat": "Earth",
+              "value": "2"
             }
           ]
         }

@@ -50,12 +50,15 @@ export function CultureStep({
     }
     return set;
   }, [cultureEnvironment, cultureOrganization, cultureUpbringing, culture.environment, culture.organization, culture.upbringing]);
-  // Filter skills based on unlocked categories
-  const availableSkills = Object.entries(allSkills).filter(
-    ([_, skill]) => {
-      return skill.categories.some((c) => unlockedCategories.has(c) || (c === "intepersonal" && unlockedCategories.has("interpersonal")));
-    }
-  );
+  // Include current culture picks even if env/org/upbringing changed and categories no longer match (so they stay removable).
+  const availableSkills = Object.entries(allSkills).filter(([id, skill]) => {
+    if (selectedSkills.includes(id)) return true;
+    return skill.categories.some(
+      (c) =>
+        unlockedCategories.has(c) ||
+        (c === "intepersonal" && unlockedCategories.has("interpersonal"))
+    );
+  });
   const renderSection = (
   title: string,
   data: Record<string, any>,
@@ -86,7 +89,7 @@ export function CultureStep({
               {item.skillCategories.map((cat: string) =>
 <span
               key={cat}
-              className="text-xs font-semibold px-2 py-1 rounded bg-slate-100 text-slate-600 border border-slate-300 uppercase dark:bg-background dark:text-amber-500 dark:border-border">
+              className="text-xs font-semibold px-2 py-1 rounded uppercase bg-muted text-foreground border border-border dark:bg-muted/50 dark:text-foreground">
                 {cat}
               </span>
             )}
@@ -173,7 +176,7 @@ export function CultureStep({
                   Picks Left
                 </div>
                 <div
-                  className={`text-2xl font-black ${3 - selectedSkills.length === 0 ? 'text-green-500' : 'text-amber-500'}`}>
+                  className={`text-2xl font-black tabular-nums ${3 - selectedSkills.length === 0 ? 'text-green-700 dark:text-green-500' : 'text-foreground'}`}>
                 
                   {3 - selectedSkills.length}
                 </div>
@@ -186,23 +189,24 @@ export function CultureStep({
               const inCulture = selectedSkills.includes(id);
               const wouldGainExpertise = count === 1 && !inCulture;
               const atExpertiseCap = count >= 2 && !inCulture;
-              const canSelect = !atExpertiseCap && (selectedSkills.length < 3 || inCulture);
+              const canAdd = !atExpertiseCap && selectedSkills.length < 3;
+              const canInteract = inCulture || canAdd;
               return (
                 <button
                   key={id}
                   onClick={() => {
                     if (inCulture) {
                       onToggleSkill(id);
-                    } else if (selectedSkills.length < 3 && !atExpertiseCap) {
+                    } else if (canAdd) {
                       onToggleSkill(id);
                     }
                   }}
-                  disabled={!canSelect}
+                  disabled={!canInteract}
                   className={`flex flex-col items-start p-3 rounded-xl border-2 transition-all text-left w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.75rem)] ${
                     count >= 2
-                      ? "bg-purple-900/40 border-purple-500 ring-1 ring-purple-500/50"
+                      ? "bg-purple-100 border-purple-600 text-foreground ring-1 ring-purple-500/30 dark:bg-purple-900/40 dark:border-purple-500 dark:ring-purple-500/50"
                       : count === 1
-                        ? "bg-muted border-purple-500/50"
+                        ? "bg-muted border-purple-400/60 dark:border-purple-500/50"
                         : "bg-card border-border hover:border-muted-foreground/60"
                   } disabled:opacity-50 disabled:cursor-not-allowed`}>
                   
@@ -212,23 +216,23 @@ export function CultureStep({
                       </span>
                       {count > 0 &&
                     <span
-                      className={`text-xs font-bold px-2 py-0.5 rounded ${count === 2 ? 'bg-purple-500 text-white' : 'bg-muted text-purple-300'}`}>
+                      className={`text-xs font-bold px-2 py-0.5 rounded ${count === 2 ? 'bg-purple-700 text-white dark:bg-purple-500' : 'bg-muted text-purple-900 dark:text-purple-300'}`}>
                       
                           {count === 2 ? 'Expertise' : 'Proficient'}
                         </span>
                     }
                     </div>
                     {wouldGainExpertise && (
-                      <span className="text-[10px] font-bold text-purple-300 mb-1">
+                      <span className="text-[10px] font-bold text-purple-800 mb-1 dark:text-purple-300">
                         Next pick grants Expertise
                       </span>
                     )}
                     {atExpertiseCap && (
-                      <span className="text-[10px] font-bold text-red-300 mb-1">
+                      <span className="text-[10px] font-bold text-red-800 mb-1 dark:text-red-300">
                         Expertise already reached
                       </span>
                     )}
-                    <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-amber-500 mb-2">
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground mb-2 tracking-wide">
                       {skill.categories.join(', ')}
                     </span>
                     <p className="text-xs text-muted-foreground line-clamp-2">
