@@ -16,14 +16,17 @@ export function hydrateItemData(rawCharacter: CharacterSaveData | null, rules: a
                 console.warn(`Could not find item definition for ID: ${entry.id}`);
             }
 
+            const ruleName = itemDef?.name ?? `Unknown (${entry.id})`;
+            const custom = typeof entry.customName === "string" ? entry.customName.trim() : "";
             return {
                 ...itemDef, // Spread name, description, type, etc.
                 uid: entry.uid,
                 id: entry.id,
+                customName: custom || undefined,
                 quantity: entry.quantity ?? itemDef?.quantity ?? 1,
                 containerId: entry.containerId ?? null,
                 // Fallbacks to prevent UI crashes if itemDef is missing
-                name: itemDef?.name ?? `Unknown (${entry.id})`,
+                name: custom || ruleName,
                 description: itemDef?.description ?? ""
             };
         });

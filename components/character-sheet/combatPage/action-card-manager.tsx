@@ -6,6 +6,21 @@ import {ChevronDown, Clock, Crosshair, Droplets, Swords, Target, Wrench, Zap} fr
 import {InventoryItem} from "@/lib/equipment-data";
 import {ActionCard, CharAttribute, PotencyEffect, PowerRoll} from "@/lib/rules";
 import {getAttributeModifier} from "@/lib/character-data";
+import {
+    potencyStrengthDisplayLabel,
+    potencyStrengthToModifier,
+} from "@/lib/potency-strength";
+
+export type ActionSpendResourceKind = "mp" | "focus" | "ip"
+
+/** Combat tab: simple totals vs base + weapon / max mod + potency tier math. */
+export type PowerRollDisplayMode = "simple" | "formula"
+
+export interface ActionCostBudget {
+    mp: number
+    focus: number
+    ip: number
+}
 
 interface ActionCardProps {
     action: ActionCard
@@ -19,6 +34,11 @@ interface ActionCardProps {
     disabled?: boolean
     currentWeapon?: InventoryItem | null
     forceCollapsed: boolean
+    /** When set with `actionCostBudget`, cost chips spend that resource on click (e.g. combat tab). */
+    onSpendActionCost?: (kind: ActionSpendResourceKind, amount: number) => void
+    actionCostBudget?: ActionCostBudget
+    /** Default `simple`: final damage & potency DC. `formula`: show sums (e.g. 2 + 1 DMG, 4 + (−1) potency). */
+    powerRollDisplayMode?: PowerRollDisplayMode
 }
 
 const typeConfig = {
@@ -50,7 +70,10 @@ export function ActionCardComponent({
                                         attributes,
                                         disabled = false,
                                         currentWeapon,
-                                        forceCollapsed = false
+                                        forceCollapsed = false,
+                                        onSpendActionCost,
+                                        actionCostBudget,
+                                        powerRollDisplayMode = "simple",
                                     }: ActionCardProps) {
     // Each card maintains its own independent state
     const [isExpanded, setIsExpanded] = useState(true);
@@ -63,6 +86,16 @@ export function ActionCardComponent({
 
     const config = typeConfig[action.type] || typeConfig.action
     const TypeIcon = config.icon
+
+    const spendInteractive = Boolean(onSpendActionCost && actionCostBudget && !disabled)
+    const mpCost = action.mpCost ?? 0
+    const focusCost = action.focusCost ?? 0
+    const ipCost = action.ipCost ?? 0
+
+    const trySpend = (kind: ActionSpendResourceKind, amount: number) => {
+        if (!spendInteractive || amount <= 0) return
+        onSpendActionCost?.(kind, amount)
+    }
 
     return (
         <div className={cn(
@@ -100,41 +133,101 @@ export function ActionCardComponent({
                 isExpanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0 pointer-events-none overflow-hidden"
             )}>
 
-                {/* Cost Row */}
+                {/* Cost Row — MP / Focus / IP clickable on combat sheet; AP is display-only */}
                 <div className="flex flex-wrap gap-2 mb-4">
-                    {action.apCost && (
+                    {action.apCost ? (
                         <div
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/20 border border-primary/40">
                             <Zap className="w-4 h-4 text-primary"/>
                             <span className="text-base font-bold text-primary">{action.apCost} AP</span>
                         </div>
+                    ) : null}
+
+                    {mpCost > 0 && (
+                        spendInteractive ? (
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation()
+                                    trySpend("mp", mpCost)
+                                }}
+                                disabled={(actionCostBudget?.mp ?? 0) < mpCost}
+                                title={`Spend ${mpCost} MP`}
+                                className={cn(
+                                    "flex items-center gap-1.5 rounded-full border px-3 py-1.5 transition-colors",
+                                    "bg-blue-100 dark:bg-blue-500/20 border-blue-300 dark:border-blue-500/40",
+                                    "hover:bg-blue-200/80 dark:hover:bg-blue-500/30 disabled:cursor-not-allowed disabled:opacity-40"
+                                )}
+                            >
+                                <Droplets className="w-4 h-4 shrink-0 text-blue-700 dark:text-blue-400"/>
+                                <span className="text-base font-bold text-blue-700 dark:text-blue-400">{mpCost} MP</span>
+                            </button>
+                        ) : (
+                            <div
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-100 dark:bg-blue-500/20 border border-blue-300 dark:border-blue-500/40">
+                                <Droplets className="w-4 h-4 text-blue-700 dark:text-blue-400"/>
+                                <span
+                                    className="text-base font-bold text-blue-700 dark:text-blue-400">{mpCost} MP</span>
+                            </div>
+                        )
                     )}
 
-                    {action.mpCost !== undefined && action.mpCost > 0 && (
-                        <div
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-100 dark:bg-blue-500/20 border border-blue-300 dark:border-blue-500/40">
-                            <Droplets className="w-4 h-4 text-blue-700 dark:text-blue-400"/>
-                            <span
-                                className="text-base font-bold text-blue-700 dark:text-blue-400">{action.mpCost} MP</span>
-                        </div>
+                    {focusCost > 0 && (
+                        spendInteractive ? (
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation()
+                                    trySpend("focus", focusCost)
+                                }}
+                                disabled={(actionCostBudget?.focus ?? 0) < focusCost}
+                                title={`Spend ${focusCost} Focus`}
+                                className={cn(
+                                    "flex items-center gap-1.5 rounded-full border px-3 py-1.5 transition-colors",
+                                    "bg-orange-100 dark:bg-orange-500/20 border-orange-300 dark:border-orange-500/40",
+                                    "hover:bg-orange-200/80 dark:hover:bg-orange-500/30 disabled:cursor-not-allowed disabled:opacity-40"
+                                )}
+                            >
+                                <Target className="w-4 h-4 shrink-0 text-orange-700 dark:text-orange-400"/>
+                                <span className="text-base font-bold text-orange-700 dark:text-orange-400">{focusCost} Focus</span>
+                            </button>
+                        ) : (
+                            <div
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-100 dark:bg-orange-500/20 border border-orange-300 dark:border-orange-500/40">
+                                <Target className="w-4 h-4 text-orange-700 dark:text-orange-400"/>
+                                <span
+                                    className="text-base font-bold text-orange-700 dark:text-orange-400">{focusCost} Focus</span>
+                            </div>
+                        )
                     )}
 
-                    {action.focusCost !== undefined && action.focusCost > 0 && (
-                        <div
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-100 dark:bg-orange-500/20 border border-orange-300 dark:border-orange-500/40">
-                            <Target className="w-4 h-4 text-orange-700 dark:text-orange-400"/>
-                            <span
-                                className="text-base font-bold text-orange-700 dark:text-orange-400">{action.focusCost} Focus</span>
-                        </div>
-                    )}
-
-                    {action.ipCost !== undefined && action.ipCost > 0 && (
-                        <div
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-100 dark:bg-emerald-500/20 border border-emerald-300 dark:border-emerald-500/40">
-                            <Wrench className="w-4 h-4 text-emerald-700 dark:text-emerald-400"/>
-                            <span
-                                className="text-base font-bold text-emerald-700 dark:text-emerald-400">{action.ipCost} IP</span>
-                        </div>
+                    {ipCost > 0 && (
+                        spendInteractive ? (
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation()
+                                    trySpend("ip", ipCost)
+                                }}
+                                disabled={(actionCostBudget?.ip ?? 0) < ipCost}
+                                title={`Spend ${ipCost} IP`}
+                                className={cn(
+                                    "flex items-center gap-1.5 rounded-full border px-3 py-1.5 transition-colors",
+                                    "bg-emerald-100 dark:bg-emerald-500/20 border-emerald-300 dark:border-emerald-500/40",
+                                    "hover:bg-emerald-200/80 dark:hover:bg-emerald-500/30 disabled:cursor-not-allowed disabled:opacity-40"
+                                )}
+                            >
+                                <Wrench className="w-4 h-4 shrink-0 text-emerald-700 dark:text-emerald-400"/>
+                                <span className="text-base font-bold text-emerald-700 dark:text-emerald-400">{ipCost} IP</span>
+                            </button>
+                        ) : (
+                            <div
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-100 dark:bg-emerald-500/20 border border-emerald-300 dark:border-emerald-500/40">
+                                <Wrench className="w-4 h-4 text-emerald-700 dark:text-emerald-400"/>
+                                <span
+                                    className="text-base font-bold text-emerald-700 dark:text-emerald-400">{ipCost} IP</span>
+                            </div>
+                        )
                     )}
                 </div>
 
@@ -212,7 +305,8 @@ export function ActionCardComponent({
                                 tier={1}
                                 badgeStyle={config.badge}
                                 attributes={attributes}
-                                currentWeapon={currentWeapon} // Pass it here
+                                currentWeapon={currentWeapon}
+                                powerRollDisplayMode={powerRollDisplayMode}
                             />
                             <TierRow
                                 label="12-16"
@@ -220,7 +314,8 @@ export function ActionCardComponent({
                                 tier={2}
                                 badgeStyle={config.badge}
                                 attributes={attributes}
-                                currentWeapon={currentWeapon} // Pass it here
+                                currentWeapon={currentWeapon}
+                                powerRollDisplayMode={powerRollDisplayMode}
                             />
                             <TierRow
                                 label=">=17"
@@ -228,7 +323,8 @@ export function ActionCardComponent({
                                 tier={3}
                                 badgeStyle={config.badge}
                                 attributes={attributes}
-                                currentWeapon={currentWeapon} // Pass it here
+                                currentWeapon={currentWeapon}
+                                powerRollDisplayMode={powerRollDisplayMode}
                             />
                         </div>
                     </div>
@@ -249,13 +345,14 @@ export function ActionCardComponent({
     )
 }
 
-function TierRow({label, roll, tier, badgeStyle, attributes, currentWeapon}: {
+function TierRow({label, roll, tier, badgeStyle, attributes, currentWeapon, powerRollDisplayMode}: {
     label: string,
     roll: PowerRoll,
     tier: number,
     badgeStyle: string,
     attributes: ActionCardProps['attributes'],
     currentWeapon?: InventoryItem | null
+    powerRollDisplayMode: PowerRollDisplayMode
 }) {
     const baseDmg = roll[`tier${tier}Dmg` as keyof PowerRoll] as number || 0;
     const hasWpn = roll[`tier${tier}Wpn` as keyof PowerRoll] as boolean || false;
@@ -274,17 +371,38 @@ function TierRow({label, roll, tier, badgeStyle, attributes, currentWeapon}: {
         }
     }
 
-    // 3. Final Damage = (Tier Scaling ? Highest Mod : 0) + Base + Weapon Bonus
+    // 3. Final Damage = base + weapon bonus when tier uses weapon damage
     const finalDmg = (hasWpn ? weaponBonus : 0) + baseDmg;
 
-    const getPotencyThreshold = (p: PotencyEffect) => {
-        if (p.type === 'Special' || p.strength === undefined || !p.srcStats) return null;
-        const modifiers = p.srcStats.map(stat => getAttributeModifier(attributes[stat as keyof typeof attributes]));
-        return Math.max(...modifiers) + p.strength;
-    };
+    let potencyThreshold: number | null = null;
+    let maxSrcMod: number | null = null;
+    let potencyStrMod: number | null = null;
+    let potencyStrengthLabel: string | null = null;
 
-    const threshold = potency ? getPotencyThreshold(potency) : null;
+    if (potency && potency.type !== "Special" && potency.srcStats && potency.srcStats.length > 0) {
+        const modifiers = potency.srcStats.map((stat) =>
+            getAttributeModifier(attributes[stat as keyof typeof attributes])
+        );
+        maxSrcMod = Math.max(...modifiers);
+        potencyStrMod = potencyStrengthToModifier(potency.strength);
+        potencyStrengthLabel = potencyStrengthDisplayLabel(potency.strength);
+        potencyThreshold = maxSrcMod + potencyStrMod;
+    }
+
     const shouldShowDmg = hasWpn || finalDmg > 0;
+
+    const dmgDisplay =
+        powerRollDisplayMode === "formula" && hasWpn ? (
+            <>
+                {baseDmg} + {weaponBonus}{" "}
+                <span className="text-[10px] opacity-40 uppercase ml-0.5">DMG</span>
+            </>
+        ) : (
+            <>
+                {finalDmg}{" "}
+                <span className="text-[10px] opacity-40 uppercase ml-0.5">DMG</span>
+            </>
+        );
 
     return (
         <div
@@ -296,7 +414,7 @@ function TierRow({label, roll, tier, badgeStyle, attributes, currentWeapon}: {
                 </span>
                 {shouldShowDmg && (
                     <span className="font-mono font-bold text-foreground text-lg leading-none">
-                        {finalDmg} <span className="text-[10px] opacity-40 uppercase ml-0.5">dmg</span>
+                        {dmgDisplay}
                     </span>
                 )}
             </div>
@@ -304,17 +422,31 @@ function TierRow({label, roll, tier, badgeStyle, attributes, currentWeapon}: {
             {/* Bottom Row: Potency/Effects (Full Width) */}
             {potency && (
                 <div className="px-3 py-2.5 flex flex-wrap items-center gap-x-4 gap-y-2">
-                    {/* Math Requirement */}
-                    {threshold !== null && potency.type !== 'Special' && potency.targetStats && (
-                        <div className="flex items-center gap-2">
+                    {/* Potency DC: max attribute mod + potency tier offset (weak / average / strong) */}
+                    {potencyThreshold !== null && potency.type !== 'Special' && potency.targetStats && (
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                              <span
                                  className="text-sm font-mono font-black text-muted-foreground uppercase tracking-tight">
                                 {potency.targetStats.map(s => s[0]).join("/")}
                             </span>
-                            <span className="text-base font-black text-primary flex items-center gap-1">
-                                <span className="text-xs opacity-50">&lt;</span>
-                                [{threshold}]
-                            </span>
+                            {powerRollDisplayMode === "simple" ? (
+                                <span className="text-base font-black text-primary flex items-center gap-1 tabular-nums">
+                                    <span className="text-xs opacity-50">&lt;</span>
+                                    {potencyThreshold}
+                                </span>
+                            ) : (
+                                <span className="text-base font-black text-primary flex flex-wrap items-center gap-x-1.5 gap-y-0.5 tabular-nums">
+                                    <span className="text-xs opacity-50">&lt;</span>
+                                    <span className="font-mono">
+                                        {maxSrcMod} {potencyStrMod}
+                                    </span>
+                                    {potencyStrengthLabel ? (
+                                        <span className="text-[10px] font-bold uppercase opacity-60">
+                                            [{potencyStrengthLabel}]
+                                        </span>
+                                    ) : null}
+                                </span>
+                            )}
                         </div>
                     )}
 

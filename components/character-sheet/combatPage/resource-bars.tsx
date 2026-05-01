@@ -1,8 +1,8 @@
 "use client"
 
-import {useState} from "react"
+import {useMemo, useState} from "react"
 import {cn} from "@/lib/utils"
-import {Calculator, Droplets, Footprints, Heart, Minus, Plus, Shield, ShieldCheck, Swords} from "lucide-react"
+import {Calculator, Droplets, Footprints, Heart, Leaf, Minus, Plus, Shield, ShieldCheck, Swords} from "lucide-react"
 import {Button} from "@/components/ui/button"
 import {Input} from "@/components/ui/input"
 
@@ -162,10 +162,12 @@ interface ResourceBarsProps {
     barrier: number
     mp: { current: number; max: number }
     ip: { current: number; max: number }
+    respite: { current: number; max: number }
     onHpChange?: (current: number, max: number) => void
     onBarrierChange?: (current: number) => void
     onMpChange?: (current: number, max: number) => void
     onIpChange?: (value: number) => void
+    onRespiteChange?: (current: number, max: number) => void
     onOpenDamageCalculator?: () => void
     attributes: Record<string, number>
     knownClasses: any[]
@@ -176,10 +178,12 @@ export function ResourceBars({
                                  barrier,
                                  mp,
                                  ip,
+                                 respite,
                                  onHpChange,
                                  onBarrierChange,
                                  onMpChange,
                                  onIpChange,
+                                 onRespiteChange,
                                  onOpenDamageCalculator,
                              }: ResourceBarsProps) {
 
@@ -257,8 +261,18 @@ export function ResourceBars({
                 max={ip.max}
                 min={0}
                 color="bg-gradient-to-r from-violet-600 to-violet-400"
-                icon={<Droplets className="ww-3.5 h-3.5 text-violet-600 dark:text-violet-400"/>}
+                icon={<Droplets className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400"/>}
                 onUpdate={onIpChange}
+            />
+
+            <ResourceBar
+                label="Respite"
+                current={respite.current}
+                max={respite.max}
+                min={0}
+                color="bg-gradient-to-r from-emerald-700 to-green-500"
+                icon={<Leaf className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400"/>}
+                onUpdate={onRespiteChange}
             />
         </div>
     )
@@ -272,7 +286,29 @@ interface CombatStatsPanelProps {
     vulnerabilities: Record<string,number>
 }
 
+function normalizeDamageTypeKey(s: string): string {
+    return s.trim().toLowerCase()
+}
+
+/** Damage types that appear as both resistance and vulnerability (netted out in play; still listed, de-emphasized). */
+function useConflictingDamageTypes(
+    resistances: string[],
+    vulnerabilities: Record<string, number>
+): Set<string> {
+    return useMemo(() => {
+        const vulnKeys = new Set(Object.keys(vulnerabilities).map(normalizeDamageTypeKey))
+        const out = new Set<string>()
+        for (const r of resistances) {
+            const k = normalizeDamageTypeKey(r)
+            if (vulnKeys.has(k)) out.add(k)
+        }
+        return out
+    }, [resistances, vulnerabilities])
+}
+
 export function CombatStatsPanel({defense, stability, speed, resistances, vulnerabilities}: CombatStatsPanelProps) {
+    const conflictingTypes = useConflictingDamageTypes(resistances, vulnerabilities)
+
     return (
         <div className="p-4 bg-card rounded-xl border border-border">
             <h3 className="text-base font-semibold uppercase tracking-wider text-primary mb-4">Combat Stats</h3>
@@ -309,12 +345,27 @@ export function CombatStatsPanel({defense, stability, speed, resistances, vulner
                     <div className="flex flex-wrap items-center gap-2">
                         <span
                             className="text-xs text-emerald-700 dark:text-emerald-400 uppercase tracking-wider font-semibold">Resist:</span>
-                        {resistances.map((r) => (
-                            <span key={r}
-                                  className="text-xs px-2 py-1 rounded bg-emerald-100 border border-emerald-300 text-emerald-700 dark:bg-emerald-900/40 dark:border-emerald-700/50 dark:text-emerald-300 font-medium">
-                {r}
-              </span>
-                        ))}
+                        {resistances.map((r) => {
+                            const conflict = conflictingTypes.has(normalizeDamageTypeKey(r))
+                            return (
+                                <span
+                                    key={r}
+                                    className={cn(
+                                        "text-xs px-2 py-1 rounded border font-medium",
+                                        conflict
+                                            ? "bg-muted/60 border-border text-muted-foreground line-through opacity-70"
+                                            : "bg-emerald-100 border-emerald-300 text-emerald-700 dark:bg-emerald-900/40 dark:border-emerald-700/50 dark:text-emerald-300"
+                                    )}
+                                    title={
+                                        conflict
+                                            ? "Also vulnerable to this damage type — effects cancel; shown for reference."
+                                            : undefined
+                                    }
+                                >
+                                    {r}
+                                </span>
+                            )
+                        })}
                     </div>
                 )}
                 {Object.keys(vulnerabilities).length > 0 && (
@@ -322,12 +373,28 @@ export function CombatStatsPanel({defense, stability, speed, resistances, vulner
             <span className="text-xs text-red-700 dark:text-red-400 uppercase tracking-wider font-semibold">
                 Vuln:
             </span>
-                        {Object.entries(vulnerabilities).map(([type, value]) => (
-                            <span key={type} className="text-xs px-2 py-1 rounded bg-red-100 border border-red-300 text-red-700 dark:bg-red-900/40 dark:border-red-700/50 dark:text-red-300 font-medium flex items-center gap-1">
-                    {type}
-                                <span className="opacity-60 font-bold">+{value}</span>
-                </span>
-                        ))}
+                        {Object.entries(vulnerabilities).map(([type, value]) => {
+                            const conflict = conflictingTypes.has(normalizeDamageTypeKey(type))
+                            return (
+                                <span
+                                    key={type}
+                                    className={cn(
+                                        "text-xs px-2 py-1 rounded border font-medium flex items-center gap-1",
+                                        conflict
+                                            ? "bg-muted/60 border-border text-muted-foreground line-through opacity-70"
+                                            : "bg-red-100 border-red-300 text-red-700 dark:bg-red-900/40 dark:border-red-700/50 dark:text-red-300"
+                                    )}
+                                    title={
+                                        conflict
+                                            ? "Also resistant to this damage type — effects cancel; shown for reference."
+                                            : undefined
+                                    }
+                                >
+                                    {type}
+                                    <span className="opacity-60 font-bold">+{value}</span>
+                                </span>
+                            )
+                        })}
                     </div>
                 )}
             </div>
@@ -339,10 +406,17 @@ interface OtherStatsProps {
     xp: number
     inspiration: number
     victories: number
-    onUpdateInspiration: (newCount: number) => void;
+    onUpdateInspiration: (newCount: number) => void
+    onUpdateVictories: (newCount: number) => void
 }
 
-export function OtherStats({xp, inspiration, victories, onUpdateInspiration}: OtherStatsProps) {
+export function OtherStats({
+    xp,
+    inspiration,
+    victories,
+    onUpdateInspiration,
+    onUpdateVictories,
+}: OtherStatsProps) {
     return (
         <div className="p-4 bg-card rounded-xl border border-border">
             <h3 className="text-base font-semibold uppercase tracking-wider text-primary mb-4">Progress</h3>
@@ -385,10 +459,35 @@ export function OtherStats({xp, inspiration, victories, onUpdateInspiration}: Ot
                         })}
                     </div>
                 </div>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2">
                     <span
                         className="text-sm text-muted-foreground uppercase tracking-wider font-medium">Victories</span>
-                    <span className="font-mono font-bold text-foreground text-base">{victories}</span>
+                    <div className="flex items-center gap-1">
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 w-7 p-0 hover:bg-destructive/20"
+                            onClick={() => onUpdateVictories(Math.max(0, victories - 1))}
+                            disabled={victories <= 0}
+                            aria-label="Decrease victories"
+                        >
+                            <Minus className="w-3.5 h-3.5"/>
+                        </Button>
+                        <span className="min-w-[2rem] text-center font-mono font-bold text-foreground text-base tabular-nums">
+                            {victories}
+                        </span>
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 w-7 p-0 hover:bg-primary/20"
+                            onClick={() => onUpdateVictories(victories + 1)}
+                            aria-label="Increase victories"
+                        >
+                            <Plus className="w-3.5 h-3.5"/>
+                        </Button>
+                    </div>
                 </div>
             </div>
         </div>

@@ -20,6 +20,8 @@ export interface CharacterSaveData {
     barrier: number
     mp: number
     focus: number
+    /** Current respite uses (short rests, etc.). Max comes from derived stats (base 4 + traits such as maxRespites). */
+    respite: number
 
     // Attributes (stat + modifier)
     attributes: {
@@ -92,6 +94,7 @@ export const defaultCharacter: CharacterSaveData = {
     barrier: 8,
     mp: 18,
     focus: 3,
+    respite: 4,
 
     // Attributes
     attributes: {

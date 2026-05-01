@@ -307,11 +307,11 @@
         "resistTest": {
           "name": "Resistance Test",
           "minLevel": 1,
-          "description": "Gain resistance to Dark damage and vulnerability 2 to fire damage",
+          "description": "Gain resistance to Earth damage and vulnerability 2 to fire damage",
           "effects": [
             {
               "type": "Resistance",
-              "stat": "Dark"
+              "stat": "Earth"
             },
             {
               "type": "Vulnerability",
@@ -504,6 +504,7 @@
             "description": "Launch acid at some nearby enemies to deal nature damage",
             "apCost": 2,
             "focusCost": 1,
+            "mpCost": 5,
             "range": "3",
             "powerRoll": {
               "rollStats": [

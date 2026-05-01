@@ -1,21 +1,38 @@
 "use client"
 
-import { useState } from "react"
-import { ActionCardComponent } from "@/components/character-sheet/combatPage/action-card-manager"
+import { useEffect, useMemo, useState } from "react"
+import {
+    ActionCardComponent,
+    type ActionCostBudget,
+    type ActionSpendResourceKind,
+} from "@/components/character-sheet/combatPage/action-card-manager"
 import { FocusTracker } from "@/components/character-sheet/combatPage/focus-tracker"
 import { CombatStatsPanel, OtherStats, ResourceBars } from "@/components/character-sheet/combatPage/resource-bars"
 import { AttributesPanel } from "@/components/character-sheet/combatPage/attributes-panel"
 import { EquipmentPanel } from "@/components/character-sheet/trackingPage/equipment-panel"
 import { InventoryPanel } from "@/components/character-sheet/trackingPage/inventory-panel"
 import { FocusReactionsPanel } from "@/components/character-sheet/combatPage/focus-reactions-panel"
-import { BondsPanel, ClassesPanel, LanguagesPanel, TraitsPanel } from "@/components/character-sheet/unused/tracking-panel"
+import { BondsPanel, ClassesPanel, LanguagesPanel, SkillsPanel, TraitsPanel } from "@/components/character-sheet/characterPage/tracking-panel"
 import { CharacterProfile } from "@/components/character-sheet/characterPage/character-panel"
 import { DamageCalculator } from "@/components/character-sheet/combatPage/damage-calculator"
+import { ShortRestPanel } from "@/components/character-sheet/combatPage/short-rest-panel"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
 import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { ChevronDown, Filter, LayoutGrid, List, Package, Sparkles, Swords, User } from "lucide-react"
+import { ChevronDown, Coffee, Filter, Flag, LayoutGrid, List, Moon, Package, Sparkles, Swords, User } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { capitalizeFirstLetter, cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -25,6 +42,7 @@ import rulesData from "@/lib/rules.json";
 import { Equipment, EQUIPMENT_RULES, type InventoryContainer } from "@/lib/equipment-data";
 import { useDataLoader } from "@/components/character-sheet/hooks/DataLoader";
 import { CharacterClass } from "@/lib/rules";
+import { restoreReactionCharges } from "@/lib/rest-helpers";
 
 type ActionFilter = string;
 type ViewMode = "grid" | "list"
@@ -43,7 +61,52 @@ export function CharacterSheetView() {
     const [actionSearch, setActionSearch] = useState("")
     const [viewMode, setViewMode] = useState<ViewMode>("grid")
     const [allCollapsed, setAllCollapsed] = useState(false)
+    const [powerRollShowFormula, setPowerRollShowFormula] = useState(false)
     const [showDamageCalculator, setShowDamageCalculator] = useState(false)
+    const [showShortRest, setShowShortRest] = useState(false)
+    const [longRestDialogOpen, setLongRestDialogOpen] = useState(false)
+
+    useEffect(() => {
+        if (!character) return
+        const max = derived.maxRespite
+        const r = Number(character.respite)
+        if (!Number.isFinite(r) || r <= max) return
+        setCharacter((prev: any) => ({ ...prev, respite: max }))
+    }, [character, character?.respite, derived.maxRespite, setCharacter])
+
+    const filteredActions = useMemo(() => {
+        if (!character) return [];
+        const filtered = (character.actions || []).filter((action: any) => {
+            if (actionFilter !== "all") {
+                const filterLower = actionFilter.toLowerCase();
+                const source = (action.source || "").toLowerCase();
+                const sourceMatch = source === filterLower;
+                const tagMatch =
+                    action.tags &&
+                    Array.isArray(action.tags) &&
+                    action.tags.some((tag: string) => tag.toLowerCase() === filterLower);
+                if (!sourceMatch && !tagMatch) return false;
+            }
+            const q = actionSearch.trim().toLowerCase();
+            if (q) {
+                const inName = String(action.name ?? "").toLowerCase().includes(q);
+                const inDesc = String(action.description ?? "").toLowerCase().includes(q);
+                const inTags =
+                    Array.isArray(action.tags) &&
+                    action.tags.some((tag: string) => String(tag).toLowerCase().includes(q));
+                if (!inName && !inDesc && !inTags) return false;
+            }
+            return true;
+        });
+        return [...filtered].sort((a: any, b: any) => {
+            const fa = a.focusCost ?? 0;
+            const fb = b.focusCost ?? 0;
+            if (fa !== fb) return fa - fb;
+            const aa = a.apCost ?? 0;
+            const ab = b.apCost ?? 0;
+            return aa - ab;
+        });
+    }, [character, actionFilter, actionSearch]);
 
     if (isLoading || !character) return <div className="p-8 text-center">Loading...</div>;
 
@@ -61,29 +124,6 @@ export function CharacterSheetView() {
             })),
         { uid: "empty", name: "Empty", damage: "0" }
     ];
-
-    const filteredActions = (character.actions || []).filter((action: any) => {
-        if (actionFilter !== "all") {
-            const filterLower = actionFilter.toLowerCase();
-            const source = (action.source || "").toLowerCase();
-            const sourceMatch = source === filterLower;
-            const tagMatch =
-                action.tags &&
-                Array.isArray(action.tags) &&
-                action.tags.some((tag: string) => tag.toLowerCase() === filterLower);
-            if (!sourceMatch && !tagMatch) return false;
-        }
-        const q = actionSearch.trim().toLowerCase();
-        if (q) {
-            const inName = String(action.name ?? "").toLowerCase().includes(q);
-            const inDesc = String(action.description ?? "").toLowerCase().includes(q);
-            const inTags =
-                Array.isArray(action.tags) &&
-                action.tags.some((tag: string) => String(tag).toLowerCase().includes(q));
-            if (!inName && !inDesc && !inTags) return false;
-        }
-        return true;
-    });
 
     const handleAddInventoryItem = (itemId: string) => {
         const uid = makeInventoryUid(itemId);
@@ -152,6 +192,18 @@ export function CharacterSheetView() {
         }));
     };
 
+    const handleSetInventoryItemCustomName = (itemUid: string, customName: string) => {
+        const trimmed = customName.trim();
+        setCharacter((prev: any) => ({
+            ...prev,
+            inventory: (prev.inventory || []).map((e: any) =>
+                e.uid === itemUid
+                    ? { ...e, customName: trimmed ? trimmed : undefined }
+                    : e
+            ),
+        }));
+    };
+
     const filterOptions = [
         { value: "all", label: "All" },
         { value: "equipment", label: "Equipment" },
@@ -180,6 +232,35 @@ export function CharacterSheetView() {
     const updateIp = (current: number) => {
         const clampedIp = Math.min(Math.max(current, 0), derived.maxIP);
         setCharacter(prev => ({ ...prev, ip: clampedIp }));
+    };
+    const updateRespite = (current: number) => {
+        const max = derived.maxRespite;
+        const clamped = Math.min(Math.max(0, current), max);
+        setCharacter((prev: any) => ({ ...prev, respite: clamped }));
+    };
+    const handleSpendActionCost = (kind: ActionSpendResourceKind, amount: number) => {
+        if (amount <= 0) return;
+        setCharacter((prev: any) => {
+            switch (kind) {
+                case "mp":
+                    if (prev.mp < amount) return prev;
+                    return { ...prev, mp: prev.mp - amount };
+                case "focus":
+                    if (prev.focus < amount) return prev;
+                    return { ...prev, focus: prev.focus - amount };
+                case "ip":
+                    if (prev.ip < amount) return prev;
+                    return { ...prev, ip: prev.ip - amount };
+                default:
+                    return prev;
+            }
+        });
+    };
+
+    const actionCostBudget: ActionCostBudget = {
+        mp: character.mp,
+        focus: character.focus,
+        ip: character.ip,
     };
     const adjustMoneyBy = (delta: number) => {
         setCharacter((prev: any) => ({
@@ -245,6 +326,49 @@ export function CharacterSheetView() {
             reactions: (prev.reactions || []).map(rx => rx.id === reactionId ? { ...rx, charges: newCount } : rx)
         }));
     };
+
+    const handleEndOfCombat = () => {
+        setCharacter((prev: any) => ({
+            ...prev,
+            focus: 0,
+            barrier: 0,
+            reactions: restoreReactionCharges(prev.reactions || [], derived.attributes, rulesData),
+        }));
+    };
+
+    const handleShortRestApply = (respitesSpent: number) => {
+        const hpPer = Math.floor(derived.maxHP / 2);
+        const mpPer = Math.floor(derived.maxMP / 2);
+        setCharacter((prev: any) => {
+            const pool = Math.min(
+                Math.max(0, Number(prev.respite) || 0),
+                derived.maxRespite
+            );
+            const s = Math.min(Math.max(0, Math.floor(respitesSpent)), pool);
+            return {
+                ...prev,
+                focus: 0,
+                barrier: 0,
+                respite: pool - s,
+                hp: Math.min(Math.max(prev.hp + s * hpPer, derived.deathThreshold), derived.maxHP),
+                mp: Math.min(Math.max(prev.mp + s * mpPer, 0), derived.maxMP),
+            };
+        });
+    };
+
+    const handleLongRestConfirm = () => {
+        setCharacter((prev: any) => ({
+            ...prev,
+            focus: 0,
+            barrier: 0,
+            reactions: restoreReactionCharges(prev.reactions || [], derived.attributes, rulesData),
+            hp: derived.maxHP,
+            mp: derived.maxMP,
+            respite: derived.maxRespite,
+            victories: 0,
+        }));
+        setLongRestDialogOpen(false);
+    };
     // </editor-fold>
 
     return (
@@ -264,8 +388,40 @@ export function CharacterSheetView() {
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                        <div className="flex items-center bg-muted/50 p-1 rounded-md border border-border mr-2">
+                    <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-8 gap-1.5 text-xs font-semibold"
+                                onClick={handleEndOfCombat}
+                            >
+                                <Flag className="w-3.5 h-3.5" />
+                                End of combat
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-8 gap-1.5 text-xs font-semibold border-emerald-600/40 hover:bg-emerald-950/20"
+                                onClick={() => setShowShortRest(true)}
+                            >
+                                <Coffee className="w-3.5 h-3.5" />
+                                Short rest
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-8 gap-1.5 text-xs font-semibold"
+                                onClick={() => setLongRestDialogOpen(true)}
+                            >
+                                <Moon className="w-3.5 h-3.5" />
+                                Long rest
+                            </Button>
+                        </div>
+                        <div className="flex items-center bg-muted/50 p-1 rounded-md border border-border">
                             <Button variant="ghost" size="sm" className="h-8 text-xs font-bold gap-2" onClick={() => document.getElementById('char-upload')?.click()}>
                                 <Sparkles className="w-3 h-3 text-blue-500" /> LOAD
                             </Button>
@@ -309,13 +465,27 @@ export function CharacterSheetView() {
                                     barrier={character.barrier}
                                     mp={{ current: Math.min(character.mp, derived.maxMP), max: derived.maxMP }}
                                     ip={{ current: Math.min(character.ip, derived.maxIP), max: derived.maxIP }}
+                                    respite={{
+                                        current: Math.min(
+                                            Number(character.respite ?? derived.maxRespite),
+                                            derived.maxRespite
+                                        ),
+                                        max: derived.maxRespite,
+                                    }}
                                     onHpChange={updateHp} onBarrierChange={updateBarrier} onMpChange={updateMp} onIpChange={updateIp}
+                                    onRespiteChange={updateRespite}
                                     onOpenDamageCalculator={() => setShowDamageCalculator(true)}
                                     attributes={derived.attributes} knownClasses={character.classes}
                                 />
                                 <CombatStatsPanel defense={derived.defense} stability={derived.stability} speed={derived.speed} resistances={derived.resistances} vulnerabilities={derived.vulnerabilities} />
                                 <AttributesPanel attributes={derived.attributes} />
-                                <OtherStats xp={character.xp} inspiration={character.inspiration} victories={character.victories} onUpdateInspiration={(v) => setCharacter(prev => ({ ...prev, inspiration: v }))} />
+                                <OtherStats
+                                    xp={character.xp}
+                                    inspiration={character.inspiration}
+                                    victories={character.victories}
+                                    onUpdateInspiration={(v) => setCharacter((prev) => ({ ...prev, inspiration: v }))}
+                                    onUpdateVictories={(v) => setCharacter((prev) => ({ ...prev, victories: Math.max(0, Math.floor(v)) }))}
+                                />
                             </div>
 
                             {/*Action card manager*/}
@@ -323,11 +493,28 @@ export function CharacterSheetView() {
                                 <div className="bg-card rounded-xl border border-border p-4">
                                     <div className="flex items-center justify-between mb-4">
                                         <h2 className="text-lg font-bold text-foreground flex items-center gap-2"><Sparkles className="w-5 h-5 text-primary" /> Actions</h2>
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-2 flex-wrap justify-end">
                                             <Button variant="outline" size="sm" onClick={() => setAllCollapsed(!allCollapsed)} className="h-8 text-[10px] font-black uppercase tracking-widest gap-2">
                                                 <ChevronDown className={cn("w-3 h-3 transition-transform duration-300", allCollapsed ? "-rotate-90" : "rotate-0")} />
                                                 {allCollapsed ? "Expand All" : "Collapse All"}
                                             </Button>
+                                            <div
+                                                className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-2 h-8"
+                                                title="Show base + weapon damage and potency math (max mod + tier) instead of totals only"
+                                            >
+                                                <Label
+                                                    htmlFor="action-power-roll-breakdown"
+                                                    className="text-[10px] font-black uppercase tracking-widest text-muted-foreground cursor-pointer whitespace-nowrap"
+                                                >
+                                                    Roll breakdown
+                                                </Label>
+                                                <Switch
+                                                    id="action-power-roll-breakdown"
+                                                    checked={powerRollShowFormula}
+                                                    onCheckedChange={setPowerRollShowFormula}
+                                                    className="scale-90"
+                                                />
+                                            </div>
                                             <div className="w-[1px] h-4 bg-border mx-1" />
                                             <Button variant="ghost" size="sm" onClick={() => setViewMode("grid")} className={cn(viewMode === "grid" && "bg-muted")}><LayoutGrid className="w-4 h-4" /></Button>
                                             <Button variant="ghost" size="sm" onClick={() => setViewMode("list")} className={cn(viewMode === "list" && "bg-muted")}><List className="w-4 h-4" /></Button>
@@ -441,7 +628,17 @@ export function CharacterSheetView() {
                                     <ScrollArea className="h-[calc(100vh-150px)]">
                                         <div className={cn(viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 gap-4" : "space-y-4")}>
                                             {filteredActions.map((action) => (
-                                                <ActionCardComponent key={action.id} action={action} attributes={derived.attributes} disabled={(action.focusCost || 0) > character.focus} currentWeapon={currentWeapon} forceCollapsed={allCollapsed} />
+                                                <ActionCardComponent
+                                                    key={action.id}
+                                                    action={action}
+                                                    attributes={derived.attributes}
+                                                    disabled={(action.focusCost || 0) > character.focus}
+                                                    currentWeapon={currentWeapon}
+                                                    forceCollapsed={allCollapsed}
+                                                    actionCostBudget={actionCostBudget}
+                                                    onSpendActionCost={handleSpendActionCost}
+                                                    powerRollDisplayMode={powerRollShowFormula ? "formula" : "simple"}
+                                                />
                                             ))}
                                         </div>
                                     </ScrollArea>
@@ -449,7 +646,17 @@ export function CharacterSheetView() {
                             </div>
 
                             <div className="lg:col-span-3">
-                                <FocusReactionsPanel rules={rulesData} knownFocusFeats={character.focusFeatures} onSelectFeat={handleSelectFeat} knownReactions={character.reactions} onSelectReaction={handleSelectReaction} attributes={derived.attributes} onUpdateReactionCharges={handleUpdateReactionCharges} />
+                                <FocusReactionsPanel
+                                    rules={rulesData}
+                                    knownFocusFeats={character.focusFeatures}
+                                    onSelectFeat={handleSelectFeat}
+                                    knownReactions={character.reactions}
+                                    onSelectReaction={handleSelectReaction}
+                                    attributes={derived.attributes}
+                                    onUpdateReactionCharges={handleUpdateReactionCharges}
+                                    actionCostBudget={actionCostBudget}
+                                    onSpendActionCost={handleSpendActionCost}
+                                />
                             </div>
                         </div>
                     </TabsContent>
@@ -467,6 +674,8 @@ export function CharacterSheetView() {
                                 onAdjustMoney={adjustMoneyBy}
                                 onAdjustIp={adjustIpBy}
                                 itemCatalog={rulesData.items as Record<string, Record<string, unknown>>}
+                                rules={rulesData as Record<string, unknown>}
+                                attributes={derived.attributes}
                                 onAddInventoryItem={handleAddInventoryItem}
                                 onMoveItemToContainer={handleMoveItemToContainer}
                                 onAddContainer={handleAddContainer}
@@ -475,6 +684,7 @@ export function CharacterSheetView() {
                                 onReorderContainers={handleReorderContainers}
                                 onRemoveInventoryItem={handleRemoveInventoryItem}
                                 onSetItemQuantity={handleSetItemQuantity}
+                                onSetInventoryItemCustomName={handleSetInventoryItemCustomName}
                             />
                         </div>
                     </TabsContent>
@@ -482,14 +692,33 @@ export function CharacterSheetView() {
                     {/*Character tab*/}
                     <TabsContent value="character">
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                            <div className="lg:col-span-8">
-                                <CharacterProfile name={character.name} race={character.race} age={character.age} gender={character.gender} background={character.background} backstory={character.backstory} profileImage={character.profileImage} onProfileImageChange={updateProfileImage} onBackstoryChange={updateBackstory} />
+                            <div className="space-y-4 min-w-0 lg:col-span-6">
+                                <CharacterProfile
+                                    name={character.name}
+                                    race={character.race}
+                                    age={character.age}
+                                    gender={character.gender}
+                                    background={character.background}
+                                    backstory={character.backstory}
+                                    profileImage={character.profileImage}
+                                    onProfileImageChange={updateProfileImage}
+                                    onBackstoryChange={updateBackstory}
+                                />
+                                <BondsPanel bonds={character.bonds} />
                             </div>
-                            <div className="lg:col-span-4 space-y-4">
+                            <div className="space-y-4 min-w-0 lg:col-span-4">
                                 <ClassesPanel classes={character.classes} rules={rulesData.classes} />
-                                <LanguagesPanel languages={derived.languages}/>
-                                <TraitsPanel traits={derived.activeTraits}/>
-                                <BondsPanel bonds={character.bonds}/>
+                                <TraitsPanel traits={derived.activeTraits} />
+                            </div>
+                            <div className="space-y-4 min-w-0 lg:col-span-2">
+                                <LanguagesPanel languages={derived.languages} />
+                                <SkillsPanel
+                                    skills={character.skills ?? []}
+                                    skillCatalog={
+                                        (rulesData.system as { skills?: Record<string, Record<string, unknown>> })
+                                            ?.skills ?? {}
+                                    }
+                                />
                             </div>
                         </div>
                     </TabsContent>
@@ -497,6 +726,42 @@ export function CharacterSheetView() {
             </main>
 
             <DamageCalculator isOpen={showDamageCalculator} onClose={() => setShowDamageCalculator(false)} defense={derived.defense} hp={{ current: character.hp, max: derived.maxHP }} barrier={character.barrier} onApplyDamage={handleApplyDamage} />
+
+            <ShortRestPanel
+                isOpen={showShortRest}
+                onClose={() => setShowShortRest(false)}
+                maxHP={derived.maxHP}
+                maxMP={derived.maxMP}
+                hp={character.hp}
+                mp={character.mp}
+                respiteAvailable={Math.min(Number(character.respite ?? 0), derived.maxRespite)}
+                maxRespite={derived.maxRespite}
+                deathThreshold={derived.deathThreshold}
+                onApply={handleShortRestApply}
+            />
+
+            <AlertDialog open={longRestDialogOpen} onOpenChange={setLongRestDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Take a long rest?</AlertDialogTitle>
+                        <AlertDialogDescription className="text-left space-y-2">
+                            <span className="block">
+                                This will apply end-of-combat effects (focus and barrier cleared; reaction charges restored), then set HP and MP to maximum, restore all respites, and set victories to 0.
+                            </span>
+                            <span className="block font-medium text-foreground">Only confirm if you intend a full long rest.</span>
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={handleLongRestConfirm}
+                        >
+                            Yes, long rest
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </>
     );
 }

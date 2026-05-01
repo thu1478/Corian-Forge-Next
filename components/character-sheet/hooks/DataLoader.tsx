@@ -81,8 +81,14 @@ export function useDataLoader(rulesDataParam: any) {
 
         // console.log("Fully hydrated")
         // console.log(fullyHydrated);
+        const respite =
+            Number.isFinite(fullyHydrated.respite)
+                ? fullyHydrated.respite
+                : 4
+
         return {
             ...fullyHydrated,
+            respite,
             actions: hydratedActions,
             traitRefs,
             // Mapping UIDs back for components that need to identify "active" items

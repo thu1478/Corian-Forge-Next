@@ -1,5 +1,6 @@
 import rulesData from "@/lib/rules.json";
 import { CharacterSaveData } from "@/lib/character-data";
+import type { InventoryEntry } from "@/lib/equipment-data";
 import { FeatLevelPick, TraitRef } from "@/lib/baseRefs";
 import { CharAttribute } from "@/lib/rules";
 
@@ -18,6 +19,7 @@ export function createEmptyCreatorCharacter(): CharacterSaveData {
         barrier: 0,
         mp: 10,
         focus: 0,
+        respite: 4,
         attributes: {
             [CharAttribute.Might]: 8,
             [CharAttribute.Dexterity]: 8,
@@ -263,6 +265,10 @@ function mergeImportedCharData(json: any, empty: CharacterSaveData): CharacterSa
         barrier: Number(json.barrier ?? empty.barrier),
         mp: Number(json.mp ?? empty.mp),
         focus: Number(json.focus ?? empty.focus),
+        respite: (() => {
+            const n = Number(json.respite ?? empty.respite)
+            return Number.isFinite(n) ? Math.max(0, Math.floor(n)) : empty.respite
+        })(),
         speed: Number(json.speed ?? empty.speed),
         xp: Number(json.xp ?? starting["1"] ?? empty.xp),
         inspiration: Number(json.inspiration ?? empty.inspiration),
@@ -273,7 +279,23 @@ function mergeImportedCharData(json: any, empty: CharacterSaveData): CharacterSa
         skills: Array.isArray(json.skills) ? json.skills : empty.skills,
         money: Number(json.money ?? empty.money),
         ip: Number(json.ip ?? empty.ip),
-        inventory: Array.isArray(json.inventory) ? json.inventory : empty.inventory,
+        inventory: Array.isArray(json.inventory)
+            ? (json.inventory
+                  .map((entry: any) => {
+                      if (!entry || entry.id == null || entry.uid == null) return null;
+                      const row: InventoryEntry = {
+                          id: String(entry.id),
+                          uid: String(entry.uid),
+                      };
+                      if (entry.quantity != null) row.quantity = Number(entry.quantity);
+                      if (entry.containerId !== undefined)
+                          row.containerId = entry.containerId === null ? null : String(entry.containerId);
+                      if (typeof entry.customName === "string" && entry.customName.trim())
+                          row.customName = entry.customName.trim();
+                      return row;
+                  })
+                  .filter(Boolean) as InventoryEntry[])
+            : empty.inventory,
         equipment: {
             ...empty.equipment,
             ...(json.equipment || {}),
@@ -322,7 +344,7 @@ export function parseCreatorImportJson(
     const innateIds = raceKey ? getInnateRacialIds(raceKey) : new Set<string>();
 
     const traitsRaw = Array.isArray(json.traits) ? json.traits : [];
-    const racialTraits = traitsRaw
+    merged.traits = traitsRaw
         .filter(
             (t: any) =>
                 normalizeSource(t?.source) === "racial" &&
@@ -330,8 +352,6 @@ export function parseCreatorImportJson(
                 !innateIds.has(String(t.id))
         )
         .map(normalizeTraitRef);
-
-    merged.traits = racialTraits;
 
     const starting = rulesData.system.startingXPPerLvl as Record<string, number>;
     const adventurerLevel = adventurerLevelFromXp(merged.xp, starting);

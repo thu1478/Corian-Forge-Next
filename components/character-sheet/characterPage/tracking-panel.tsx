@@ -1,10 +1,9 @@
 "use client"
 
-import {useState} from "react"
+import {useMemo, useState} from "react"
 import {cn} from "@/lib/utils"
-import {Brain, Filter, GraduationCap, Heart, Languages, Sparkles, Star} from "lucide-react"
+import {Brain, Filter, GraduationCap, Heart, Languages, Sparkles} from "lucide-react"
 import {Bond, Skill, Trait} from "@/lib/rules";
-import {formatModifier, getAttributeModifier} from "@/lib/character-data";
 
 interface ClassesPanelProps {
     classes: { id: string; level: number }[]; // Character's specific data
@@ -154,26 +153,78 @@ export function LanguagesPanel({languages}: LanguagesPanelProps) {
     )
 }
 
+type SkillCatalogEntry = {
+    name?: string
+    description?: string
+    categories?: string[]
+}
+
+const UNCATEGORIZED = "__uncategorized__"
+
+function findRuleForSkill(
+    catalog: Record<string, SkillCatalogEntry>,
+    skillName: string
+): SkillCatalogEntry | null {
+    const target = skillName.trim().toLowerCase()
+    for (const def of Object.values(catalog)) {
+        if (String(def.name ?? "").trim().toLowerCase() === target) {
+            return def
+        }
+    }
+    return null
+}
+
+function categoryHeadingLabel(categoryId: string): string {
+    if (categoryId === UNCATEGORIZED) return "Other"
+    return categoryId
+        .split(/[-_\s]+/)
+        .filter(Boolean)
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+        .join(" ")
+}
+
 interface SkillsPanelProps {
     skills: Skill[]
-    attributes: {
-        might: number
-        dexterity: number
-        reason: number
-        willpower: number
-        presence: number
-    }
+    /** `rules.system.skills` — names, descriptions, categories. */
+    skillCatalog: Record<string, SkillCatalogEntry>
 }
 
-const attrAbbrev: Record<string, string> = {
-    might: "MIG",
-    dexterity: "AGI",
-    reason: "REA",
-    willpower: "WIL",
-    presence: "PRE"
-}
+export function SkillsPanel({ skills, skillCatalog }: SkillsPanelProps) {
+    const categoryOrder = useMemo(() => {
+        const ids = new Set<string>()
+        for (const def of Object.values(skillCatalog)) {
+            for (const c of def.categories ?? []) {
+                if (c) ids.add(c)
+            }
+        }
+        return [...ids].sort((a, b) => a.localeCompare(b))
+    }, [skillCatalog])
 
-export function SkillsPanel({skills, attributes}: SkillsPanelProps) {
+    const sections = useMemo(() => {
+        const keys = [...categoryOrder, UNCATEGORIZED]
+        return keys.map((catId) => {
+            const inSection = skills.filter((s) => {
+                const rule = findRuleForSkill(skillCatalog, s.name)
+                if (!rule) {
+                    return catId === UNCATEGORIZED
+                }
+                const cats = rule.categories ?? []
+                if (cats.length === 0) {
+                    return catId === UNCATEGORIZED
+                }
+                if (catId === UNCATEGORIZED) {
+                    return false
+                }
+                return cats.includes(catId)
+            })
+            return {
+                catId,
+                label: categoryHeadingLabel(catId),
+                list: inSection,
+            }
+        })
+    }, [skills, skillCatalog, categoryOrder])
+
     return (
         <div className="p-4 bg-card rounded-xl border border-border">
             <h3 className="text-base font-semibold uppercase tracking-wider text-primary mb-4 flex items-center gap-2">
@@ -181,39 +232,46 @@ export function SkillsPanel({skills, attributes}: SkillsPanelProps) {
                 Skills
             </h3>
 
-            <div className="space-y-2">
-                {skills.map((skill) => {
-                    const modifier = getAttributeModifier(attributes[skill.attribute as keyof typeof attributes]);
-                    const bonus = skill.hasExpertise ? modifier + 4 : modifier
-
-                    return (
-                        <div
-                            key={skill.name}
-                            className={cn(
-                                "flex items-center justify-between p-3 rounded-lg border",
-                                skill.hasExpertise
-                                    ? "bg-amber-100 dark:bg-amber-950/20 border-amber-300 dark:border-amber-700/40"
-                                    : "bg-muted/10 border-border/50"
-                            )}
-                        >
-                            <div className="flex items-center gap-2">
-                                {skill.hasExpertise && (
-                                    <Star
-                                        className="w-4 h-4 text-amber-500 dark:text-amber-400 fill-amber-500 dark:fill-amber-400"/>
-                                )}
-                                <span className="text-base text-foreground font-medium">{skill.name}</span>
-                                <span
-                                    className="text-xs text-muted-foreground font-medium">({attrAbbrev[skill.attribute]})</span>
-                            </div>
-                            <span className={cn(
-                                "font-mono font-bold text-base",
-                                skill.hasExpertise ? "text-amber-600 dark:text-amber-400" : "text-foreground"
-                            )}>
-                {formatModifier(bonus)}
-              </span>
-                        </div>
-                    )
-                })}
+            <div className="space-y-5">
+                {sections.map(({ catId, label, list }) => (
+                    <div key={catId} className="space-y-2">
+                        <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/60 pb-1">
+                            {label}
+                        </h4>
+                        {list.length === 0 ? (
+                            <p className="text-xs text-muted-foreground/90 italic py-0.5 pl-0.5">—</p>
+                        ) : (
+                            <ul className="space-y-1.5 list-none p-0 m-0">
+                                {list.map((skill, i) => {
+                                    const rule = findRuleForSkill(skillCatalog, skill.name)
+                                    const desc = (rule?.description ?? "").trim()
+                                    return (
+                                        <li
+                                            key={`${catId}-${skill.name}-${i}`}
+                                            className="flex items-center justify-between gap-2 px-2 py-1.5 rounded-md border border-border/40 bg-muted/5"
+                                        >
+                                            <span
+                                                className="text-sm text-foreground font-medium truncate cursor-default"
+                                                title={desc || undefined}
+                                            >
+                                                {skill.name}
+                                            </span>
+                                            <span
+                                                className={cn(
+                                                    "h-2.5 w-2.5 rounded-full border-2 shrink-0 transition-colors",
+                                                    skill.hasExpertise
+                                                        ? "border-primary bg-primary"
+                                                        : "border-muted-foreground/50 bg-transparent"
+                                                )}
+                                                title={skill.hasExpertise ? "Expertise" : "No expertise"}
+                                            />
+                                        </li>
+                                    )
+                                })}
+                            </ul>
+                        )}
+                    </div>
+                ))}
             </div>
         </div>
     )

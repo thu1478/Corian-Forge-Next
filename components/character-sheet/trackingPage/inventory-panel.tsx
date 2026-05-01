@@ -50,8 +50,29 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
-import type { InventoryContainer, InventoryItem } from "@/lib/equipment-data"
+import type {
+  ArmorItem,
+  InventoryContainer,
+  InventoryItem,
+  ShieldItem,
+  WeaponItem,
+} from "@/lib/equipment-data"
+import {
+  buildItemInventoryTraitBlocks,
+  hydrateItemGrantedActionCards,
+} from "@/lib/item-inventory-details"
+import {
+  ActionCardComponent,
+} from "@/components/character-sheet/combatPage/action-card-manager"
 import {
   INV_CONTAINER_PREFIX,
   INV_DRAG_ITEM_PREFIX,
@@ -73,6 +94,15 @@ interface InventoryPanelProps {
   onAdjustMoney: (delta: number) => void
   onAdjustIp: (delta: number) => void
   itemCatalog: Record<string, Record<string, unknown>>
+  /** Full rules (action cards, passives, classes) for item detail sheet. */
+  rules: Record<string, unknown>
+  attributes: {
+    might: number
+    dexterity: number
+    reason: number
+    willpower: number
+    presence: number
+  }
   onAddInventoryItem: (itemId: string) => void
   onMoveItemToContainer: (uid: string, containerId: string | null) => void
   onAddContainer: (name: string) => void
@@ -81,6 +111,8 @@ interface InventoryPanelProps {
   onReorderContainers: (next: InventoryContainer[]) => void
   onRemoveInventoryItem: (uid: string) => void
   onSetItemQuantity: (uid: string, quantity: number) => void
+  /** Local display name only; omit or empty string clears override. */
+  onSetInventoryItemCustomName: (uid: string, customName: string) => void
 }
 
 const FILTER_TABS: { id: InventoryKindFilter; label: string }[] = [
@@ -125,14 +157,30 @@ function filterItems(
   })
 }
 
+function formatTraitEffectLine(effect: unknown): string {
+  if (effect == null) return ""
+  if (typeof effect !== "object") return String(effect)
+  const e = effect as Record<string, unknown>
+  if (e.type === "GrantActionCard" && e.value != null) {
+    return `Grants action card: ${e.value}`
+  }
+  try {
+    return JSON.stringify(e)
+  } catch {
+    return String(e.type ?? "effect")
+  }
+}
+
 function DraggableItemRow({
   item,
   onRemove,
   onSetQuantity,
+  onOpenDetails,
 }: {
   item: InventoryItem
   onRemove: () => void
   onSetQuantity: (q: number) => void
+  onOpenDetails: () => void
 }) {
   const id = `${INV_DRAG_ITEM_PREFIX}${item.uid}`
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id })
@@ -158,7 +206,18 @@ function DraggableItemRow({
       >
         <GripVertical className="h-4 w-4 shrink-0" />
       </button>
-      <div className="min-w-0 flex-1">
+      <div
+        className="min-w-0 flex-1 cursor-pointer rounded-md px-1 py-0.5 -mx-1 outline-none hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
+        role="button"
+        tabIndex={0}
+        onClick={onOpenDetails}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault()
+            onOpenDetails()
+          }
+        }}
+      >
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-medium text-foreground">{item.name}</span>
           <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase text-muted-foreground">
@@ -248,6 +307,7 @@ function SortableContainerBlock({
   onRemoveContainer,
   onRemoveInventoryItem,
   onSetItemQuantity,
+  onOpenItemDetails,
 }: {
   container: InventoryContainer
   count: number
@@ -256,6 +316,7 @@ function SortableContainerBlock({
   onRemoveContainer: (id: string) => void
   onRemoveInventoryItem: (uid: string) => void
   onSetItemQuantity: (uid: string, quantity: number) => void
+  onOpenItemDetails: (uid: string) => void
 }) {
   const sortId = `${INV_CONTAINER_PREFIX}${c.id}`
   const {
@@ -340,6 +401,7 @@ function SortableContainerBlock({
                   item={item}
                   onRemove={() => onRemoveInventoryItem(item.uid)}
                   onSetQuantity={(q) => onSetItemQuantity(item.uid, q)}
+                  onOpenDetails={() => onOpenItemDetails(item.uid)}
                 />
               ))
             )}
@@ -347,6 +409,336 @@ function SortableContainerBlock({
         </CollapsibleContent>
       </Collapsible>
     </div>
+  )
+}
+
+function RootPackBlock({
+  rootItemCount,
+  rootItems,
+  noMatches,
+  onRemoveInventoryItem,
+  onSetItemQuantity,
+  onOpenItemDetails,
+}: {
+  rootItemCount: number
+  rootItems: InventoryItem[]
+  noMatches: boolean
+  onRemoveInventoryItem: (uid: string) => void
+  onSetItemQuantity: (uid: string, quantity: number) => void
+  onOpenItemDetails: (uid: string) => void
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: INV_DROP_ROOT })
+  return (
+    <div
+      ref={setNodeRef}
+      data-inventory-drop={INV_DROP_ROOT}
+      className={cn(
+        "rounded-xl border-2 border-dashed transition-colors",
+        isOver ? "border-primary bg-primary/5" : "border-border/60 bg-muted/5"
+      )}
+    >
+      <Collapsible defaultOpen>
+        <div className="flex flex-wrap items-center gap-2 border-b border-border/50 p-3 pb-2">
+          <CollapsibleTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0 text-muted-foreground data-[state=open]:bg-muted/50 data-[state=open]:[&>svg]:rotate-180"
+              aria-label={
+                rootItemCount
+                  ? `Collapse or expand pack, ${rootItemCount} items`
+                  : "Collapse or expand pack"
+              }
+            >
+              <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
+            </Button>
+          </CollapsibleTrigger>
+          <Backpack className="h-4 w-4 shrink-0 text-muted-foreground" />
+          <span className="text-sm font-semibold text-foreground">Pack (unpacked)</span>
+          <span className="text-xs tabular-nums text-muted-foreground">
+            {rootItemCount} item{rootItemCount !== 1 ? "s" : ""}
+          </span>
+        </div>
+        <CollapsibleContent className="px-3 pb-3 outline-none">
+          <p className="mb-2 mt-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            Drop items here
+          </p>
+          <div className="space-y-2">
+            {rootItems.length === 0 ? (
+              <p className="py-4 text-center text-xs text-muted-foreground">
+                {noMatches ? "No matching items here." : "Drop items here or leave new gear unpacked."}
+              </p>
+            ) : (
+              rootItems.map((item) => (
+                <DraggableItemRow
+                  key={item.uid}
+                  item={item}
+                  onRemove={() => onRemoveInventoryItem(item.uid)}
+                  onSetQuantity={(q) => onSetItemQuantity(item.uid, q)}
+                  onOpenDetails={() => onOpenItemDetails(item.uid)}
+                />
+              ))
+            )}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+    </div>
+  )
+}
+
+function InventoryItemDetailSheet({
+  item,
+  open,
+  onOpenChange,
+  rules,
+  itemCatalog,
+  attributes,
+  onSetCustomName,
+}: {
+  item: InventoryItem | null
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  rules: Record<string, unknown>
+  itemCatalog: Record<string, Record<string, unknown>>
+  attributes: InventoryPanelProps["attributes"]
+  onSetCustomName: (uid: string, name: string) => void
+}) {
+  const traitBlocks = useMemo(
+    () => (item ? buildItemInventoryTraitBlocks(item, rules) : []),
+    [item, rules]
+  )
+  const directActions = useMemo(
+    () => (item ? hydrateItemGrantedActionCards(item, rules) : []),
+    [item, rules]
+  )
+
+  const rulesName = item ? String(itemCatalog[item.id]?.name ?? item.id) : ""
+  const customNameDraft = item?.customName ?? ""
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        side="right"
+        className="flex w-full flex-col gap-0 border-l p-0 sm:max-w-xl"
+      >
+        {item ? (
+          <>
+        <SheetHeader className="space-y-1 border-b border-border px-6 py-5 text-left">
+          <SheetTitle className="pr-8 text-xl leading-snug">{item.name}</SheetTitle>
+          <SheetDescription className="text-xs text-muted-foreground">
+            Catalog: {rulesName}
+            {item.customName ? " · renamed locally" : ""}
+          </SheetDescription>
+        </SheetHeader>
+
+        <ScrollArea className="flex-1 min-h-0">
+          <div className="space-y-6 px-6 py-5">
+            <div className="space-y-2">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Display name
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Saved on this character only; rules and catalog stay the same.
+              </p>
+              <Input
+                aria-label="Custom display name"
+                placeholder={rulesName}
+                value={customNameDraft}
+                onChange={(e) => onSetCustomName(item.uid, e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Cost
+              </p>
+              <div className="rounded-lg border border-border/60 bg-muted/10 p-3 text-sm">
+                {item.value != null && Number.isFinite(Number(item.value)) ? (
+                  <p>
+                    <span className="font-medium text-foreground">Value: </span>
+                    <span className="tabular-nums">{item.value}</span> gold
+                  </p>
+                ) : (
+                  <p className="text-muted-foreground">No listed gold value.</p>
+                )}
+                {item.charges != null && (
+                  <p className="mt-2">
+                    <span className="font-medium text-foreground">Charges: </span>
+                    <span className="tabular-nums">
+                      {item.charges.current} / {item.charges.max}
+                    </span>
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {item.type === "weapon" && (
+              <div className="space-y-2">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Combat
+                </p>
+                <div className="rounded-lg border border-border/60 bg-muted/10 p-3 text-sm space-y-2">
+                  <p>
+                    <span className="font-medium text-foreground">Damage: </span>
+                    <span className="tabular-nums font-mono">{(item as WeaponItem).damage}</span>
+                  </p>
+                  <p>
+                    <span className="font-medium text-foreground">Damage type: </span>
+                    <span className="capitalize">{(item as WeaponItem).damageType || "—"}</span>
+                  </p>
+                  <p>
+                    <span className="font-medium text-foreground">Range: </span>
+                    <span className="tabular-nums">{(item as WeaponItem).range}</span>
+                  </p>
+                  {(item as WeaponItem).attributes?.length ? (
+                    <p>
+                      <span className="font-medium text-foreground">Attributes: </span>
+                      <span className="text-muted-foreground">
+                        {(item as WeaponItem).attributes.join(", ")}
+                      </span>
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            )}
+
+            {(item.type === "armor" || item.type === "shield") && (
+              <div className="space-y-2">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Protection
+                </p>
+                <div className="rounded-lg border border-border/60 bg-muted/10 p-3 text-sm space-y-2">
+                  {item.type === "shield" ? (
+                    <>
+                      <p>
+                        <span className="font-medium text-foreground">Defense: </span>
+                        <span className="tabular-nums">{(item as ShieldItem).defense}</span>
+                      </p>
+                      <p>
+                        <span className="font-medium text-foreground">Stability: </span>
+                        <span className="tabular-nums text-muted-foreground">
+                          {"stability" in item
+                            ? (item as ShieldItem & { stability: number }).stability
+                            : "—"}
+                        </span>
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p>
+                        <span className="font-medium text-foreground">Defense: </span>
+                        <span className="tabular-nums">{(item as ArmorItem).defense.value}</span>
+                        {(item as ArmorItem).defense.attribute != null && (
+                          <span className="text-muted-foreground">
+                            {" "}
+                            (max{" "}
+                            <span className="tabular-nums">
+                              {(item as ArmorItem).defense.attrMax ?? "—"}
+                            </span>{" "}
+                            {(item as ArmorItem).defense.attribute})
+                          </span>
+                        )}
+                      </p>
+                      <p>
+                        <span className="font-medium text-foreground">Stability: </span>
+                        <span className="tabular-nums">{(item as ArmorItem).stability}</span>
+                      </p>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Description
+              </p>
+              <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
+                {item.description || "—"}
+              </p>
+            </div>
+
+            {directActions.length > 0 && (
+              <div className="space-y-3">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Action cards (from item)
+                </p>
+                <div className="space-y-4">
+                  {directActions.map((action) => (
+                    <ActionCardComponent
+                      key={action.id}
+                      action={action}
+                      attributes={attributes}
+                      forceCollapsed={false}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {traitBlocks.length > 0 && (
+              <div className="space-y-4">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Traits &amp; granted actions
+                </p>
+                {traitBlocks.map((block) => (
+                  <div
+                    key={block.traitId}
+                    className="space-y-3 rounded-xl border border-border/60 bg-muted/5 p-4"
+                  >
+                    <div>
+                      <p className="font-semibold text-foreground">{block.name}</p>
+                      {block.minLevel != null && (
+                        <p className="text-xs text-muted-foreground">Min. level {block.minLevel}</p>
+                      )}
+                      {block.description ? (
+                        <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-foreground/85">
+                          {block.description}
+                        </p>
+                      ) : null}
+                    </div>
+                    {block.effects && block.effects.length > 0 && (
+                      <ul className="list-inside list-disc space-y-1 text-xs text-muted-foreground">
+                        {block.effects
+                          .filter(
+                            (eff) =>
+                              !(
+                                typeof eff === "object" &&
+                                eff != null &&
+                                (eff as { type?: string }).type === "GrantActionCard"
+                              )
+                          )
+                          .map((eff, i) => (
+                            <li key={i}>{formatTraitEffectLine(eff)}</li>
+                          ))}
+                      </ul>
+                    )}
+                    {block.grantedActionCards.length > 0 && (
+                      <div className="space-y-3 pt-1">
+                        <p className="text-[10px] font-bold uppercase text-muted-foreground">
+                          Granted cards
+                        </p>
+                        {block.grantedActionCards.map((action) => (
+                          <ActionCardComponent
+                            key={`${block.traitId}-${action.id}`}
+                            action={action}
+                            attributes={attributes}
+                            forceCollapsed={false}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+          </>
+        ) : null}
+      </SheetContent>
+    </Sheet>
   )
 }
 
@@ -359,6 +751,8 @@ export function InventoryPanel({
   onAdjustMoney,
   onAdjustIp,
   itemCatalog,
+  rules,
+  attributes,
   onAddInventoryItem,
   onMoveItemToContainer,
   onAddContainer,
@@ -367,7 +761,9 @@ export function InventoryPanel({
   onReorderContainers,
   onRemoveInventoryItem,
   onSetItemQuantity,
+  onSetInventoryItemCustomName,
 }: InventoryPanelProps) {
+  const [detailUid, setDetailUid] = useState<string | null>(null)
   const [inventorySearch, setInventorySearch] = useState("")
   const [invFilter, setInvFilter] = useState<InventoryKindFilter>("all")
   const [catalogOpen, setCatalogOpen] = useState(false)
@@ -394,6 +790,12 @@ export function InventoryPanel({
     return () => window.clearTimeout(t)
   }, [catalogNotice])
 
+  useEffect(() => {
+    if (detailUid != null && !inventory.some((i) => i.uid === detailUid)) {
+      setDetailUid(null)
+    }
+  }, [inventory, detailUid])
+
   const validIds = useMemo(() => validContainerIdSet(containers), [containers])
 
   const containerSortIds = useMemo(
@@ -409,6 +811,11 @@ export function InventoryPanel({
   const rootItems = useMemo(
     () => filteredAll.filter((i) => resolveItemZone(i, validIds) === null),
     [filteredAll, validIds]
+  )
+
+  const rootItemCount = useMemo(
+    () => inventory.filter((i) => resolveItemZone(i, validIds) === null).length,
+    [inventory, validIds]
   )
 
   const catalogEntries = useMemo(() => {
@@ -468,6 +875,9 @@ export function InventoryPanel({
 
   const noMatches =
     filteredAll.length === 0 && (!!inventorySearch.trim() || invFilter !== "all")
+
+  const detailItem =
+    detailUid != null ? inventory.find((i) => i.uid === detailUid) ?? null : null
 
   return (
     <div className="space-y-4">
@@ -832,22 +1242,14 @@ export function InventoryPanel({
 
         <DndContext sensors={sensors} collisionDetection={mixedCollision} onDragEnd={handleDragEnd}>
           <div className="max-h-[min(520px,55vh)] space-y-4 overflow-y-auto pr-1">
-            <DroppableZone id={INV_DROP_ROOT} label="Pack (unpacked)">
-              {rootItems.length === 0 ? (
-                <p className="py-4 text-center text-xs text-muted-foreground">
-                  {noMatches ? "No matching items here." : "Drop items here or leave new gear unpacked."}
-                </p>
-              ) : (
-                rootItems.map((item) => (
-                  <DraggableItemRow
-                    key={item.uid}
-                    item={item}
-                    onRemove={() => onRemoveInventoryItem(item.uid)}
-                    onSetQuantity={(q) => onSetItemQuantity(item.uid, q)}
-                  />
-                ))
-              )}
-            </DroppableZone>
+            <RootPackBlock
+              rootItemCount={rootItemCount}
+              rootItems={rootItems}
+              noMatches={noMatches}
+              onRemoveInventoryItem={onRemoveInventoryItem}
+              onSetItemQuantity={onSetItemQuantity}
+              onOpenItemDetails={setDetailUid}
+            />
 
             <SortableContext items={containerSortIds} strategy={verticalListSortingStrategy}>
               {containers.map((c) => {
@@ -863,6 +1265,7 @@ export function InventoryPanel({
                     onRemoveContainer={onRemoveContainer}
                     onRemoveInventoryItem={onRemoveInventoryItem}
                     onSetItemQuantity={onSetItemQuantity}
+                    onOpenItemDetails={setDetailUid}
                   />
                 )
               })}
@@ -870,6 +1273,18 @@ export function InventoryPanel({
           </div>
         </DndContext>
       </div>
+
+      <InventoryItemDetailSheet
+        item={detailItem}
+        open={detailItem != null}
+        onOpenChange={(o) => {
+          if (!o) setDetailUid(null)
+        }}
+        rules={rules}
+        itemCatalog={itemCatalog}
+        attributes={attributes}
+        onSetCustomName={onSetInventoryItemCustomName}
+      />
     </div>
   )
 }

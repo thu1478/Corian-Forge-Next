@@ -195,7 +195,32 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
                 </div>
 
                 <header className="mb-16">
-                    <h1 className="text-5xl font-black uppercase italic tracking-tighter">{classData.name}</h1>
+                    <div className="max-w-3xl space-y-6">
+                        <h1 className="text-5xl font-black uppercase italic tracking-tighter">{classData.name}</h1>
+                        {typeof classData.description === "string" && classData.description.trim() ? (
+                            <p className="text-base leading-relaxed text-muted-foreground">
+                                {classData.description}
+                            </p>
+                        ) : null}
+                        {(classData.focusFeat?.name || classData.focusFeat?.description) ? (
+                            <div className="rounded-2xl border border-primary/30 bg-primary/5 p-6">
+                                <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-primary">
+                                    Focus feature
+                                </p>
+                                {classData.focusFeat?.name ? (
+                                    <h2 className="mb-2 text-lg font-black uppercase italic tracking-tight text-foreground">
+                                        {classData.focusFeat.name}
+                                    </h2>
+                                ) : null}
+                                {typeof classData.focusFeat?.description === "string" &&
+                                classData.focusFeat.description.trim() ? (
+                                    <p className="text-sm leading-relaxed text-muted-foreground">
+                                        {classData.focusFeat.description}
+                                    </p>
+                                ) : null}
+                            </div>
+                        ) : null}
+                    </div>
                 </header>
 
                 <div className="space-y-24">

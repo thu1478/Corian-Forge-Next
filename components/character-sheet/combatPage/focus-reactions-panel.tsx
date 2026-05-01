@@ -6,7 +6,11 @@ import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
 import {Button} from "@/components/ui/button";
 import {cn} from "@/lib/utils";
 import {FocusFeature, Reaction} from "@/lib/rules";
-import {ActionCardComponent} from "@/components/character-sheet/combatPage/action-card-manager";
+import {
+    ActionCardComponent,
+    type ActionCostBudget,
+    type ActionSpendResourceKind,
+} from "@/components/character-sheet/combatPage/action-card-manager";
 
 interface FocusReactionsPanelProps {
     rules: Record<string, any>;
@@ -16,6 +20,8 @@ interface FocusReactionsPanelProps {
     onSelectReaction: (index: number, newName: string) => void;
     attributes: Record<string, number>;
     onUpdateReactionCharges: (reactionId: string, newCount: number) => void;
+    actionCostBudget?: ActionCostBudget;
+    onSpendActionCost?: (kind: ActionSpendResourceKind, amount: number) => void;
 }
 
 export function FocusReactionsPanel({
@@ -25,7 +31,9 @@ export function FocusReactionsPanel({
                                         knownReactions,
                                         onSelectReaction,
                                         attributes,
-                                        onUpdateReactionCharges
+                                        onUpdateReactionCharges,
+                                        actionCostBudget,
+                                        onSpendActionCost,
                                     }: FocusReactionsPanelProps) {
     // Get the default focus feat start of turn
     const globalFocus = rules?.system?.defaults?.focusFeat
@@ -235,6 +243,8 @@ export function FocusReactionsPanel({
                                                     action={actionCardData}
                                                     attributes={attributes as any}
                                                     forceCollapsed={false}
+                                                    actionCostBudget={actionCostBudget}
+                                                    onSpendActionCost={onSpendActionCost}
                                                 />
                                             </div>
                                         )}

@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 import rulesData from '@/lib/rules.json';
 import {ActionCard} from "@/lib/rules";
+import { hydrateActionCardById } from "@/lib/action-hydrate";
 
 /**
  * Specialized hook to discover and hydrate Action Cards.
@@ -35,21 +36,9 @@ export function useActions(
         const allTargetIds = Array.from(new Set([...itemIds, ...savedIds]));
 
         // 2. Hydrate actions from rules
-        const hydratedActions = allTargetIds.map(id => {
-            if (!id) return null;
-
-            // Search Global
-            const globalCard = (rulesData.actionCards as any)[id];
-            if (globalCard) return { ...globalCard, id };
-
-            // Search Classes (Reaching into .actionCard)
-            for (const className of Object.keys(rulesData.classes)) {
-                const classData = (rulesData as any).classes[className];
-                const wrapper = classData.actions?.[id];
-                if (wrapper?.actionCard) return { ...wrapper.actionCard, id, source: className };
-            }
-            return null;
-        }).filter((a): a is ActionCard => a !== null);
+        const hydratedActions = allTargetIds
+            .map((id) => (id ? hydrateActionCardById(id, rulesData as any) : null))
+            .filter((a): a is ActionCard => a !== null);
 
         // 3. APPLY THE WEAPON ATTRIBUTE FILTER
         return hydratedActions.filter(action => {

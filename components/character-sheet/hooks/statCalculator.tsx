@@ -185,6 +185,8 @@ export function useDerivedStats(character: any, rulesData: any) {
         deathThreshold,
         maxMP,
         maxIP: 4 + sumClassStatBonus(character.classes || [], rulesData, "ip") + sumGearStatBonus(character, "ip") + sumTraitStatChangeEffects(activeTraits, "maxIP"),
+        maxRespite:
+            4 + sumTraitStatChangeEffects(activeTraits, "maxRespites"),
         defense,
         stability,
         speed: computeSpeed({

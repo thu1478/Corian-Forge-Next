@@ -66,12 +66,16 @@ export interface InventoryEntry {
     quantity?: number;
     /** Items with no container (or null) sit in the main pack. */
     containerId?: string | null;
+    /** Local display name only; does not change rules catalog. */
+    customName?: string;
 }
 
 interface BaseItem {
     id: string;
     uid: string;
     name: string;
+    /** Save-only override; reflected in `name` when hydrated. */
+    customName?: string;
     quantity: number;
     description: string;
     tags: string[];
@@ -80,7 +84,8 @@ interface BaseItem {
     value?: number;
     allowedSlots?: Array<keyof Equipment["accessories"] | "rightHand" | "leftHand" | "armor">;
     actionIDs?: string[];
-    traits?: string[]
+    /** Rule ids and/or inline `{ traitId: passive }` objects from catalog. */
+    traits?: Array<string | Record<string, unknown>>;
 }
 
 // 2. Define specific "Sub-Types"
