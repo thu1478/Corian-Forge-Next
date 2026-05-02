@@ -68,10 +68,44 @@ export function createEmptyCreatorCharacter(): CharacterSaveData {
         cultureOrganization: null,
         cultureUpbringing: null,
         occupation: null,
+        attributeLevelBonuses: {},
+        priestDeity: null,
     };
 }
 
 type AttributeKey = "might" | "dexterity" | "reason" | "willpower" | "presence";
+
+const ATTRIBUTE_IDS: ReadonlySet<string> = new Set([
+    "might",
+    "dexterity",
+    "reason",
+    "willpower",
+    "presence",
+]);
+
+function parseAttributeLevelBonuses(raw: unknown): Partial<Record<number, AttributeKey>> {
+    if (raw == null || typeof raw !== "object" || Array.isArray(raw)) return {};
+    const out: Partial<Record<number, AttributeKey>> = {};
+    for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+        const lvl = Number(k);
+        if (!Number.isFinite(lvl)) continue;
+        const a = String(v ?? "").trim().toLowerCase();
+        if (!ATTRIBUTE_IDS.has(a)) continue;
+        out[lvl] = a as AttributeKey;
+    }
+    return out;
+}
+
+function subtractLevelBonusesFromAttributes(
+    attrs: CharacterSaveData["attributes"],
+    lb: Partial<Record<number, AttributeKey>>
+): CharacterSaveData["attributes"] {
+    const next = { ...attrs };
+    for (const attr of Object.values(lb)) {
+        if (attr && typeof next[attr] === "number") next[attr] -= 1;
+    }
+    return next;
+}
 
 export type CreatorImportResult = {
     charData: CharacterSaveData;
@@ -254,7 +288,12 @@ function mergeImportedCharData(json: any, empty: CharacterSaveData): CharacterSa
         .map((c: any) => ({ id: String(c.id), level: Math.max(0, Number(c.level) || 0) }))
         .filter((c: { level: number }) => c.level > 0);
 
-    const attrs = { ...empty.attributes, ...(json.attributes || {}) };
+    const attributeLevelBonuses = parseAttributeLevelBonuses(json.attributeLevelBonuses);
+    const mergedAttrsFromJson = { ...empty.attributes, ...(json.attributes || {}) };
+    const attrs =
+        Object.keys(attributeLevelBonuses).length > 0
+            ? subtractLevelBonusesFromAttributes(mergedAttrsFromJson, attributeLevelBonuses)
+            : mergedAttrsFromJson;
 
     const { bonds: _omitLegacyBonds, bondTargets: _omitRawTargets, ...jsonRest } = json as Record<string, unknown> & {
         bonds?: unknown
@@ -345,6 +384,11 @@ function mergeImportedCharData(json: any, empty: CharacterSaveData): CharacterSa
             json.occupation != null && json.occupation !== ""
                 ? String(json.occupation)
                 : empty.occupation,
+        attributeLevelBonuses,
+        priestDeity:
+            json.priestDeity != null && String(json.priestDeity).trim() !== ""
+                ? String(json.priestDeity).trim().toLowerCase()
+                : empty.priestDeity ?? null,
     };
 }
 
@@ -386,7 +430,7 @@ export function parseCreatorImportJson(
         charData: merged,
         adventurerLevel,
         classSelections: inferClassSelections(json),
-        levelBonuses: {},
+        levelBonuses: merged.attributeLevelBonuses ?? {},
         cultureSkills,
         occupationSkills,
         occupationLanguages: languageIdsFromImport(json.languages),

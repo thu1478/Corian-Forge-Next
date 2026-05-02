@@ -84,6 +84,10 @@ import {
   itemMatchesKindFilter,
   itemMatchesSearch,
 } from "@/lib/inventory-filters"
+import {
+  equipmentStatSummaryFromDef,
+  equipmentStatSummaryLine,
+} from "@/lib/equipment-stats-display"
 
 interface InventoryPanelProps {
   inventory: InventoryItem[]
@@ -183,6 +187,7 @@ function DraggableItemRow({
   onOpenDetails: () => void
 }) {
   const id = `${INV_DRAG_ITEM_PREFIX}${item.uid}`
+  const equipStats = equipmentStatSummaryLine(item)
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id })
   const style = transform
     ? { transform: CSS.Translate.toString(transform), zIndex: isDragging ? 20 : undefined }
@@ -224,7 +229,14 @@ function DraggableItemRow({
             {item.type}
           </span>
         </div>
-        <span className="line-clamp-1 text-xs text-muted-foreground">{item.description}</span>
+        {item.description ? (
+          <span className="line-clamp-1 text-xs text-muted-foreground">{item.description}</span>
+        ) : null}
+        {equipStats ? (
+          <span className="line-clamp-2 text-[11px] font-mono tabular-nums text-muted-foreground">
+            {equipStats}
+          </span>
+        ) : null}
       </div>
       <div className="flex shrink-0 items-center gap-1.5">
         <label className="sr-only" htmlFor={`qty-${item.uid}`}>
@@ -1163,6 +1175,7 @@ export function InventoryPanel({
                 <div className="space-y-2 pr-1">
                   {catalogEntries.map(({ id, def }) => {
                     const t = catalogDefType(def)
+                    const statLine = equipmentStatSummaryFromDef(def)
                     return (
                       <div
                         key={id}
@@ -1177,9 +1190,14 @@ export function InventoryPanel({
                               {t}
                             </span>
                           </div>
-                          <p className="line-clamp-2 text-xs text-muted-foreground">
+                          <p className="line-clamp-2 whitespace-pre-line text-xs text-muted-foreground">
                             {String(def.description ?? "")}
                           </p>
+                          {statLine ? (
+                            <p className="mt-1.5 text-[11px] font-mono tabular-nums text-muted-foreground/90">
+                              {statLine}
+                            </p>
+                          ) : null}
                         </div>
                         <Button
                           type="button"

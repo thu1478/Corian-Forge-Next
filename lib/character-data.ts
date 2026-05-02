@@ -32,6 +32,16 @@ export interface CharacterSaveData {
         presence: number
     }
 
+    /**
+     * +1 attribute picks at adventurer levels 3, 5, 7, 9, 10 (level → attribute id).
+     * Creator keeps `attributes` as **base** (point-buy) while editing; export JSON uses **final**
+     * scores in `attributes` and this map so re-import does not double-apply bonuses.
+     * Character sheet / play: `attributes` are final totals; this field is metadata only.
+     */
+    attributeLevelBonuses?: Partial<
+        Record<number, "might" | "dexterity" | "reason" | "willpower" | "presence">
+    >
+
     // Non-resource stats
     speed: number
 
@@ -73,6 +83,9 @@ export interface CharacterSaveData {
     cultureUpbringing: string | null
     /** Creator / export: occupation id from `rules.system.occupation` (e.g. spy, scholar). */
     occupation: string | null
+
+    /** Priest: chosen deity id from `rules.classes.priest.deities` (filters deity-specific class talents in the creator). */
+    priestDeity?: string | null
 }
 
 export const defaultCharacter: CharacterSaveData = {
@@ -283,10 +296,24 @@ export interface ClassLevel {
     level: number
 }
 
-interface ClassBonusRule {
+/** Class-level max stat contributions from `rules.classes[*].statBonus` or `.statBonuses`. */
+export interface ClassBonusRule {
     stat: string
     amount: number
-    frequency: number
+    /** How many class levels grant one application of `amount`. Ignored when `once` is true. */
+    frequency?: number
+    /** When true, add `amount` once for this class if the character has at least 1 level in it (no per-level or frequency scaling). */
+    once?: boolean
+}
+
+function classStatBonusEntries(classRule: { statBonus?: ClassBonusRule; statBonuses?: ClassBonusRule[] } | undefined): ClassBonusRule[] {
+    if (!classRule) return []
+    if (Array.isArray(classRule.statBonuses) && classRule.statBonuses.length > 0) {
+        return classRule.statBonuses
+    }
+    const single = classRule.statBonus
+    if (single && typeof single === "object") return [single]
+    return []
 }
 
 /** Matches character sheet: max class level, or 1 if multiclass list is empty. */
@@ -302,14 +329,19 @@ export function sumClassStatBonus(
     statName: string
 ): number {
     return classes.reduce((total: number, cls: ClassLevel) => {
-        const classRule = rulesData?.classes?.[cls.id];
-        const bonus = classRule?.statBonus as ClassBonusRule | undefined;
-        if (bonus && bonus.stat === statName) {
-            const applications = Math.floor(cls.level / (bonus.frequency || 1));
-            return total + applications * bonus.amount;
+        const classRule = rulesData?.classes?.[cls.id]
+        let row = 0
+        for (const bonus of classStatBonusEntries(classRule)) {
+            if (bonus.stat !== statName) continue
+            if (bonus.once) {
+                if (cls.level >= 1) row += bonus.amount
+            } else {
+                const applications = Math.floor(cls.level / (bonus.frequency || 1))
+                row += applications * bonus.amount
+            }
         }
-        return total;
-    }, 0);
+        return total + row
+    }, 0)
 }
 
 type TraitLike = { effects?: Array<{ type: string; stat?: string; value: string }> };

@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 import rulesData from '@/lib/rules.json';
 import {ActionCard} from "@/lib/rules";
 import { hydrateActionCardById } from "@/lib/action-hydrate";
+import { actionTagsIncludeCanonical } from "@/lib/action-tag-utils";
 
 /**
  * Specialized hook to discover and hydrate Action Cards.
@@ -43,7 +44,7 @@ export function useActions(
         // 3. APPLY THE WEAPON ATTRIBUTE FILTER
         return hydratedActions.filter(action => {
             const tags = action.tags || [];
-            const isWeaponAction = tags.includes("Weapon");
+            const isWeaponAction = actionTagsIncludeCanonical(tags, "Weapon");
 
             // If it's not a weapon action, it's always visible (Spells, generic moves, etc.)
             if (!isWeaponAction) return true;

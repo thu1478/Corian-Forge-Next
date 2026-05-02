@@ -4,9 +4,11 @@ import { CheckIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import {
     collectUnlockedSkillIdsForOccupation,
     getOccupationDefinition,
+    getOccupationSourceChips,
     type OccupationRule,
     resolveOccupationLanguagePicks,
     resolveOccupationSkillsCount,
+    skillSourceChipClassName,
 } from "@/lib/occupation";
 
 interface OccupationStepProps {
@@ -63,17 +65,30 @@ export function OccupationStep({
     const additionalLanguages = occupationLanguages.filter((l) => l !== "common");
 
     const availableSkills = useMemo(() => {
-        return Object.entries(allSkills).filter(([id]) => {
-            if (occupationSkills.includes(id)) return true;
-            if (!def) return false;
-            return unlockedSkillIds.has(id);
-        });
+        return Object.entries(allSkills)
+            .filter(([id]) => {
+                if (occupationSkills.includes(id)) return true;
+                if (!def) return false;
+                return unlockedSkillIds.has(id);
+            })
+            .sort((a, b) => {
+                const na = a[1].name ?? a[0];
+                const nb = b[1].name ?? b[0];
+                const cmp = na.localeCompare(nb, undefined, { sensitivity: "base" });
+                if (cmp !== 0) return cmp;
+                return a[0].localeCompare(b[0], undefined, { sensitivity: "base" });
+            });
     }, [allSkills, occupationSkills, def, unlockedSkillIds]);
 
     const isComplete =
         Boolean(occupationId && def) &&
         occupationSkills.length === skillsCap &&
         additionalLanguages.length === languagePicks;
+
+    const selectionChips = useMemo(
+        () => (def ? getOccupationSourceChips(def, allSkills) : []),
+        [def, allSkills]
+    );
 
     return (
         <div className="flex flex-col h-full animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -91,6 +106,7 @@ export function OccupationStep({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {Object.entries(occupationRoot).map(([id, occ]) => {
                         const selected = occupationId === id;
+                        const sourceChips = getOccupationSourceChips(occ, allSkills);
                         return (
                             <button
                                 key={id}
@@ -106,9 +122,21 @@ export function OccupationStep({
                                     <h3 className="text-xl font-bold text-foreground">{occ.name}</h3>
                                     {selected && <CheckIcon className="w-5 h-5 text-purple-400" />}
                                 </div>
-                                <p className="text-sm text-muted-foreground mb-4 flex-grow">
+                                <p className="text-sm text-muted-foreground mb-3 flex-grow whitespace-pre-line">
                                     {occ.description ?? ""}
                                 </p>
+                                {sourceChips.length > 0 && (
+                                    <div className="mb-3 flex flex-wrap gap-2">
+                                        {sourceChips.map((chip, i) => (
+                                            <span
+                                                key={`${id}-${chip.kind}-${chip.label}-${i}`}
+                                                className={skillSourceChipClassName(chip.kind)}
+                                            >
+                                                {chip.label}
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
                                 <div className="flex flex-wrap gap-2 mt-auto text-xs font-semibold">
                                     <span className="px-2 py-1 rounded border bg-muted/50 border-border">
                                         {resolveOccupationSkillsCount(occ)} skills
@@ -133,6 +161,18 @@ export function OccupationStep({
                                     Choose {skillsCap} skills from unlocked categories and picks. Selecting a skill
                                     twice grants Expertise (same rules as culture).
                                 </p>
+                                {selectionChips.length > 0 && (
+                                    <div className="mt-3 flex flex-wrap gap-2">
+                                        {selectionChips.map((chip, i) => (
+                                            <span
+                                                key={`${chip.kind}-${chip.label}-${i}`}
+                                                className={skillSourceChipClassName(chip.kind)}
+                                            >
+                                                {chip.label}
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                             <div className="bg-card border border-border rounded-xl p-3 text-center min-w-[100px]">
                                 <div className="text-xs text-muted-foreground uppercase font-bold mb-1">Picks left</div>
@@ -200,7 +240,7 @@ export function OccupationStep({
                                         <span className="text-[10px] uppercase font-bold text-muted-foreground mb-2 tracking-wide">
                                             {(skill.categories ?? []).join(", ")}
                                         </span>
-                                        <p className="text-xs text-muted-foreground line-clamp-2">
+                                        <p className="text-xs text-muted-foreground line-clamp-2 whitespace-pre-line">
                                             {skill.description}
                                         </p>
                                     </button>
@@ -259,7 +299,7 @@ export function OccupationStep({
                                             )}
                                         </div>
                                         <span
-                                            className={`text-xs ${
+                                            className={`text-xs whitespace-pre-line ${
                                                 isSelected && !isCommon
                                                     ? "text-purple-900/80 dark:text-purple-100/85"
                                                     : "text-muted-foreground"

@@ -111,7 +111,7 @@ export function CharacterProfile({
             </div>
             
             <div className="p-4 bg-muted/20 rounded-lg border border-border">
-              <span className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Background</span>
+              <span className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Theme</span>
               <p className="text-base font-medium text-foreground mt-1">{background}</p>
             </div>
           </div>

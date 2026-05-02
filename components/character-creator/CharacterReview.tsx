@@ -13,6 +13,8 @@ import {
 import { FeatLevelPick } from "@/lib/baseRefs";
 import { discoverAllTraitRefs } from "@/components/character-sheet/hooks/DataLoader";
 import { hydrateTraitRefs } from "@/components/character-sheet/hooks/statCalculator";
+import { TraitPowerRollCollapsible } from "@/components/power-roll/trait-power-roll-collapsible";
+import type { PowerRoll } from "@/lib/rules";
 import { ChevronLeftIcon, DownloadIcon, RotateCcwIcon, Heart, Droplets, Footprints, Swords } from "lucide-react";
 
 type AttributeKey = "might" | "dexterity" | "reason" | "willpower" | "presence";
@@ -145,6 +147,7 @@ export function CharacterReview({
       theme: charData.background,
       race: raceData?.name ?? charData.race,
       attributes: finalAttributes,
+      attributeLevelBonuses: levelBonuses,
       xp: (rulesData.system.startingXPPerLvl as Record<string, number>)[String(adventurerLevel)] ?? charData.xp,
       actions,
       reactions,
@@ -206,14 +209,15 @@ export function CharacterReview({
     const raceDef = (rulesData.races as Record<string, any>)[charData.race];
     
     // 1. Get innate racial traits (automatically granted with race)
-    const innateTraits: { id: string; name: string; description: string }[] = [];
+    const innateTraits: { id: string; name: string; description: string; powerRoll?: PowerRoll }[] = [];
     if (raceDef?.passives) {
       Object.entries(raceDef.passives).forEach(([id, passive]: [string, any]) => {
         if (passive.type === "innate") {
           innateTraits.push({
             id,
             name: passive.name || id,
-            description: passive.description || "No description available."
+            description: passive.description || "No description available.",
+            powerRoll: passive.powerRoll,
           });
         }
       });
@@ -236,7 +240,8 @@ export function CharacterReview({
       return {
         id: t.id,
         name: resolved?.name ?? t.id,
-        description: resolved?.description ?? "No description available."
+        description: resolved?.description ?? "No description available.",
+        powerRoll: resolved?.powerRoll as PowerRoll | undefined,
       };
     });
     
@@ -433,7 +438,10 @@ export function CharacterReview({
               {resolvedTraits.map((t) => (
                 <div key={t.id} className="rounded-lg border border-border p-2 bg-background/60">
                   <div className="text-sm font-bold">{t.name}</div>
-                  <div className="text-xs text-muted-foreground">{t.description}</div>
+                  <div className="text-xs text-muted-foreground whitespace-pre-line">{t.description}</div>
+                  {t.powerRoll && (
+                    <TraitPowerRollCollapsible roll={t.powerRoll} attributes={finalAttributes} />
+                  )}
                 </div>
               ))}
             </div>

@@ -3,9 +3,10 @@ import {useCharacterIO} from '@/hooks/CharacterLoader';
 import {hydrateItemData} from "@/hooks/ItemLoader";
 import {useDerivedStats} from "@/components/character-sheet/hooks/statCalculator";
 import {useActions} from "@/hooks/ActionCardLoader";
-import {ActionCard, Reaction} from "@/lib/rules";
+import {Reaction} from "@/lib/rules";
 import {ReactionRef} from "@/lib/baseRefs";
 import {HydratedCharacter} from "@/lib/HydratedChar";
+import {buildReactionLibrary} from "@/lib/rest-helpers";
 
 export function useDataLoader(rulesDataParam: any) {
     // 1. Core Data IO (The source of truth)
@@ -116,12 +117,7 @@ export function hydrateCharacter(rawSave: any, rules: any): HydratedCharacter {
     // Pull data from classes
     // const classActions = Object.values(rules?.classes || {})
     //     .flatMap((c: any) => c.actions || []);
-    const classReactions = Object.values(rules?.classes || {})
-        .flatMap((c: any) => c.reactions || []);
-    // Pull generic data not tied to classes as well
-    const globalActions = Object.values(rules?.actionCards || []);
-    // const actionLibrary = [...classActions, ...globalActions.filter(a => (a as ActionCard).type === "action")];
-    const reactionLibrary = [...classReactions, ...globalActions.filter(a => (a as ActionCard).type === "reaction")];
+    const reactionLibrary = buildReactionLibrary(rules);
 
     return {
         ...rawSave,

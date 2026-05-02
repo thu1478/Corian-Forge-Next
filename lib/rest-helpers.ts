@@ -1,11 +1,16 @@
 import { getAttributeModifier } from "@/lib/character-data"
 import type { Reaction } from "@/lib/rules"
 
-/** Same reaction pool as `hydrateCharacter` in DataLoader. */
-function buildReactionLibrary(rules: { classes?: Record<string, unknown>; actionCards?: Record<string, unknown> }) {
+/**
+ * Class reactions plus global `actionCards` with `type === "reaction"`, each global card
+ * merged with its rule key as `id` (required for saves and lookups).
+ */
+export function buildReactionLibrary(rules: { classes?: Record<string, unknown>; actionCards?: Record<string, unknown> }) {
     const classReactions = Object.values(rules?.classes || {}).flatMap((c: any) => c.reactions || [])
-    const globalActions = Object.values(rules?.actionCards || {})
-    return [...classReactions, ...globalActions.filter((a: any) => a?.type === "reaction")]
+    const globalReactions = Object.entries(rules?.actionCards || {})
+        .filter(([, a]) => (a as { type?: string })?.type === "reaction")
+        .map(([id, a]) => ({ ...(a as object), id }))
+    return [...classReactions, ...globalReactions]
 }
 
 /**

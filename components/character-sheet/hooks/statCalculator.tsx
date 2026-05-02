@@ -1,4 +1,5 @@
 import {Trait} from "@/lib/rules";
+import {resolveDeityBoonDisplay} from "@/lib/priest-deities";
 import {
     computeMaxHP,
     computeMaxMP,
@@ -29,6 +30,10 @@ export function hydrateTraitRefs(traitRefs: any[], character: any, rulesData: an
                 const classRegistry = rulesData.classes?.[classId];
                 if (classRegistry?.passives?.[tRef.id]) {
                     ruleData = classRegistry.passives[tRef.id];
+                    if (tRef.id === "deityBoon" && classId === "priest") {
+                        const merged = resolveDeityBoonDisplay(rulesData, character.priestDeity, ruleData);
+                        ruleData = {...ruleData, name: merged.name, description: merged.description};
+                    }
                     break;
                 }
             }

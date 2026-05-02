@@ -24,6 +24,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {ArmorItem, Equipment, InventoryItem, MiscItem, ShieldItem, WeaponItem} from "@/lib/equipment-data";
+import {armorStatSummary, shieldStatSummary, weaponStatSummary} from "@/lib/equipment-stats-display";
 
 interface EquipmentPanelProps {
     equipment: {
@@ -109,7 +110,7 @@ export function EquipmentPanel({equipment, inventory, onAccessoryChange, onEquip
                                 </Button>
                             </DropdownMenuTrigger>
 
-                            <DropdownMenuContent align="start" className="w-[220px]">
+                            <DropdownMenuContent align="start" className="w-[280px]">
                                 <DropdownMenuItem onClick={() => onEquipmentChange?.("activeWeapon", null)}>
                                     <X className="w-4 h-4 mr-2 text-muted-foreground"/>
                                     <span className="text-muted-foreground italic">Unequip</span>
@@ -122,15 +123,18 @@ export function EquipmentPanel({equipment, inventory, onAccessoryChange, onEquip
                                         className="flex flex-col items-start gap-0.5"
                                     >
                                         <span className="font-medium text-sm">{item.name}</span>
-                                        <div
-                                            className="flex gap-2 text-[10px] text-muted-foreground uppercase tracking-tight font-mono">
-                                            <span>Dmg: {item.damage} ({item.damageType})</span>
-                                            <span>Range: {item.range}</span>
-                                        </div>
+                                        <span className="text-[10px] font-mono tabular-nums text-muted-foreground leading-snug">
+                                            {weaponStatSummary(item)}
+                                        </span>
                                     </DropdownMenuItem>
                                 ))}
                             </DropdownMenuContent>
                         </DropdownMenu>
+                        {equipment.activeWeapon ? (
+                            <p className="mt-2 text-[10px] font-mono tabular-nums text-muted-foreground truncate">
+                                {weaponStatSummary(equipment.activeWeapon)}
+                            </p>
+                        ) : null}
                     </div>
 
                     {/* OFFHAND SLOT */}
@@ -151,7 +155,7 @@ export function EquipmentPanel({equipment, inventory, onAccessoryChange, onEquip
                                     <ChevronDown className="w-4 h-4 shrink-0 ml-2"/>
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="start" className="w-[220px]">
+                            <DropdownMenuContent align="start" className="w-[280px]">
                                 <DropdownMenuItem onClick={() => onEquipmentChange?.("offhand", null)}>
                                     <X className="w-4 h-4 mr-2 text-muted-foreground"/>
                                     <span className="text-muted-foreground italic">Unequip</span>
@@ -172,21 +176,22 @@ export function EquipmentPanel({equipment, inventory, onAccessoryChange, onEquip
                                             <span className="font-medium text-sm">{item.name}</span>
                                         </div>
 
-                                        <div
-                                            className="flex gap-2 text-[10px] text-muted-foreground uppercase tracking-tight font-mono">
-                                            {item.type === "weapon" ? (
-                                                <>
-                                                    <span>Dmg: {item.damage}</span>
-                                                    <span>Range: {item.range}</span>
-                                                </>
-                                            ) : (
-                                                <span>Defense: {item.defense}</span>
-                                            )}
-                                        </div>
+                                        <span className="text-[10px] font-mono tabular-nums text-muted-foreground leading-snug">
+                                            {item.type === "weapon"
+                                                ? weaponStatSummary(item)
+                                                : shieldStatSummary(item)}
+                                        </span>
                                     </DropdownMenuItem>
                                 ))}
                             </DropdownMenuContent>
                         </DropdownMenu>
+                        {equipment.offhand ? (
+                            <p className="mt-2 text-[10px] font-mono tabular-nums text-muted-foreground truncate">
+                                {equipment.offhand.type === "weapon"
+                                    ? weaponStatSummary(equipment.offhand)
+                                    : shieldStatSummary(equipment.offhand)}
+                            </p>
+                        ) : null}
                     </div>
 
                     {/* Armor */}
@@ -208,7 +213,7 @@ export function EquipmentPanel({equipment, inventory, onAccessoryChange, onEquip
                                     <ChevronDown className="w-4 h-4 shrink-0 ml-2"/>
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="start" className="w-[200px]">
+                            <DropdownMenuContent align="start" className="w-[280px]">
                                 <DropdownMenuItem onClick={() => onEquipmentChange?.("armor", null)}>
                                     <X className="w-4 h-4 mr-2 text-muted-foreground"/>
                                     <span className="text-muted-foreground italic">Unequip</span>
@@ -220,16 +225,18 @@ export function EquipmentPanel({equipment, inventory, onAccessoryChange, onEquip
                                         className="flex flex-col items-start gap-0.5"
                                     >
                                         <span className="font-medium text-sm">{item.name}</span>
-                                        <div
-                                            className="flex gap-3 text-[10px] text-muted-foreground uppercase font-mono">
-                                            {/* FIX: Accessing the nested value property */}
-                                            <span>Def: {item.defense.value}</span>
-                                            <span>Stab: {item.stability}</span>
-                                        </div>
+                                        <span className="text-[10px] font-mono tabular-nums text-muted-foreground leading-snug">
+                                            {armorStatSummary(item)}
+                                        </span>
                                     </DropdownMenuItem>
                                 ))}
                             </DropdownMenuContent>
                         </DropdownMenu>
+                        {equipment.armor ? (
+                            <p className="mt-2 text-[10px] font-mono tabular-nums text-muted-foreground truncate">
+                                {armorStatSummary(equipment.armor)}
+                            </p>
+                        ) : null}
                     </div>
                 </div>
             </div>

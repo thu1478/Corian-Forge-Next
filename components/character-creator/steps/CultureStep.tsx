@@ -1,6 +1,11 @@
 import React, { useMemo, useState } from "react";
 import rulesData from "@/lib/rules.json";
-import { ChevronRightIcon, ChevronLeftIcon, CheckIcon } from 'lucide-react';
+import { ChevronRightIcon, ChevronLeftIcon, CheckIcon } from "lucide-react";
+import {
+  collectUnlockedSkillIdsForOccupation,
+  getCultureSourceChips,
+  skillSourceChipClassName,
+} from "@/lib/occupation";
 interface CultureStepProps {
   cultureEnvironment: string | null;
   cultureOrganization: string | null;
@@ -34,31 +39,53 @@ export function CultureStep({
   cultureEnvironment && cultureOrganization && cultureUpbringing;
   const isComplete = allChoicesMade && selectedSkills.length === 3;
   const culture = rulesData.system.culture;
-  const allSkills = rulesData.system.skills;
+  const allSkills = rulesData.system.skills as Record<
+    string,
+    { name?: string; description?: string; categories?: string[] }
+  >;
 
-  // Gather unlocked categories
-  const unlockedCategories = useMemo(() => {
-    const set = new Set<string>();
+  /** Same bucket rules as occupations: category names unlock all skills in that category; catalog keys unlock that skill. */
+  const cultureUnlockBuckets = useMemo(() => {
+    const buckets: string[] = [];
     if (cultureEnvironment) {
-      culture.environment[cultureEnvironment as keyof typeof culture.environment]?.skillCategories.forEach((c) => set.add(c));
+      buckets.push(
+        ...(culture.environment[cultureEnvironment as keyof typeof culture.environment]?.skillCategories ?? [])
+      );
     }
     if (cultureOrganization) {
-      culture.organization[cultureOrganization as keyof typeof culture.organization]?.skillCategories.forEach((c) => set.add(c));
+      buckets.push(
+        ...(culture.organization[cultureOrganization as keyof typeof culture.organization]?.skillCategories ?? [])
+      );
     }
     if (cultureUpbringing) {
-      culture.upbringing[cultureUpbringing as keyof typeof culture.upbringing]?.skillCategories.forEach((c) => set.add(c));
+      buckets.push(
+        ...(culture.upbringing[cultureUpbringing as keyof typeof culture.upbringing]?.skillCategories ?? [])
+      );
     }
-    return set;
+    return buckets;
   }, [cultureEnvironment, cultureOrganization, cultureUpbringing, culture.environment, culture.organization, culture.upbringing]);
-  // Include current culture picks even if env/org/upbringing changed and categories no longer match (so they stay removable).
-  const availableSkills = Object.entries(allSkills).filter(([id, skill]) => {
-    if (selectedSkills.includes(id)) return true;
-    return skill.categories.some(
-      (c) =>
-        unlockedCategories.has(c) ||
-        (c === "intepersonal" && unlockedCategories.has("interpersonal"))
-    );
-  });
+
+  const unlockedSkillIds = useMemo(
+    () =>
+      collectUnlockedSkillIdsForOccupation(
+        { name: "culture", skillCategories: cultureUnlockBuckets },
+        allSkills
+      ),
+    [cultureUnlockBuckets, allSkills]
+  );
+
+  // Include current culture picks even if env/org/upbringing changed and unlocks no longer match (so they stay removable).
+  const availableSkills = useMemo(() => {
+    return Object.entries(allSkills)
+      .filter(([id]) => selectedSkills.includes(id) || unlockedSkillIds.has(id))
+      .sort((a, b) => {
+        const na = a[1].name ?? a[0];
+        const nb = b[1].name ?? b[0];
+        const cmp = na.localeCompare(nb, undefined, { sensitivity: "base" });
+        if (cmp !== 0) return cmp;
+        return a[0].localeCompare(b[0], undefined, { sensitivity: "base" });
+      });
+  }, [allSkills, selectedSkills, unlockedSkillIds]);
   const renderSection = (
   title: string,
   data: Record<string, any>,
@@ -69,6 +96,7 @@ export function CultureStep({
   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
       {Object.entries(data).map(([id, item]) => {
       const isSelected = selectedId === id;
+      const sourceChips = getCultureSourceChips(item.skillCategories ?? [], allSkills);
       return (
         <button
           key={id}
@@ -82,17 +110,18 @@ export function CultureStep({
               <h3 className="text-xl font-bold text-foreground">{item.name}</h3>
               {isSelected && <CheckIcon className="w-5 h-5 text-purple-400" />}
             </div>
-            <p className="text-sm text-muted-foreground mb-4 flex-grow">
+            <p className="text-sm text-muted-foreground mb-4 flex-grow whitespace-pre-line">
               {item.description}
             </p>
             <div className="flex flex-wrap gap-2 mt-auto">
-              {item.skillCategories.map((cat: string) =>
-<span
-              key={cat}
-              className="text-xs font-semibold px-2 py-1 rounded uppercase bg-muted text-foreground border border-border dark:bg-muted/50 dark:text-foreground">
-                {cat}
-              </span>
-            )}
+              {sourceChips.map((chip, i) => (
+                <span
+                  key={`${id}-${chip.kind}-${chip.label}-${i}`}
+                  className={skillSourceChipClassName(chip.kind)}
+                >
+                  {chip.label}
+                </span>
+              ))}
             </div>
           </button>);
 
@@ -235,7 +264,7 @@ export function CultureStep({
                     <span className="text-[10px] uppercase font-bold text-muted-foreground mb-2 tracking-wide">
                       {skill.categories.join(', ')}
                     </span>
-                    <p className="text-xs text-muted-foreground line-clamp-2">
+                    <p className="text-xs text-muted-foreground line-clamp-2 whitespace-pre-line">
                       {skill.description}
                     </p>
                   </button>);

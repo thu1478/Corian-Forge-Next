@@ -115,7 +115,7 @@ export function TraitsPanel({traits}: TraitsPanelProps) {
                 {trait.source}
               </span>
                         </div>
-                        <p className="text-base text-foreground/80 leading-relaxed">{trait.description}</p>
+                        <p className="text-base text-foreground/80 leading-relaxed whitespace-pre-line">{trait.description}</p>
                     </div>
                 ))}
 

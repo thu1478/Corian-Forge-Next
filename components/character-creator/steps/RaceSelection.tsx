@@ -1,13 +1,22 @@
 import React, { useState, useMemo } from "react";
 import rulesData from "@/lib/rules.json";
-import { RacialPassive } from "@/lib/rules";
+import type { PowerRoll, RacialPassive } from "@/lib/rules";
 import { TraitRef } from "@/lib/baseRefs";
 import { formatTraitEffectChoiceLabel } from "@/lib/trait-selection";
+import { TraitPowerRollCollapsible } from "@/components/power-roll/trait-power-roll-collapsible";
 import { ChevronRightIcon, ArrowLeftIcon, CheckIcon } from "lucide-react";
 
 interface RaceSelectionProps {
   raceId: string | null;
   racialTraits: TraitRef[];
+  /** Used to show potency DCs on racial passives that define `powerRoll`. */
+  attributes: {
+    might: number;
+    dexterity: number;
+    reason: number;
+    willpower: number;
+    presence: number;
+  };
   onSelectRace: (id: string) => void;
   onToggleSelectable: (passiveId: string, options?: { selectedEffectIndices: number[] }) => void;
   onNext: () => void;
@@ -16,6 +25,7 @@ interface RaceSelectionProps {
 export function RaceSelection({
   raceId,
   racialTraits,
+  attributes,
   onSelectRace,
   onToggleSelectable,
   onNext,
@@ -83,7 +93,7 @@ export function RaceSelection({
                 <h2 className="text-4xl font-black mb-3 italic uppercase tracking-tight">
                   {ALL_RACES[expandedRaceId].name}
                 </h2>
-                <p className="text-slate-500 dark:text-slate-400 text-base leading-relaxed">
+                <p className="text-slate-500 dark:text-slate-400 text-base leading-relaxed whitespace-pre-line">
                   {ALL_RACES[expandedRaceId].description}
                 </p>
               </div>
@@ -113,7 +123,13 @@ export function RaceSelection({
                         className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800"
                       >
                         <div className="font-bold text-sm uppercase italic mb-1">{p.name}</div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 leading-snug">{p.description}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 leading-snug whitespace-pre-line">{p.description}</p>
+                        {(p as RacialPassive & { powerRoll?: PowerRoll }).powerRoll && (
+                          <TraitPowerRollCollapsible
+                            roll={(p as RacialPassive & { powerRoll: PowerRoll }).powerRoll}
+                            attributes={attributes}
+                          />
+                        )}
                       </div>
                     ))}
                 </div>
@@ -186,9 +202,21 @@ export function RaceSelection({
                                   [{p.ptCost} PTS]
                                 </span>
                               </div>
-                              <p className="text-xs text-slate-500 dark:text-slate-400 leading-snug mb-2">
+                              <p className="text-xs text-slate-500 dark:text-slate-400 leading-snug mb-2 whitespace-pre-line">
                                 {p.description}
                               </p>
+                              {(p as RacialPassive & { powerRoll?: PowerRoll }).powerRoll && (
+                                <div
+                                  className="mb-2"
+                                  onClick={(e) => e.stopPropagation()}
+                                  onKeyDown={(e) => e.stopPropagation()}
+                                >
+                                  <TraitPowerRollCollapsible
+                                    roll={(p as RacialPassive & { powerRoll: PowerRoll }).powerRoll}
+                                    attributes={attributes}
+                                  />
+                                </div>
+                              )}
                               {choice && Array.isArray(p.effects) && (
                                 <div
                                   className="flex flex-wrap gap-2 pt-2 border-t border-slate-200 dark:border-slate-700"
@@ -196,7 +224,7 @@ export function RaceSelection({
                                   onKeyDown={(e) => e.stopPropagation()}
                                 >
                                   <span className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 w-full">
-                                    Or pick a specific option:
+                                    Pick an option:
                                   </span>
                                   {p.effects.map((eff: any, idx: number) => {
                                     const on = active && pickedIdx === idx;
@@ -280,7 +308,7 @@ export function RaceSelection({
                   <div className="flex justify-between items-start mb-6">
                     <div className="max-w-[70%]">
                       <h3 className="text-3xl font-black mb-2 italic uppercase tracking-tight">{race.name}</h3>
-                      <p className="text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed line-clamp-2">
+                      <p className="text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed line-clamp-2 whitespace-pre-line">
                         {race.description}
                       </p>
                     </div>

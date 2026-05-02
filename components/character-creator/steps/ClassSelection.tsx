@@ -5,6 +5,9 @@ import { ArrowLeftIcon, PlusIcon, MinusIcon, CheckCircleIcon } from 'lucide-reac
 import { cn } from "@/lib/utils";
 import rulesData from "@/lib/rules.json";
 import { ActionCardComponent } from "@/components/character-sheet/combatPage/action-card-manager";
+import { TraitPowerRollCollapsible } from "@/components/power-roll/trait-power-roll-collapsible";
+import { unwrapEmbeddedActionCard } from "@/lib/embedded-action-card";
+import { getDeityPassiveEntries, resolveDeityBoonDisplay } from "@/lib/priest-deities";
 
 type LevelKey = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10";
 
@@ -15,6 +18,9 @@ interface ClassSelectionProps {
     attributes: {
         might: number; dexterity: number; reason: number; willpower: number; presence: number;
     };
+    /** Priest: filters deity-specific actions in the talent grid. */
+    priestDeity?: string | null;
+    onPriestDeityChange?: (deityId: string | null) => void;
     onUpdateLevel: (lvl: number) => void;
     onUpdateClassData: (classes: { id: string; level: number }[], traits: { id: string; source: string }[]) => void;
     onBack: () => void;
@@ -26,6 +32,8 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
                                                            classes,
                                                            currentAdventurerLevel,
                                                            attributes,
+                                                           priestDeity = null,
+                                                           onPriestDeityChange,
                                                            onUpdateLevel,
                                                            onUpdateClassData,
                                                            onBack,
@@ -75,6 +83,10 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
 
         const currentClassLevel = localClasses.find(c => c.id === sourceClassId)?.level || 0;
         const classData = (rulesData.classes as any)[sourceClassId];
+        const actionDef = classData?.actions?.[optionId] as { deityId?: string } | undefined;
+        if (sourceClassId === "priest" && actionDef?.deityId) {
+            if (!priestDeity || actionDef.deityId !== priestDeity) return;
+        }
 
         const getTalentLevel = (id: string) => {
             if (classData.passives?.[id]) return classData.passives[id].minLevel || 1;
@@ -121,6 +133,19 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
             talents = Object.entries(classData[type] || {})
                 .filter(([_, d]: any) => (d.minLevel || d.level || 1) === lvl)
                 .map(([id, d]: any) => ({ ...d, id }));
+            if (type === "actions" && classId === "priest") {
+                talents = talents.filter(
+                    (t: any) => !t.deityId || (priestDeity && t.deityId === priestDeity)
+                );
+            }
+            if (type === "passives" && classId === "priest") {
+                talents = talents.map((t: any) => {
+                    if (t.id !== "deityBoon") return t;
+                    const base = classData.passives?.deityBoon ?? {};
+                    const merged = resolveDeityBoonDisplay(rulesData, priestDeity, base);
+                    return { ...t, name: merged.name, description: merged.description };
+                });
+            }
         }
 
         if (talents.length === 0) return null;
@@ -134,18 +159,20 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
                         const isSelected = selectedOptions.some(s => s.id === id);
                         const isLocked = (localClasses.find(c => c.id === classId)?.level || 0) < lvl;
 
-                        // HYDRATION: Detect if actionCard is nested under a key or defined directly
-                        let cardData = null;
+                        let cardData: Record<string, unknown> & { id: string; tags: string[] } | null = null
                         if (talent.actionCard) {
-                            const firstVal = Object.values(talent.actionCard)[0];
-                            // If the first value is an object, it's keyed (like returnFire -> flareArrow)
-                            const raw = (typeof firstVal === 'object' && firstVal !== null) ? firstVal : talent.actionCard;
-                            cardData = {
-                                ...raw,
-                                id: id,
-                                tags: (raw as any).tags || []
-                            };
+                            const raw = unwrapEmbeddedActionCard(talent.actionCard as Record<string, unknown>)
+                            if (raw) {
+                                cardData = {
+                                    ...raw,
+                                    id,
+                                    tags: (Array.isArray(raw.tags) ? raw.tags : []) as string[],
+                                }
+                            }
                         }
+
+                        const isReaction = type === "reactions"
+                        const showReactionRuleBlock = isReaction && cardData
 
                         return (
                             <div key={id} className="relative h-full">
@@ -155,15 +182,43 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
                                     </div>
                                 )}
                                 <div onClick={() => !isLocked && handleToggleTalent(id, classId)} className={cn("transition-all h-full cursor-pointer", isSelected && "ring-2 ring-primary rounded-xl ring-offset-2 ring-offset-background", isLocked && "opacity-30 grayscale pointer-events-none")}>
-                                    {!cardData ? (
+                                    {showReactionRuleBlock ? (
+                                        <div className={cn("p-5 rounded-xl border-2 transition-all bg-card h-full flex flex-col gap-3", isSelected ? "border-primary" : "border-border hover:border-primary/40")}>
+                                            <div>
+                                                <h4 className="font-bold text-base text-foreground mb-2">{talent.name}</h4>
+                                                {talent.trigger ? (
+                                                    <p className="text-sm font-medium text-amber-700 dark:text-amber-400 mb-2 whitespace-pre-line">
+                                                        Trigger: {talent.trigger}
+                                                    </p>
+                                                ) : null}
+                                                {talent.description ? (
+                                                    <p className="text-sm text-muted-foreground leading-relaxed italic whitespace-pre-line">
+                                                        {talent.description}
+                                                    </p>
+                                                ) : null}
+                                            </div>
+                                            <div className="pointer-events-none border-t border-border/60 pt-3 mt-1 min-h-0">
+                                                <ActionCardComponent
+                                                    action={cardData as any}
+                                                    attributes={attributes}
+                                                    forceCollapsed={false}
+                                                    disabled={isLocked}
+                                                    currentWeapon={null}
+                                                />
+                                            </div>
+                                        </div>
+                                    ) : !cardData ? (
                                         <div className={cn("p-5 rounded-xl border-2 transition-all bg-card h-full", isSelected ? "border-primary" : "border-border hover:border-primary/40")}>
                                             <h4 className="font-bold text-sm uppercase mb-1">{talent.name}</h4>
-                                            <p className="text-xs text-muted-foreground leading-relaxed italic mb-2">{talent.trigger}</p>
-                                            <p className="text-xs text-muted-foreground leading-relaxed">{talent.description}</p>
+                                            <p className="text-xs text-muted-foreground leading-relaxed italic mb-2 whitespace-pre-line">{talent.trigger}</p>
+                                            <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-line">{talent.description}</p>
+                                            {talent.powerRoll && (
+                                                <TraitPowerRollCollapsible roll={talent.powerRoll} attributes={attributes} />
+                                            )}
                                         </div>
                                     ) : (
                                         <div className="pointer-events-none">
-                                            <ActionCardComponent action={cardData} attributes={attributes} forceCollapsed={false} disabled={isLocked} currentWeapon={null} />
+                                            <ActionCardComponent action={cardData as any} attributes={attributes} forceCollapsed={false} disabled={isLocked} currentWeapon={null} />
                                         </div>
                                     )}
                                 </div>
@@ -181,6 +236,10 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
         const currentClassLevel = localClasses.find(c => c.id === expandedClassId)?.level || 0;
         const spentInClass = selectedOptions.filter(o => o.source === expandedClassId).length;
         const maxInClass = getMaxClassXP(currentClassLevel);
+        const priestDeityL3Passives =
+            expandedClassId === "priest" && priestDeity && currentClassLevel >= 3
+                ? getDeityPassiveEntries(rulesData, priestDeity)
+                : [];
 
         return (
             <div className="p-8 max-w-6xl mx-auto min-h-screen">
@@ -198,7 +257,7 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
                     <div className="max-w-3xl space-y-6">
                         <h1 className="text-5xl font-black uppercase italic tracking-tighter">{classData.name}</h1>
                         {typeof classData.description === "string" && classData.description.trim() ? (
-                            <p className="text-base leading-relaxed text-muted-foreground">
+                            <p className="text-base leading-relaxed text-muted-foreground whitespace-pre-line">
                                 {classData.description}
                             </p>
                         ) : null}
@@ -214,8 +273,62 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
                                 ) : null}
                                 {typeof classData.focusFeat?.description === "string" &&
                                 classData.focusFeat.description.trim() ? (
-                                    <p className="text-sm leading-relaxed text-muted-foreground">
+                                    <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-line">
                                         {classData.focusFeat.description}
+                                    </p>
+                                ) : null}
+                            </div>
+                        ) : null}
+                        {typeof classData.primaryAttribute === "string" && classData.primaryAttribute.trim() ? (
+                            <p className="text-sm text-muted-foreground">
+                                <span className="font-bold text-foreground">Primary attribute:</span>{" "}
+                                {String(classData.primaryAttribute).replace(/^\w/, (c) => c.toUpperCase())}
+                            </p>
+                        ) : null}
+                        {typeof classData.freeFeaturesNote === "string" && classData.freeFeaturesNote.trim() ? (
+                            <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-line border-l-2 border-primary/40 pl-4">
+                                {classData.freeFeaturesNote}
+                            </p>
+                        ) : null}
+                        {expandedClassId === "priest" && currentClassLevel > 0 && Array.isArray(classData.deities) && classData.deities.length > 0 ? (
+                            <div className="rounded-2xl border border-border bg-card p-5 space-y-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block">
+                                    Deity (unlocks matching class talents)
+                                </label>
+                                <select
+                                    className="w-full max-w-md rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium"
+                                    value={priestDeity ?? ""}
+                                    onChange={(e) => onPriestDeityChange?.(e.target.value ? e.target.value : null)}
+                                >
+                                    <option value="">— Select a deity —</option>
+                                    {classData.deities.map((d: { id: string; name: string }) => (
+                                        <option key={d.id} value={d.id}>
+                                            {d.name}
+                                        </option>
+                                    ))}
+                                </select>
+                                {Array.isArray(classData.elementalAspects) && classData.elementalAspects.length > 0 ? (
+                                    <p className="text-xs text-muted-foreground">
+                                        Elemental aspects: {classData.elementalAspects.join(", ")}
+                                    </p>
+                                ) : null}
+                                {priestDeityL3Passives.length > 0 ? (
+                                    <div className="rounded-xl border border-primary/25 bg-primary/5 p-4 space-y-2">
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-primary">
+                                            Level 3 deity passive
+                                        </p>
+                                        {priestDeityL3Passives.map((p) => (
+                                            <div key={p.slug}>
+                                                <p className="text-sm font-bold text-foreground">{p.name}</p>
+                                                <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-line">
+                                                    {p.description}
+                                                </p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : priestDeity && currentClassLevel >= 3 ? (
+                                    <p className="text-xs text-muted-foreground italic">
+                                        No passive data for this deity in rules.
                                     </p>
                                 ) : null}
                             </div>
@@ -227,6 +340,13 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
                     {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(lvl => {
                         const hasContent = ['passives', 'actions', 'reactions'].some(type => {
                             if (type === 'reactions') return (classData.reactions || []).some((r: any) => (r.level || r.minLevel || 1) === lvl);
+                            if (type === "actions" && expandedClassId === "priest") {
+                                return Object.entries(classData.actions || {}).some(([_, d]: any) => {
+                                    if ((d.minLevel || d.level || 1) !== lvl) return false;
+                                    if (!d.deityId) return true;
+                                    return Boolean(priestDeity && d.deityId === priestDeity);
+                                });
+                            }
                             return Object.values((classData[type] || {})).some((d: any) => (d.minLevel || d.level || 1) === lvl);
                         });
                         if (!hasContent) return null;
@@ -264,7 +384,14 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
             </header>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {Object.entries(rulesData.classes).map(([id, classData]: any) => {
+                {Object.entries(rulesData.classes as Record<string, { name?: string }>)
+                    .slice()
+                    .sort((a, b) =>
+                        String(a[1].name ?? a[0]).localeCompare(String(b[1].name ?? b[0]), undefined, {
+                            sensitivity: "base",
+                        })
+                    )
+                    .map(([id, classData]: any) => {
                     const currentLevel = localClasses.find(c => c.id === id)?.level || 0;
                     const nextCost = (rulesData.system.xpCostPerLvl as any)[(currentLevel + 1).toString()] || 0;
                     const isComplete = getMaxClassXP(currentLevel) === selectedOptions.filter(o => o.source === id).length;

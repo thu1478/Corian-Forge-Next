@@ -29,7 +29,7 @@ export function Features({ features }: FeaturesProps) {
                 <span className="text-xs text-muted-foreground">{feature.source}</span>
               </div>
             </AccordionTrigger>
-            <AccordionContent className="text-sm text-muted-foreground pb-3">
+            <AccordionContent className="whitespace-pre-line text-sm text-muted-foreground pb-3">
               {feature.description}
             </AccordionContent>
           </AccordionItem>

@@ -43,6 +43,8 @@ export interface Trait extends TraitRef {
     effects?: TraitEffect[]
     /** Player must pick this many entries from `effects` (see `selectedEffectIndices` on TraitRef). */
     selectAmount?: number
+    /** Optional attack / potency table (same shape as action cards). Shown in creator + sheet when present. */
+    powerRoll?: PowerRoll
 }
 
 export interface RacialPassive extends Trait {

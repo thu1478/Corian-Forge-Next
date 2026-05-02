@@ -155,6 +155,16 @@ export default function CharacterCreator() {
         });
     };
 
+    const effectiveAttributes = useMemo(() => {
+        const a = { ...charData.attributes };
+        for (const attr of Object.values(levelBonuses)) {
+            if (attr && attr in a) {
+                a[attr as keyof typeof a] += 1;
+            }
+        }
+        return a;
+    }, [charData.attributes, levelBonuses]);
+
     const combinedSkillIds = useMemo(() => [...cultureSkills, ...occupationSkills], [cultureSkills, occupationSkills]);
     const skillCounts = useMemo(() => {
         const counts: Record<string, number> = {};
@@ -188,6 +198,7 @@ export default function CharacterCreator() {
                 <RaceSelection
                     raceId={charData.race}
                     racialTraits={charData.traits.filter((t) => t.source === "racial")}
+                    attributes={effectiveAttributes}
                     onSelectRace={handleSelectRace}
                     onToggleSelectable={handleTogglePassives}
                     onNext={handleNext}
@@ -199,13 +210,32 @@ export default function CharacterCreator() {
                     selectedOptions={classSelections}
                     classes={charData.classes}
                     currentAdventurerLevel={adventurerLevel}
-                    attributes={charData.attributes}
+                    attributes={effectiveAttributes}
+                    priestDeity={charData.priestDeity ?? null}
+                    onPriestDeityChange={(deityId) => {
+                        setCharData((prev) => ({ ...prev, priestDeity: deityId }));
+                        setClassSelections((prev) =>
+                            prev.filter((sel) => {
+                                if (sel.source !== "priest") return true;
+                                const a = (rulesData.classes as Record<string, any>).priest?.actions?.[sel.id] as
+                                    | { deityId?: string }
+                                    | undefined;
+                                if (!a?.deityId) return true;
+                                return Boolean(deityId && a.deityId === deityId);
+                            })
+                        );
+                    }}
                     onUpdateLevel={(lvl) => {
                         setAdventurerLevel(lvl);
                         setCharData((prev) => ({ ...prev, xp: STARTING_XP[String(lvl)] ?? prev.xp }));
                     }}
                     onUpdateClassData={(classes, options) => {
-                        setCharData((prev) => ({ ...prev, classes }));
+                        const hasPriest = classes.some((c) => c.id === "priest" && c.level > 0);
+                        setCharData((prev) => ({
+                            ...prev,
+                            classes,
+                            ...(!hasPriest ? { priestDeity: null } : {}),
+                        }));
                         setClassSelections(options);
                     }}
                     onBack={handleBack}
@@ -226,6 +256,13 @@ export default function CharacterCreator() {
                     }}
                     onChangeLevelBonus={(level, ability) => {
                         setLevelBonuses((prev) => ({ ...prev, [level]: ability }));
+                        setCharData((prev) => ({
+                            ...prev,
+                            attributeLevelBonuses: {
+                                ...(prev.attributeLevelBonuses ?? {}),
+                                [level]: ability,
+                            },
+                        }));
                     }}
                     onBack={handleBack}
                     onNext={handleNext}
@@ -313,6 +350,7 @@ export default function CharacterCreator() {
                     selectedFeats={selectedFeats}
                     adventurerLevel={adventurerLevel}
                     classes={charData.classes}
+                    attributes={effectiveAttributes}
                     onSelectFeat={(level, pick) =>
                         setSelectedFeats((prev) => {
                             if (!pick) {

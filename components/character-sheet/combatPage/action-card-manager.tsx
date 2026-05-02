@@ -1,20 +1,21 @@
 "use client"
 
-import {useEffect, useState} from "react" // Added useState
+import {useEffect, useMemo, useState} from "react" // Added useState
 import {cn} from "@/lib/utils"
 import {ChevronDown, Clock, Crosshair, Droplets, Swords, Target, Wrench, Zap} from "lucide-react" // Added ChevronDown
 import {InventoryItem} from "@/lib/equipment-data";
-import {ActionCard, CharAttribute, PotencyEffect, PowerRoll} from "@/lib/rules";
-import {getAttributeModifier} from "@/lib/character-data";
+import {ActionCard} from "@/lib/rules";
+import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover"
+import {findEffectGlossaryEntry} from "@/lib/glossary-lookup"
 import {
-    potencyStrengthDisplayLabel,
-    potencyStrengthToModifier,
-} from "@/lib/potency-strength";
+    PowerRollTierRow,
+    type PowerRollDisplayMode,
+} from "@/components/power-roll/power-roll-tier-row";
 
 export type ActionSpendResourceKind = "mp" | "focus" | "ip"
 
 /** Combat tab: simple totals vs base + weapon / max mod + potency tier math. */
-export type PowerRollDisplayMode = "simple" | "formula"
+export type { PowerRollDisplayMode }
 
 export interface ActionCostBudget {
     mp: number
@@ -39,6 +40,44 @@ interface ActionCardProps {
     actionCostBudget?: ActionCostBudget
     /** Default `simple`: final damage & potency DC. `formula`: show sums (e.g. 2 + 1 DMG, 4 + (−1) potency). */
     powerRollDisplayMode?: PowerRollDisplayMode
+}
+
+function ActionCardGlossaryTag({ tag }: { tag: string }) {
+    const entry = useMemo(() => findEffectGlossaryEntry(tag), [tag])
+    const title = entry?.name ?? tag
+    const body =
+        entry?.description?.trim() ||
+        "This tag is not defined in rules.glossary.effectDictionary yet."
+
+    return (
+        <Popover>
+            <PopoverTrigger asChild>
+                <button
+                    type="button"
+                    className={cn(
+                        "text-xs px-2.5 py-1 rounded-full border font-medium uppercase tracking-wider",
+                        "bg-muted/50 dark:bg-white/5 border-border dark:border-white/10 text-foreground/70",
+                        "cursor-pointer transition-colors",
+                        "hover:bg-muted hover:text-foreground hover:border-primary/40",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    )}
+                >
+                    {tag}
+                </button>
+            </PopoverTrigger>
+            <PopoverContent
+                align="start"
+                side="top"
+                sideOffset={6}
+                className="w-[min(92vw,28rem)] max-w-none border-border p-4 text-left shadow-md"
+            >
+                <div className="space-y-2">
+                    <p className="text-sm font-semibold leading-tight text-foreground">{title}</p>
+                    <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-line">{body}</p>
+                </div>
+            </PopoverContent>
+        </Popover>
+    )
 }
 
 const typeConfig = {
@@ -249,7 +288,7 @@ export function ActionCardComponent({
 
                 {/* Effect Description */}
                 <div className="max-h-32 overflow-y-auto pr-2 custom-scrollbar mb-4">
-                    <p className="text-base text-foreground/80 leading-relaxed">
+                    <p className="text-base text-foreground/80 leading-relaxed whitespace-pre-line">
                         {action.description}
                     </p>
                 </div>
@@ -299,7 +338,7 @@ export function ActionCardComponent({
                             "transition-all duration-200",
                             isPowerRollExpanded ? "p-2 space-y-1 block opacity-100" : "hidden opacity-0"
                         )}>
-                            <TierRow
+                            <PowerRollTierRow
                                 label="<=11"
                                 roll={action.powerRoll}
                                 tier={1}
@@ -308,7 +347,7 @@ export function ActionCardComponent({
                                 currentWeapon={currentWeapon}
                                 powerRollDisplayMode={powerRollDisplayMode}
                             />
-                            <TierRow
+                            <PowerRollTierRow
                                 label="12-16"
                                 roll={action.powerRoll}
                                 tier={2}
@@ -317,7 +356,7 @@ export function ActionCardComponent({
                                 currentWeapon={currentWeapon}
                                 powerRollDisplayMode={powerRollDisplayMode}
                             />
-                            <TierRow
+                            <PowerRollTierRow
                                 label=">=17"
                                 roll={action.powerRoll}
                                 tier={3}
@@ -330,143 +369,14 @@ export function ActionCardComponent({
                     </div>
                 )}
 
-                {/* Tags */}
+                {/* Tags (glossary popover per tag) */}
                 <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-border dark:border-white/10">
-                    {action.tags.map((tag) => (
-                        <span key={tag}
-                              className="text-xs px-2.5 py-1 rounded-full bg-muted/50 dark:bg-white/5 border border-border dark:border-white/10 text-foreground/70 uppercase tracking-wider font-medium">
-                        {tag}
-                    </span>
+                    {(action.tags ?? []).map((tag) => (
+                        <ActionCardGlossaryTag key={tag} tag={tag} />
                     ))}
                 </div>
 
             </div>
-        </div>
-    )
-}
-
-function TierRow({label, roll, tier, badgeStyle, attributes, currentWeapon, powerRollDisplayMode}: {
-    label: string,
-    roll: PowerRoll,
-    tier: number,
-    badgeStyle: string,
-    attributes: ActionCardProps['attributes'],
-    currentWeapon?: InventoryItem | null
-    powerRollDisplayMode: PowerRollDisplayMode
-}) {
-    const baseDmg = roll[`tier${tier}Dmg` as keyof PowerRoll] as number || 0;
-    const hasWpn = roll[`tier${tier}Wpn` as keyof PowerRoll] as boolean || false;
-    const potency = roll[`tier${tier}Effect` as keyof PowerRoll] as PotencyEffect | undefined;
-
-    // 2. Weapon Damage Matching Logic
-    let weaponBonus = 0;
-    if (currentWeapon && currentWeapon.type === "weapon" && currentWeapon.attributes) {
-        // Check if weapon attributes overlap with card's rollStats
-        const isCompatible = currentWeapon.attributes.some((attr) =>
-            roll.rollStats.includes(attr as CharAttribute)
-        );
-
-        if (isCompatible) {
-            weaponBonus = currentWeapon.damage || 0;
-        }
-    }
-
-    // 3. Final Damage = base + weapon bonus when tier uses weapon damage
-    const finalDmg = (hasWpn ? weaponBonus : 0) + baseDmg;
-
-    let potencyThreshold: number | null = null;
-    let maxSrcMod: number | null = null;
-    let potencyStrMod: number | null = null;
-    let potencyStrengthLabel: string | null = null;
-
-    if (potency && potency.type !== "Special" && potency.srcStats && potency.srcStats.length > 0) {
-        const modifiers = potency.srcStats.map((stat) =>
-            getAttributeModifier(attributes[stat as keyof typeof attributes])
-        );
-        maxSrcMod = Math.max(...modifiers);
-        potencyStrMod = potencyStrengthToModifier(potency.strength);
-        potencyStrengthLabel = potencyStrengthDisplayLabel(potency.strength);
-        potencyThreshold = maxSrcMod + potencyStrMod;
-    }
-
-    const shouldShowDmg = hasWpn || finalDmg > 0;
-
-    const dmgDisplay =
-        powerRollDisplayMode === "formula" && hasWpn ? (
-            <>
-                {baseDmg} + {weaponBonus}{" "}
-                <span className="text-[10px] opacity-40 uppercase ml-0.5">DMG</span>
-            </>
-        ) : (
-            <>
-                {finalDmg}{" "}
-                <span className="text-[10px] opacity-40 uppercase ml-0.5">DMG</span>
-            </>
-        );
-
-    return (
-        <div
-            className="flex flex-col rounded-lg bg-muted/50 dark:bg-black/30 border border-border dark:border-white/10 overflow-hidden">
-            {/* Top Row: Label and Damage */}
-            <div className="flex items-center justify-between px-3 py-2 bg-foreground/[0.03] border-b border-border/30">
-                <span className="text-xs font-black opacity-50 italic uppercase tracking-tighter">
-                    {label}
-                </span>
-                {shouldShowDmg && (
-                    <span className="font-mono font-bold text-foreground text-lg leading-none">
-                        {dmgDisplay}
-                    </span>
-                )}
-            </div>
-
-            {/* Bottom Row: Potency/Effects (Full Width) */}
-            {potency && (
-                <div className="px-3 py-2.5 flex flex-wrap items-center gap-x-4 gap-y-2">
-                    {/* Potency DC: max attribute mod + potency tier offset (weak / average / strong) */}
-                    {potencyThreshold !== null && potency.type !== 'Special' && potency.targetStats && (
-                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                             <span
-                                 className="text-sm font-mono font-black text-muted-foreground uppercase tracking-tight">
-                                {potency.targetStats.map(s => s[0]).join("/")}
-                            </span>
-                            {powerRollDisplayMode === "simple" ? (
-                                <span className="text-base font-black text-primary flex items-center gap-1 tabular-nums">
-                                    <span className="text-xs opacity-50">&lt;</span>
-                                    {potencyThreshold}
-                                </span>
-                            ) : (
-                                <span className="text-base font-black text-primary flex flex-wrap items-center gap-x-1.5 gap-y-0.5 tabular-nums">
-                                    <span className="text-xs opacity-50">&lt;</span>
-                                    <span className="font-mono">
-                                        {maxSrcMod} {potencyStrMod}
-                                    </span>
-                                    {potencyStrengthLabel ? (
-                                        <span className="text-[10px] font-bold uppercase opacity-60">
-                                            [{potencyStrengthLabel}]
-                                        </span>
-                                    ) : null}
-                                </span>
-                            )}
-                        </div>
-                    )}
-
-                    {/* The Badge */}
-                    <span
-                        className={cn("text-sm px-2.5 py-1 rounded font-extrabold uppercase tracking-tight leading-none shadow-sm", badgeStyle)}>
-                        {potency.type === 'ForcedMovement' ? `${potency.effect} ${potency.distance}` : potency.effect}
-                    </span>
-
-                    {/* Duration */}
-                    {potency.type !== 'ForcedMovement' && !!potency.duration && (
-                        <div className="flex items-center gap-1.5 opacity-80">
-                            <span className="h-1 w-1 rounded-full bg-muted-foreground/30"/>
-                            <span className="text-xs text-muted-foreground lowercase font-bold italic leading-none">
-                                {potency.duration}
-                            </span>
-                        </div>
-                    )}
-                </div>
-            )}
         </div>
     )
 }

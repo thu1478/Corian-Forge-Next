@@ -4,6 +4,7 @@ import {useMemo, useState} from "react"
 import {cn} from "@/lib/utils"
 import {Brain, Briefcase, Filter, Globe2, GraduationCap, Heart, Languages, Plus, ScrollText, Sparkles, Trash2} from "lucide-react"
 import {BondEmotionType, BondTarget, Skill, Trait} from "@/lib/rules";
+import {TraitPowerRollCollapsible} from "@/components/power-roll/trait-power-roll-collapsible";
 import {Button} from "@/components/ui/button"
 import {Input} from "@/components/ui/input"
 import {
@@ -21,13 +22,16 @@ import {
     newBondId,
     normalizeBondRules,
 } from "@/lib/bonds"
+import {getDeityPassiveEntries} from "@/lib/priest-deities"
 
 interface ClassesPanelProps {
     classes: { id: string; level: number }[]; // Character's specific data
     rules: Record<string, any>;               // The entire classes section of rules.json
+    /** Priest: show level 3 deity passive summary when level ≥ 3. */
+    priestDeity?: string | null
 }
 
-export function ClassesPanel({classes, rules}: ClassesPanelProps) {
+export function ClassesPanel({classes, rules, priestDeity = null}: ClassesPanelProps) {
 
     return (
         <div className="p-4 bg-card rounded-xl border border-border">
@@ -39,18 +43,35 @@ export function ClassesPanel({classes, rules}: ClassesPanelProps) {
 
             <div className="space-y-3">
                 {classes.map((cls, i) => {
+                    const priestPassives =
+                        cls.id === "priest" && cls.level >= 3 && priestDeity
+                            ? getDeityPassiveEntries({ classes: rules } as { classes?: Record<string, unknown> }, priestDeity)
+                            : []
 
                     return (
                         <div
                             key={i}
-                            className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border"
+                            className="p-3 rounded-lg bg-muted/20 border border-border space-y-2"
                         >
+                            <div className="flex items-center justify-between gap-2">
                   <span className="font-semibold text-foreground text-base">
                     {rules?.[cls.id]?.name}
                   </span>
-                            <span className="text-base font-bold text-primary">
+                            <span className="text-base font-bold text-primary shrink-0">
                     Lv. {cls.level}
                   </span>
+                            </div>
+                            {priestPassives.length > 0 ? (
+                                <div className="text-xs text-muted-foreground border-t border-border/60 pt-2 space-y-1">
+                                    <span className="font-medium text-foreground/90">Deity passive</span>
+                                    {priestPassives.map((p) => (
+                                        <p key={p.slug} className="leading-snug">
+                                            <span className="font-semibold text-foreground">{p.name}:</span>{" "}
+                                            {p.description}
+                                        </p>
+                                    ))}
+                                </div>
+                            ) : null}
                         </div>
                     );
                 })}
@@ -61,6 +82,14 @@ export function ClassesPanel({classes, rules}: ClassesPanelProps) {
 
 interface TraitsPanelProps {
     traits: Trait[]
+    /** Effective attributes (for potency DC math on trait power rolls). */
+    attributes: {
+        might: number
+        dexterity: number
+        reason: number
+        willpower: number
+        presence: number
+    }
 }
 
 type TraitSource = "all" | "racial" | "feat" | "class" | "background" | "other"
@@ -82,7 +111,7 @@ const sourceFilterColors: Record<string, string> = {
     other: "bg-slate-600 text-white"
 }
 
-export function TraitsPanel({traits}: TraitsPanelProps) {
+export function TraitsPanel({traits, attributes}: TraitsPanelProps) {
     const [filter, setFilter] = useState<TraitSource>("all")
 
     // Get unique sources from traits
@@ -132,7 +161,10 @@ export function TraitsPanel({traits}: TraitsPanelProps) {
                 {trait.source}
               </span>
                         </div>
-                        <p className="text-base text-foreground/80 leading-relaxed">{trait.description}</p>
+                        <p className="text-base text-foreground/80 leading-relaxed whitespace-pre-line">{trait.description}</p>
+                        {trait.powerRoll && (
+                            <TraitPowerRollCollapsible roll={trait.powerRoll} attributes={attributes} />
+                        )}
                     </div>
                 ))}
 

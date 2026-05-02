@@ -1,7 +1,7 @@
 "use client"
 
 import {getAttributeModifier} from "@/lib/character-data"
-import {ChevronDown, Lock, Target, Zap} from "lucide-react"
+import {ChevronDown, Lock, Plus, Target, Zap} from "lucide-react"
 import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger} from "@/components/ui/dropdown-menu";
 import {Button} from "@/components/ui/button";
 import {cn} from "@/lib/utils";
@@ -11,6 +11,7 @@ import {
     type ActionCostBudget,
     type ActionSpendResourceKind,
 } from "@/components/character-sheet/combatPage/action-card-manager";
+import { unwrapEmbeddedActionCard } from "@/lib/embedded-action-card";
 
 interface FocusReactionsPanelProps {
     rules: Record<string, any>;
@@ -22,6 +23,9 @@ interface FocusReactionsPanelProps {
     onUpdateReactionCharges: (reactionId: string, newCount: number) => void;
     actionCostBudget?: ActionCostBudget;
     onSpendActionCost?: (kind: ActionSpendResourceKind, amount: number) => void;
+    /** Global catalog entries (e.g. feat/protect) the player can append to their reaction list. */
+    catalogReactionOptions?: { id: string; label: string }[];
+    onAddCatalogReaction?: (id: string) => void;
 }
 
 export function FocusReactionsPanel({
@@ -34,6 +38,8 @@ export function FocusReactionsPanel({
                                         onUpdateReactionCharges,
                                         actionCostBudget,
                                         onSpendActionCost,
+                                        catalogReactionOptions = [],
+                                        onAddCatalogReaction,
                                     }: FocusReactionsPanelProps) {
     // Get the default focus feat start of turn
     const globalFocus = rules?.system?.defaults?.focusFeat
@@ -56,7 +62,7 @@ export function FocusReactionsPanel({
                             <span className="font-bold text-foreground text-base">{globalFocus?.name}</span>
                             <Lock className="w-3 h-3 text-blue-400/50"/>
                         </div>
-                        <p className="text-sm text-muted-foreground leading-relaxed italic">{globalFocus?.description}</p>
+                        <p className="text-sm text-muted-foreground leading-relaxed italic whitespace-pre-line">{globalFocus?.description}</p>
                     </div>
                 }
 
@@ -114,7 +120,7 @@ export function FocusReactionsPanel({
                             {(currentFeat?.slotIndex ?? -1) >= 0 && (
                                 <div
                                     className="p-4 rounded-lg border transition-all bg-orange-100 dark:bg-orange-950/30 border-orange-300 dark:border-orange-700/50">
-                                    <p className="text-base text-foreground/80 leading-relaxed">
+                                    <p className="text-base text-foreground/80 leading-relaxed whitespace-pre-line">
                                         {currentFeatRule?.description || "No description available."}
                                     </p>
                                 </div>
@@ -126,10 +132,47 @@ export function FocusReactionsPanel({
 
             {/* --- REACTIONS SECTION --- */}
             <div className="p-4 bg-card rounded-xl border border-border">
-                <h3 className="text-base font-semibold uppercase tracking-wider text-primary mb-4 flex items-center gap-2">
-                    <Zap className="w-5 h-5"/>
-                    Reactions
-                </h3>
+                <div className="flex items-center justify-between gap-2 mb-4">
+                    <h3 className="text-base font-semibold uppercase tracking-wider text-primary flex items-center gap-2">
+                        <Zap className="w-5 h-5 shrink-0"/>
+                        Reactions
+                    </h3>
+                    {onAddCatalogReaction && (
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 shrink-0 text-[10px] font-black uppercase tracking-widest gap-1"
+                                    title="Add a reaction from global rules (all non-monster reaction cards)"
+                                >
+                                    <Plus className="w-3 h-3"/>
+                                    Add
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="max-h-64 overflow-y-auto">
+                                {catalogReactionOptions.length === 0 ? (
+                                    <DropdownMenuItem disabled>No catalog reactions</DropdownMenuItem>
+                                ) : (
+                                    catalogReactionOptions.map((opt) => {
+                                        const already = knownReactions.some((r) => r.id === opt.id);
+                                        return (
+                                            <DropdownMenuItem
+                                                key={opt.id}
+                                                disabled={already}
+                                                onClick={() => onAddCatalogReaction(opt.id)}
+                                            >
+                                                {opt.label}
+                                                {already ? " (owned)" : ""}
+                                            </DropdownMenuItem>
+                                        );
+                                    })
+                                )}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    )}
+                </div>
 
                 {/* Default Slot */}
                 <div className="p-4 rounded-lg border bg-blue-500/5 border-blue-500/20 opacity-90 mb-4">
@@ -137,8 +180,8 @@ export function FocusReactionsPanel({
                         <span className="font-bold text-foreground text-base">{globalReaction?.name}</span>
                         <Lock className="w-3 h-3 text-blue-400/50"/>
                     </div>
-                    <p className="text-sm font-medium text-amber-700 dark:text-amber-400 mb-1">Trigger: {globalReaction?.trigger}</p>
-                    <p className="text-sm text-muted-foreground italic">{globalReaction?.description}</p>
+                    <p className="text-sm font-medium text-amber-700 dark:text-amber-400 mb-1 whitespace-pre-line">Trigger: {globalReaction?.trigger}</p>
+                    <p className="text-sm text-muted-foreground italic whitespace-pre-line">{globalReaction?.description}</p>
                 </div>
 
                 {/* Choices Slots */}
@@ -158,7 +201,9 @@ export function FocusReactionsPanel({
 
                         // 3. Extract action card data
                         const actionCardData = currentReaction?.actionCard
-                            ? Object.values(currentReaction.actionCard)[0] as any
+                            ? (unwrapEmbeddedActionCard(
+                                  currentReaction.actionCard as Record<string, unknown>
+                              ) as Record<string, unknown> | null)
                             : null;
 
                         return (
@@ -228,10 +273,10 @@ export function FocusReactionsPanel({
                                                 </div>
                                             </div>
                                         )}
-                                        <p className="text-sm font-medium text-amber-700 dark:text-amber-400 px-2 py-1 bg-amber-50 dark:bg-amber-900/30 rounded border border-amber-200 dark:border-amber-700/40">
+                                        <p className="text-sm font-medium text-amber-700 dark:text-amber-400 px-2 py-1 bg-amber-50 dark:bg-amber-900/30 rounded border border-amber-200 dark:border-amber-700/40 whitespace-pre-line">
                                             Trigger: {currentReaction.trigger}
                                         </p>
-                                        <p className="text-base text-foreground/80 leading-relaxed italic">
+                                        <p className="text-base text-foreground/80 leading-relaxed italic whitespace-pre-line">
                                             {currentReaction.description || "No description available."}
                                         </p>
                                         {/* --- ACTION CARD INTEGRATION --- */}

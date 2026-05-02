@@ -2,6 +2,8 @@
 
 import {useMemo, useState} from "react"
 import {cn} from "@/lib/utils"
+import { normalizeDamageTypeKey } from "@/lib/damage-type-key"
+import { conflictingDamageTypeKeys } from "@/lib/damage-resolution"
 import {Calculator, Droplets, Footprints, Heart, Leaf, Minus, Plus, Shield, ShieldCheck, Swords} from "lucide-react"
 import {Button} from "@/components/ui/button"
 import {Input} from "@/components/ui/input"
@@ -286,24 +288,15 @@ interface CombatStatsPanelProps {
     vulnerabilities: Record<string,number>
 }
 
-function normalizeDamageTypeKey(s: string): string {
-    return s.trim().toLowerCase()
-}
-
 /** Damage types that appear as both resistance and vulnerability (netted out in play; still listed, de-emphasized). */
 function useConflictingDamageTypes(
     resistances: string[],
     vulnerabilities: Record<string, number>
 ): Set<string> {
-    return useMemo(() => {
-        const vulnKeys = new Set(Object.keys(vulnerabilities).map(normalizeDamageTypeKey))
-        const out = new Set<string>()
-        for (const r of resistances) {
-            const k = normalizeDamageTypeKey(r)
-            if (vulnKeys.has(k)) out.add(k)
-        }
-        return out
-    }, [resistances, vulnerabilities])
+    return useMemo(
+        () => conflictingDamageTypeKeys(resistances, vulnerabilities),
+        [resistances, vulnerabilities]
+    )
 }
 
 export function CombatStatsPanel({defense, stability, speed, resistances, vulnerabilities}: CombatStatsPanelProps) {

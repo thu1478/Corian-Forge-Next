@@ -39,17 +39,19 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { ChevronDown, Coffee, Filter, Flag, LayoutGrid, List, Moon, Package, Sparkles, Swords, User } from "lucide-react"
+import { ChevronDown, Coffee, Filter, Flag, LayoutGrid, List, Moon, Package, Plus, Sparkles, Swords, User } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { capitalizeFirstLetter, cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { makeContainerId, makeInventoryUid } from "@/lib/inventory-filters"
 import { unequipInventoryUids } from "@/lib/inventory-helpers"
 import rulesData from "@/lib/rules.json";
+import { actionTagMatchesFilterChip, actionTagMatchesSearchQuery } from "@/lib/action-tag-utils";
 import { Equipment, EQUIPMENT_RULES, type InventoryContainer } from "@/lib/equipment-data";
 import { useDataLoader } from "@/components/character-sheet/hooks/DataLoader";
 import { CharacterClass } from "@/lib/rules";
 import { restoreReactionCharges } from "@/lib/rest-helpers";
+import { listCatalogActionCardIds, listCatalogReactionCardIds } from "@/lib/generic-catalog";
 
 type ActionFilter = string;
 type ViewMode = "grid" | "list"
@@ -91,7 +93,7 @@ export function CharacterSheetView() {
                 const tagMatch =
                     action.tags &&
                     Array.isArray(action.tags) &&
-                    action.tags.some((tag: string) => tag.toLowerCase() === filterLower);
+                    action.tags.some((tag: string) => actionTagMatchesFilterChip(tag, filterLower));
                 if (!sourceMatch && !tagMatch) return false;
             }
             const q = actionSearch.trim().toLowerCase();
@@ -100,7 +102,7 @@ export function CharacterSheetView() {
                 const inDesc = String(action.description ?? "").toLowerCase().includes(q);
                 const inTags =
                     Array.isArray(action.tags) &&
-                    action.tags.some((tag: string) => String(tag).toLowerCase().includes(q));
+                    action.tags.some((tag: string) => actionTagMatchesSearchQuery(tag, q));
                 if (!inName && !inDesc && !inTags) return false;
             }
             return true;
@@ -114,6 +116,16 @@ export function CharacterSheetView() {
             return aa - ab;
         });
     }, [character, actionFilter, actionSearch]);
+
+    const catalogActionIds = useMemo(() => listCatalogActionCardIds(rulesData as any), []);
+    const catalogReactionOptions = useMemo(
+        () =>
+            listCatalogReactionCardIds(rulesData as any).map((id) => ({
+                id,
+                label: String((rulesData as any).actionCards?.[id]?.name ?? id),
+            })),
+        []
+    );
 
     if (isLoading || !character) return <div className="p-8 text-center">Loading...</div>;
 
@@ -327,6 +339,24 @@ export function CharacterSheetView() {
             };
         });
     };
+    const handleAddCatalogAction = (id: string) => {
+        setCharacter((prev: any) => {
+            const actions = prev.actions || [];
+            const has = actions.some((a: any) => (typeof a === "string" ? a : a?.id) === id);
+            if (has) return prev;
+            return { ...prev, actions: [...actions, { id }] };
+        });
+    };
+    const handleAddCatalogReaction = (id: string) => {
+        setCharacter((prev: any) => {
+            const reactions = prev.reactions || [];
+            if (reactions.some((r: any) => r.id === id)) return prev;
+            return {
+                ...prev,
+                reactions: [...reactions, { id, slotIndex: -1, charges: -1 }],
+            };
+        });
+    };
     const handleUpdateReactionCharges = (reactionId: string, newCount: number) => {
         setCharacter(prev => ({
             ...prev,
@@ -501,6 +531,31 @@ export function CharacterSheetView() {
                                     <div className="flex items-center justify-between mb-4">
                                         <h2 className="text-lg font-bold text-foreground flex items-center gap-2"><Sparkles className="w-5 h-5 text-primary" /> Actions</h2>
                                         <div className="flex items-center gap-2 flex-wrap justify-end">
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="h-8 text-[10px] font-black uppercase tracking-widest gap-1.5"
+                                                        title="Add an action from global rules (all non-monster action cards: feat, fairy, generic, equipment, …)"
+                                                    >
+                                                        <Plus className="w-3 h-3" />
+                                                        Catalog
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="max-h-64 overflow-y-auto">
+                                                    {catalogActionIds.length === 0 ? (
+                                                        <DropdownMenuItem disabled>No catalog actions in rules</DropdownMenuItem>
+                                                    ) : (
+                                                        catalogActionIds.map((id) => (
+                                                            <DropdownMenuItem key={id} onClick={() => handleAddCatalogAction(id)}>
+                                                                {(rulesData as any).actionCards?.[id]?.name ?? id}
+                                                            </DropdownMenuItem>
+                                                        ))
+                                                    )}
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
                                             <Button variant="outline" size="sm" onClick={() => setAllCollapsed(!allCollapsed)} className="h-8 text-[10px] font-black uppercase tracking-widest gap-2">
                                                 <ChevronDown className={cn("w-3 h-3 transition-transform duration-300", allCollapsed ? "-rotate-90" : "rotate-0")} />
                                                 {allCollapsed ? "Expand All" : "Collapse All"}
@@ -663,6 +718,8 @@ export function CharacterSheetView() {
                                     onUpdateReactionCharges={handleUpdateReactionCharges}
                                     actionCostBudget={actionCostBudget}
                                     onSpendActionCost={handleSpendActionCost}
+                                    catalogReactionOptions={catalogReactionOptions}
+                                    onAddCatalogReaction={handleAddCatalogReaction}
                                 />
                             </div>
                         </div>
@@ -720,7 +777,11 @@ export function CharacterSheetView() {
                                 />
                             </div>
                             <div className="space-y-4 min-w-0 lg:col-span-4">
-                                <ClassesPanel classes={character.classes} rules={rulesData.classes} />
+                                <ClassesPanel
+                                    classes={character.classes}
+                                    rules={rulesData.classes}
+                                    priestDeity={character.priestDeity ?? null}
+                                />
                                 <CultureBackgroundOccupationPanel
                                     theme={character.background ?? ""}
                                     cultureEnvironment={character.cultureEnvironment ?? null}
@@ -729,7 +790,7 @@ export function CharacterSheetView() {
                                     occupation={character.occupation ?? null}
                                     system={rulesData.system}
                                 />
-                                <TraitsPanel traits={derived.activeTraits} />
+                                <TraitsPanel traits={derived.activeTraits} attributes={derived.attributes} />
                             </div>
                             <div className="space-y-4 min-w-0 lg:col-span-2">
                                 <LanguagesPanel languages={derived.languages} />
@@ -746,7 +807,31 @@ export function CharacterSheetView() {
                 </Tabs>
             </main>
 
-            <DamageCalculator isOpen={showDamageCalculator} onClose={() => setShowDamageCalculator(false)} defense={derived.defense} hp={{ current: character.hp, max: derived.maxHP }} barrier={character.barrier} onApplyDamage={handleApplyDamage} />
+            <DamageCalculator
+                isOpen={showDamageCalculator}
+                onClose={() => setShowDamageCalculator(false)}
+                defense={derived.defense}
+                hp={{ current: character.hp, max: derived.maxHP }}
+                barrier={character.barrier}
+                onApplyDamage={handleApplyDamage}
+                damageTypes={
+                    (rulesData.system as { damageTypes?: string[] }).damageTypes ?? [
+                        "crushing",
+                        "slashing",
+                        "piercing",
+                        "air",
+                        "volt",
+                        "water",
+                        "fire",
+                        "earth",
+                        "nature",
+                        "light",
+                        "dark",
+                    ]
+                }
+                resistances={derived.resistances}
+                vulnerabilities={derived.vulnerabilities}
+            />
 
             <ShortRestPanel
                 isOpen={showShortRest}

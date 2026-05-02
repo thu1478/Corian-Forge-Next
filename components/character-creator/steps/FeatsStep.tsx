@@ -3,6 +3,7 @@ import rulesData from "@/lib/rules.json";
 import { CharacterClass } from "@/lib/rules";
 import { FeatLevelPick } from "@/lib/baseRefs";
 import { formatTraitEffectChoiceLabel } from "@/lib/trait-selection";
+import { TraitPowerRollCollapsible } from "@/components/power-roll/trait-power-roll-collapsible";
 import { ChevronRightIcon, ChevronLeftIcon, LockIcon } from "lucide-react";
 
 const FEAT_LEVELS = [1, 3, 5, 7, 9, 10];
@@ -11,6 +12,13 @@ interface FeatsStepProps {
   selectedFeats: Partial<Record<number, FeatLevelPick>>;
   adventurerLevel: number;
   classes: CharacterClass[];
+  attributes: {
+    might: number;
+    dexterity: number;
+    reason: number;
+    willpower: number;
+    presence: number;
+  };
   onSelectFeat: (level: number, pick: FeatLevelPick | null) => void;
   onNext: () => void;
   onBack: () => void;
@@ -20,6 +28,7 @@ export function FeatsStep({
   selectedFeats,
   adventurerLevel,
   classes,
+  attributes,
   onSelectFeat,
   onNext,
   onBack,
@@ -142,7 +151,7 @@ export function FeatsStep({
                           )}
                         </div>
                         <p
-                          className={`text-sm mb-3 flex-grow leading-snug ${
+                          className={`text-sm mb-3 flex-grow leading-snug whitespace-pre-line ${
                             isSelected ? "text-purple-950/85 dark:text-gray-300" : "text-muted-foreground"
                           }`}
                         >
@@ -178,6 +187,11 @@ export function FeatsStep({
                           className={cardClass(isSelected, canSelect || isSelected)}
                         >
                           {header}
+                          {feat.powerRoll && (
+                            <div className="mb-2">
+                              <TraitPowerRollCollapsible roll={feat.powerRoll} attributes={attributes} />
+                            </div>
+                          )}
                           {prereqCheck.met && !isSelectedElsewhere && Array.isArray(feat.effects) && (
                             <div className="flex flex-wrap gap-2 mt-auto pt-2 border-t border-border/60">
                               <span className="text-[10px] font-bold uppercase text-muted-foreground w-full mb-1">
@@ -239,18 +253,22 @@ export function FeatsStep({
                     }
 
                     return (
-                      <button
-                        key={id}
-                        type="button"
-                        onClick={() =>
-                          onSelectFeat(level, isSelected ? null : { id })
-                        }
-                        disabled={!canSelect && !isSelected}
-                        className={cardClass(isSelected, canSelect)}
-                      >
-                        {header}
+                      <div key={id} className={cardClass(isSelected, canSelect)}>
+                        <button
+                          type="button"
+                          onClick={() => onSelectFeat(level, isSelected ? null : { id })}
+                          disabled={!canSelect && !isSelected}
+                          className="w-full text-left bg-transparent disabled:opacity-60 disabled:cursor-not-allowed rounded-lg"
+                        >
+                          {header}
+                        </button>
+                        {feat.powerRoll && (
+                          <div className="mt-1 -mx-1">
+                            <TraitPowerRollCollapsible roll={feat.powerRoll} attributes={attributes} />
+                          </div>
+                        )}
                         {footer}
-                      </button>
+                      </div>
                     );
                   })}
                 </div>
