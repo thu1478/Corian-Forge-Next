@@ -12,7 +12,14 @@ import { AttributesPanel } from "@/components/character-sheet/combatPage/attribu
 import { EquipmentPanel } from "@/components/character-sheet/trackingPage/equipment-panel"
 import { InventoryPanel } from "@/components/character-sheet/trackingPage/inventory-panel"
 import { FocusReactionsPanel } from "@/components/character-sheet/combatPage/focus-reactions-panel"
-import { BondsPanel, ClassesPanel, LanguagesPanel, SkillsPanel, TraitsPanel } from "@/components/character-sheet/characterPage/tracking-panel"
+import {
+    BondsPanel,
+    ClassesPanel,
+    CultureBackgroundOccupationPanel,
+    LanguagesPanel,
+    SkillsPanel,
+    TraitsPanel,
+} from "@/components/character-sheet/characterPage/tracking-panel"
 import { CharacterProfile } from "@/components/character-sheet/characterPage/character-panel"
 import { DamageCalculator } from "@/components/character-sheet/combatPage/damage-calculator"
 import { ShortRestPanel } from "@/components/character-sheet/combatPage/short-rest-panel"
@@ -704,10 +711,24 @@ export function CharacterSheetView() {
                                     onProfileImageChange={updateProfileImage}
                                     onBackstoryChange={updateBackstory}
                                 />
-                                <BondsPanel bonds={character.bonds} />
+                                <BondsPanel
+                                    bondTargets={character.bondTargets ?? []}
+                                    rulesSystem={rulesData.system}
+                                    onBondTargetsChange={(next) =>
+                                        setCharacter((prev: any) => ({ ...prev, bondTargets: next }))
+                                    }
+                                />
                             </div>
                             <div className="space-y-4 min-w-0 lg:col-span-4">
                                 <ClassesPanel classes={character.classes} rules={rulesData.classes} />
+                                <CultureBackgroundOccupationPanel
+                                    theme={character.background ?? ""}
+                                    cultureEnvironment={character.cultureEnvironment ?? null}
+                                    cultureOrganization={character.cultureOrganization ?? null}
+                                    cultureUpbringing={character.cultureUpbringing ?? null}
+                                    occupation={character.occupation ?? null}
+                                    system={rulesData.system}
+                                />
                                 <TraitsPanel traits={derived.activeTraits} />
                             </div>
                             <div className="space-y-4 min-w-0 lg:col-span-2">

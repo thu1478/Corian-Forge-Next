@@ -1,5 +1,5 @@
 import {Equipment, InventoryContainer, InventoryEntry,} from "@/lib/equipment-data";
-import {Bond, CharacterClass, FocusFeature, Skill} from "@/lib/rules";
+import {BondTarget, CharacterClass, FocusFeature, Skill} from "@/lib/rules";
 import {ActionRef, ReactionRef, TraitRef} from "@/lib/baseRefs";
 
 export interface CharacterSaveData {
@@ -64,13 +64,15 @@ export interface CharacterSaveData {
     // Equipment
     equipment: Equipment
 
-    // Bonds
-    bonds: Bond[]
+    /** Named bond targets (max 6); each holds up to 3 unique emotion types (no opposite pair together). */
+    bondTargets: BondTarget[]
 
     /** Creator / export: culture step keys from rules (e.g. nomadic, bureaucratic). */
     cultureEnvironment: string | null
     cultureOrganization: string | null
     cultureUpbringing: string | null
+    /** Creator / export: occupation id from `rules.system.occupation` (e.g. spy, scholar). */
+    occupation: string | null
 }
 
 export const defaultCharacter: CharacterSaveData = {
@@ -236,16 +238,28 @@ export const defaultCharacter: CharacterSaveData = {
         }
     },
 
-    // Bonds
-    bonds: [
-        {id: "b-1", target: "Marcus (Party Leader)", type: "loyalty"},
-        {id: "b-2", target: "Elara (Sister)", type: "affection"},
-        {id: "b-3", target: "The Shadow Guild", type: "mistrust"}
+    bondTargets: [
+        {
+            id: "bt-marcus",
+            name: "Marcus (Party Leader)",
+            emotions: [{id: "be-m1", type: "loyalty"}],
+        },
+        {
+            id: "bt-elara",
+            name: "Elara (Sister)",
+            emotions: [{id: "be-e1", type: "affection"}],
+        },
+        {
+            id: "bt-guild",
+            name: "The Shadow Guild",
+            emotions: [{id: "be-g1", type: "mistrust"}],
+        },
     ],
 
     cultureEnvironment: null,
     cultureOrganization: null,
     cultureUpbringing: null,
+    occupation: null,
 }
 
 export function getAttributeModifier(score: number): number {

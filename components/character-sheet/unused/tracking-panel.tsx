@@ -3,7 +3,7 @@
 import {useMemo, useState} from "react"
 import {cn} from "@/lib/utils"
 import {Brain, Filter, GraduationCap, Heart, Languages, Sparkles} from "lucide-react"
-import {Bond, Skill, Trait} from "@/lib/rules";
+import {BondTarget, Skill, Trait} from "@/lib/rules";
 
 interface ClassesPanelProps {
     classes: { id: string; level: number }[]; // Character's specific data
@@ -278,8 +278,7 @@ export function SkillsPanel({ skills, skillCatalog }: SkillsPanelProps) {
 }
 
 interface BondsPanelProps {
-    bonds: Bond[]
-    onUpdateBond?: (id: string, target: string) => void
+    bondTargets: BondTarget[]
 }
 
 const bondTypeColors: Record<string, string> = {
@@ -291,7 +290,8 @@ const bondTypeColors: Record<string, string> = {
     hatred: "bg-red-100 text-red-700 border-red-300 dark:bg-red-900/40 dark:text-red-300 dark:border-red-700/50"
 }
 
-export function BondsPanel({bonds}: BondsPanelProps) {
+/** Unused duplicate — use `characterPage/tracking-panel` BondsPanel. */
+export function BondsPanel({bondTargets}: BondsPanelProps) {
     return (
         <div className="p-4 bg-card rounded-xl border border-border">
             <h3 className="text-base font-semibold uppercase tracking-wider text-primary mb-4 flex items-center gap-2">
@@ -300,18 +300,22 @@ export function BondsPanel({bonds}: BondsPanelProps) {
             </h3>
 
             <div className="space-y-3">
-                {bonds.map((bond) => (
-                    <div
-                        key={bond.id}
-                        className="flex items-center justify-between p-3 rounded-lg bg-muted/10 border border-border/50"
-                    >
-                        <span className="text-base text-foreground font-medium">{bond.target}</span>
-                        <span className={cn(
-                            "text-xs px-2.5 py-1 rounded-full border uppercase font-semibold",
-                            bondTypeColors[bond.type]
-                        )}>
-              {bond.type}
-            </span>
+                {bondTargets.map((t) => (
+                    <div key={t.id} className="space-y-2 rounded-lg bg-muted/10 border border-border/50 p-3">
+                        <span className="text-base text-foreground font-medium">{t.name || "—"}</span>
+                        <div className="flex flex-wrap gap-2">
+                            {t.emotions.map((e) => (
+                                <span
+                                    key={e.id}
+                                    className={cn(
+                                        "text-xs px-2.5 py-1 rounded-full border uppercase font-semibold",
+                                        bondTypeColors[e.type]
+                                    )}
+                                >
+                                    {e.type}
+                                </span>
+                            ))}
+                        </div>
                     </div>
                 ))}
             </div>

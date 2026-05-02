@@ -57,10 +57,25 @@ export interface Skill {
     hasExpertise: boolean
 }
 
-export interface Bond {
+/** One emotion type toward a bond target (paired opposites enforced per target in UI/rules). */
+export type BondEmotionType =
+    | "admiration"
+    | "inferiority"
+    | "loyalty"
+    | "mistrust"
+    | "affection"
+    | "hatred"
+
+export interface BondEmotion {
     id: string
-    target: string
-    type: "admiration" | "inferiority" | "loyalty" | "mistrust" | "affection" | "hatred"
+    type: BondEmotionType
+}
+
+/** A named bond target (NPC, faction, place…). Up to 3 distinct emotion types per target (rules). */
+export interface BondTarget {
+    id: string
+    name: string
+    emotions: BondEmotion[]
 }
 
 //</editor-fold>

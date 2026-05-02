@@ -141,6 +141,7 @@ export function CharacterReview({
 
     const output = {
       ...charData,
+      occupation: charData.occupation ?? null,
       theme: charData.background,
       race: raceData?.name ?? charData.race,
       attributes: finalAttributes,
@@ -258,6 +259,13 @@ export function CharacterReview({
     });
   }, [selectedSkillIds]);
 
+  const occupationLabel = useMemo(() => {
+    const occ = (rulesData.system as { occupation?: Record<string, { name?: string }> }).occupation;
+    const id = charData.occupation;
+    if (!id || !occ?.[id]) return null;
+    return occ[id].name ?? id;
+  }, [charData.occupation]);
+
   const resolvedFeats = useMemo(() => {
     return Object.entries(selectedFeats)
       .filter(([, p]) => p?.id)
@@ -310,7 +318,7 @@ export function CharacterReview({
           </div>
           <div className="space-y-1">
             <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Theme</label>
-            <input value={charData.background} onChange={(e) => onUpdateField("background", e.target.value)} placeholder="Theme" className="w-full bg-background border border-border rounded-lg px-3 py-2" />
+            <input value={charData.background} onChange={(e) => onUpdateField("background", e.target.value)} placeholder="One word that summarizes your purpose or goals" className="w-full bg-background border border-border rounded-lg px-3 py-2" />
           </div>
           <div className="space-y-1">
             <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Backstory</label>
@@ -320,7 +328,13 @@ export function CharacterReview({
 
 <div className="bg-card border border-border rounded-xl p-6 shadow-xl">
           <h3 className="font-black text-2xl mb-3">{charData.name || "Unnamed Hero"}</h3>
-          <p className="text-sm text-muted-foreground mb-4">Race: {(rulesData.races as Record<string, any>)[charData.race]?.name ?? "Not selected"} | Adventurer Level {adventurerLevel}</p>
+          <p className="text-sm text-muted-foreground mb-2">
+            Race: {(rulesData.races as Record<string, any>)[charData.race]?.name ?? "Not selected"} | Adventurer Level{" "}
+            {adventurerLevel}
+          </p>
+          <p className="text-sm text-muted-foreground mb-4">
+            Occupation: {occupationLabel ?? "—"}
+          </p>
           <div className="grid grid-cols-2 gap-3 mb-5">
             <div className="rounded-lg border border-border p-3 bg-background/60">
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold flex items-center gap-1"><Heart className="w-3 h-3" /> Max HP</div>

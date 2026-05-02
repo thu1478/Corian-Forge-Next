@@ -1,4 +1,6 @@
-import {defaultCharacter} from '@/lib/character-data';
+import {defaultCharacter, type CharacterSaveData} from '@/lib/character-data';
+import {sanitizeBondTargetsFromCharacterJson} from '@/lib/bonds';
+import rulesData from '@/lib/rules.json';
 import {useState} from 'react';
 
 export function useCharacterIO() {
@@ -9,8 +11,11 @@ export function useCharacterIO() {
         const reader = new FileReader();
         reader.onload = (e) => {
             try {
-                const json = JSON.parse(e.target?.result as string);
-                setCharacter(json);
+                const json = JSON.parse(e.target?.result as string) as Record<string, unknown>
+                const loaded = {...json}
+                delete loaded.bonds
+                loaded.bondTargets = sanitizeBondTargetsFromCharacterJson(loaded, rulesData.system)
+                setCharacter(loaded as unknown as CharacterSaveData)
             } catch (err) {
                 console.error("Failed to parse character JSON", err);
             }

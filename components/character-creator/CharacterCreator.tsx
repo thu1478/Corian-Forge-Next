@@ -3,6 +3,12 @@ import rulesData from "@/lib/rules.json";
 import { CharacterSaveData } from "@/lib/character-data";
 import { FeatLevelPick } from "@/lib/baseRefs";
 import { createEmptyCreatorCharacter, parseCreatorImportJson } from "@/lib/creator-import";
+import {
+    getOccupationDefinition,
+    type OccupationRule,
+    resolveOccupationLanguagePicks,
+    resolveOccupationSkillsCount,
+} from "@/lib/occupation";
 import { UploadIcon } from "lucide-react";
 import { RaceSelection } from "./steps/RaceSelection";
 import ClassSelection from "@/components/character-creator/steps/ClassSelection";
@@ -18,6 +24,7 @@ type AttributeKey = "might" | "dexterity" | "reason" | "willpower" | "presence";
 type ClassOptionSelection = { id: string; source: string };
 
 const STARTING_XP = rulesData.system.startingXPPerLvl as Record<string, number>;
+const OCCUPATION_RULES = (rulesData.system as { occupation?: Record<string, OccupationRule> }).occupation;
 
 export default function CharacterCreator() {
     const importInputRef = useRef<HTMLInputElement>(null);
@@ -263,10 +270,18 @@ export default function CharacterCreator() {
 
             {currentStep === 4 && (
                 <OccupationStep
+                    occupationId={charData.occupation}
                     occupationSkills={occupationSkills}
                     occupationLanguages={occupationLanguages}
                     globalSkillCounts={skillCounts}
+                    onSelectOccupation={(id) => {
+                        setCharData((prev) => ({ ...prev, occupation: id }));
+                        setOccupationSkills([]);
+                        setOccupationLanguages(["common"]);
+                    }}
                     onToggleSkill={(id) => {
+                        const def = getOccupationDefinition(OCCUPATION_RULES, charData.occupation);
+                        const cap = resolveOccupationSkillsCount(def);
                         setOccupationSkills((prev) => {
                             const idx = prev.indexOf(id);
                             if (idx >= 0) {
@@ -274,15 +289,17 @@ export default function CharacterCreator() {
                                 next.splice(idx, 1);
                                 return next;
                             }
-                            if (prev.length >= 2) return prev;
+                            if (prev.length >= cap) return prev;
                             return [...prev, id];
                         });
                     }}
                     onToggleLanguage={(id) => {
+                        const def = getOccupationDefinition(OCCUPATION_RULES, charData.occupation);
+                        const maxAdd = resolveOccupationLanguagePicks(def);
                         setOccupationLanguages((prev) => {
                             if (id === "common") return prev.includes(id) ? prev : [...prev, id];
                             if (prev.includes(id)) return prev.filter((l) => l !== id);
-                            if (prev.filter((l) => l !== "common").length >= 1) return prev;
+                            if (prev.filter((l) => l !== "common").length >= maxAdd) return prev;
                             return [...prev, id];
                         });
                     }}

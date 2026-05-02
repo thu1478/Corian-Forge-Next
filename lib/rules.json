@@ -119,6 +119,78 @@
         }
       }
     },
+    "occupation": {
+      "spy": {
+        "name": "Spy",
+        "description": "Spy or maybe assassin",
+        "skillsCount": 2,
+        "skillCategories": [
+          "alchemy",
+          "forgery",
+          "acrobatics",
+          "athletics",
+          "interpersonal",
+          "intrigue",
+          "criminalExpertise"
+        ],
+        "unlockSkillIds": ["search"],
+        "languages": 2
+      },
+      "mercenary": {
+        "name": "Mercenary",
+        "description": "You were a sell-sword or maybe a gladiator",
+        "skillsCount": 2,
+        "skillCategories": [
+          "riding",
+          "insight",
+          "intimidation",
+          "creatureKnowledge"
+        ],
+        "languages": 2
+      },
+      "explorer": {
+        "name": "Explorer",
+        "description": "You spent a lot of time in the wilderness either as a travel guide, cartographer, or treasure hunter",
+        "skillsCount": 3,
+        "skillCategories": [
+          "exploration",
+          "animalHandling",
+          "search",
+          "creatureKnowledge",
+          "nature"
+        ],
+        "languages": 2
+      },
+      "scholar": {
+        "name": "Scholar",
+        "description": "You immersed yourself in studying the world itself",
+        "skillsCount": 2,
+        "skillCategories": [
+          "alchemy",
+          "medicine",
+          "lore"
+        ],
+        "languages": 1
+      }
+    },
+    "bonds": {
+      "maxTargets": 6,
+      "maxEmotionsPerTarget": 3,
+      "maxPerCharacter": 6,
+      "typePairs": [
+        ["admiration", "inferiority"],
+        ["loyalty", "mistrust"],
+        ["affection", "hatred"]
+      ],
+      "labels": {
+        "admiration": "Admiration",
+        "inferiority": "Inferiority",
+        "loyalty": "Loyalty",
+        "mistrust": "Mistrust",
+        "affection": "Affection",
+        "hatred": "Hatred"
+      }
+    },
     "skills": {
       "alchemy": {
         "name": "Alchemy",

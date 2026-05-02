@@ -11,7 +11,14 @@ export function Personality({ character }: PersonalityProps) {
   const sections = [
     { icon: Heart, label: "Personality Traits", content: character.personalityTraits },
     { icon: Lightbulb, label: "Ideals", content: character.ideals },
-    { icon: Link2, label: "Bonds", content: character.bonds },
+    {
+      icon: Link2,
+      label: "Bonds",
+      content:
+        character.bondTargets
+          ?.map((t) => (t.name?.trim() ? t.name : "(unnamed target)"))
+          .join(", ") || "—",
+    },
     { icon: AlertTriangle, label: "Flaws", content: character.flaws },
   ]
 

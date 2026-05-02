@@ -1,4 +1,10 @@
 import rulesData from "@/lib/rules.json";
+import { sanitizeBondTargetsFromCharacterJson } from "@/lib/bonds";
+import {
+    getOccupationDefinition,
+    type OccupationRule,
+    resolveOccupationSkillsCount,
+} from "@/lib/occupation";
 import { CharacterSaveData } from "@/lib/character-data";
 import type { InventoryEntry } from "@/lib/equipment-data";
 import { FeatLevelPick, TraitRef } from "@/lib/baseRefs";
@@ -56,11 +62,12 @@ export function createEmptyCreatorCharacter(): CharacterSaveData {
                 feet: null,
             },
         },
-        bonds: [],
+        bondTargets: [],
         containers: [],
         cultureEnvironment: null,
         cultureOrganization: null,
         cultureUpbringing: null,
+        occupation: null,
     };
 }
 
@@ -249,9 +256,14 @@ function mergeImportedCharData(json: any, empty: CharacterSaveData): CharacterSa
 
     const attrs = { ...empty.attributes, ...(json.attributes || {}) };
 
+    const { bonds: _omitLegacyBonds, bondTargets: _omitRawTargets, ...jsonRest } = json as Record<string, unknown> & {
+        bonds?: unknown
+        bondTargets?: unknown
+    }
+
     return {
         ...empty,
-        ...json,
+        ...jsonRest,
         name: String(json.name ?? empty.name),
         age: Number(json.age ?? empty.age) || 0,
         gender: String(json.gender ?? empty.gender),
@@ -304,7 +316,10 @@ function mergeImportedCharData(json: any, empty: CharacterSaveData): CharacterSa
                 ...(json.equipment?.accessories || {}),
             },
         },
-        bonds: Array.isArray(json.bonds) ? json.bonds : empty.bonds,
+        bondTargets: sanitizeBondTargetsFromCharacterJson(
+            json as Record<string, unknown>,
+            rulesData.system
+        ),
         traits: [],
         containers: Array.isArray(json.containers)
             ? json.containers
@@ -326,6 +341,10 @@ function mergeImportedCharData(json: any, empty: CharacterSaveData): CharacterSa
             json.cultureUpbringing != null && json.cultureUpbringing !== ""
                 ? String(json.cultureUpbringing)
                 : empty.cultureUpbringing,
+        occupation:
+            json.occupation != null && json.occupation !== ""
+                ? String(json.occupation)
+                : empty.occupation,
     };
 }
 
@@ -358,7 +377,10 @@ export function parseCreatorImportJson(
 
     const picks = skillPickIdsFromImport(Array.isArray(json.skills) ? json.skills : []);
     const cultureSkills = picks.slice(0, 3);
-    const occupationSkills = picks.slice(3, 5);
+    const occRoot = (rulesData.system as { occupation?: Record<string, OccupationRule> }).occupation;
+    const occDef = getOccupationDefinition(occRoot, merged.occupation);
+    const occCount = resolveOccupationSkillsCount(occDef);
+    const occupationSkills = picks.slice(3, 3 + occCount);
 
     return {
         charData: merged,
