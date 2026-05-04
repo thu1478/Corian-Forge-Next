@@ -29,9 +29,10 @@ export interface CharacterClass {
 }
 
 export interface TraitEffect {
-    type: "StatChange" | "Resistance" | "Vulnerability" | "AttributeChange" | "GrantActionCard" | "Language"
+    type: "StatChange" | "Resistance" | "Vulnerability" | "Immunity" | "GrantSight" | "AttributeChange" | "GrantActionCard" | "Language"
     stat?: string
-    value: string
+    /** Omitted on some rows (e.g. `Immunity`, `GrantSight` with only `stat`). */
+    value?: string
 }
 
 export interface Trait extends TraitRef {

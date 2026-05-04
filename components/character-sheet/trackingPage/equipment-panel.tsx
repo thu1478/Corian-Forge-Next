@@ -3,6 +3,7 @@
 import {useState} from "react"
 import {cn} from "@/lib/utils"
 import {
+    AlertTriangle,
     Sword,
     Shield,
     Shirt,
@@ -25,6 +26,28 @@ import {
 } from "@/components/ui/dropdown-menu"
 import {ArmorItem, Equipment, InventoryItem, MiscItem, ShieldItem, WeaponItem} from "@/lib/equipment-data";
 import {armorStatSummary, shieldStatSummary, weaponStatSummary} from "@/lib/equipment-stats-display";
+import { martialProficiencyDeficitMessage } from "@/lib/equipment-proficiency";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+
+export function ProficiencyAlert({ message }: { message: string | null }) {
+    if (!message) return null;
+    return (
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <button
+                    type="button"
+                    className="-m-1 p-1 rounded text-amber-500 hover:bg-amber-500/15 shrink-0"
+                    aria-label="Proficiency warning"
+                >
+                    <AlertTriangle className="w-4 h-4" />
+                </button>
+            </TooltipTrigger>
+            <TooltipContent side="left" sideOffset={4} className="max-w-[min(92vw,280px)] text-xs leading-snug">
+                {message}
+            </TooltipContent>
+        </Tooltip>
+    );
+}
 
 interface EquipmentPanelProps {
     equipment: {
@@ -36,6 +59,8 @@ interface EquipmentPanelProps {
     inventory: InventoryItem[]; // Keep this for the selection dropdowns
     onAccessoryChange: (slot: keyof Equipment["accessories"], uid: string | null) => void;
     onEquipmentChange: (slot: "activeWeapon" | "offhand" | "armor", item: any) => void;
+    /** When set, martial-tagged gear without matching class proficiency shows a warning. */
+    martialProficiencyIds?: ReadonlySet<string> | null;
 }
 
 const accessorySlots: { key: keyof Equipment["accessories"]; label: string; icon: React.ReactNode }[] = [
@@ -51,8 +76,28 @@ const accessorySlots: { key: keyof Equipment["accessories"]; label: string; icon
     {key: "feet", label: "Feet", icon: <Footprints className="w-4 h-4"/>}
 ]
 
-export function EquipmentPanel({equipment, inventory, onAccessoryChange, onEquipmentChange}: EquipmentPanelProps) {
+export function EquipmentPanel({
+    equipment,
+    inventory,
+    onAccessoryChange,
+    onEquipmentChange,
+    martialProficiencyIds = null,
+}: EquipmentPanelProps) {
     const [showEquipped, setShowEquipped] = useState<"all" | "equipped" | "empty">("all")
+
+    const activeProfWarn =
+        martialProficiencyIds != null
+            ? martialProficiencyDeficitMessage(equipment.activeWeapon, martialProficiencyIds)
+            : null;
+    const offhandProfWarn =
+        martialProficiencyIds != null
+            ? martialProficiencyDeficitMessage(equipment.offhand, martialProficiencyIds)
+            : null;
+    const armorProfWarn =
+        martialProficiencyIds != null
+            ? martialProficiencyDeficitMessage(equipment.armor, martialProficiencyIds)
+            : null;
+    const anyEquipProfWarn = !!(activeProfWarn || offhandProfWarn || armorProfWarn);
 
     const filteredAccessories = accessorySlots.filter(slot => {
         if (showEquipped === "all") return true
@@ -83,17 +128,41 @@ export function EquipmentPanel({equipment, inventory, onAccessoryChange, onEquip
         <div className="space-y-4">
             {/* Main Equipment */}
             <div className="p-4 bg-card rounded-xl border border-border">
-                <h3 className="text-base font-semibold uppercase tracking-wider text-primary mb-4 flex items-center gap-2">
-                    <Sword className="w-5 h-5"/>
-                    Equipment
-                </h3>
+                <div className="flex items-center justify-between gap-2 mb-4">
+                    <h3 className="text-base font-semibold uppercase tracking-wider text-primary flex items-center gap-2">
+                        <Sword className="w-5 h-5"/>
+                        Equipment
+                    </h3>
+                    {anyEquipProfWarn ? (
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <button
+                                    type="button"
+                                    className="-m-1 p-1 rounded text-amber-500 hover:bg-amber-500/15 shrink-0"
+                                    aria-label="Equipment proficiency warnings"
+                                >
+                                    <AlertTriangle className="w-5 h-5" />
+                                </button>
+                            </TooltipTrigger>
+                            <TooltipContent side="left" className="max-w-[min(92vw,280px)] text-xs leading-snug space-y-1.5">
+                                <p className="font-semibold text-background">Not proficient</p>
+                                {[activeProfWarn, offhandProfWarn, armorProfWarn].filter(Boolean).map((t, i) => (
+                                    <p key={i}>{t}</p>
+                                ))}
+                            </TooltipContent>
+                        </Tooltip>
+                    ) : null}
+                </div>
 
                 <div className="space-y-3">
                     {/* Active Weapon */}
                     <div className="p-3 rounded-lg bg-muted/20 border border-border">
-                        <div className="flex items-center gap-2 text-muted-foreground mb-2">
-                            <Sword className="w-4 h-4"/>
-                            <span className="text-xs uppercase tracking-wider font-medium">Active Weapon</span>
+                        <div className="flex items-center justify-between gap-2 text-muted-foreground mb-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                                <Sword className="w-4 h-4 shrink-0"/>
+                                <span className="text-xs uppercase tracking-wider font-medium">Active Weapon</span>
+                            </div>
+                            <ProficiencyAlert message={activeProfWarn} />
                         </div>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -139,9 +208,12 @@ export function EquipmentPanel({equipment, inventory, onAccessoryChange, onEquip
 
                     {/* OFFHAND SLOT */}
                     <div className="p-3 rounded-lg bg-muted/20 border border-border">
-                        <div className="flex items-center gap-2 text-muted-foreground mb-2">
-                            <Shield className="w-4 h-4"/>
-                            <span className="text-xs uppercase tracking-wider font-medium">Offhand</span>
+                        <div className="flex items-center justify-between gap-2 text-muted-foreground mb-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                                <Shield className="w-4 h-4 shrink-0"/>
+                                <span className="text-xs uppercase tracking-wider font-medium">Offhand</span>
+                            </div>
+                            <ProficiencyAlert message={offhandProfWarn} />
                         </div>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -196,9 +268,12 @@ export function EquipmentPanel({equipment, inventory, onAccessoryChange, onEquip
 
                     {/* Armor */}
                     <div className="p-3 rounded-lg bg-muted/20 border border-border">
-                        <div className="flex items-center gap-2 text-muted-foreground mb-2">
-                            <Shirt className="w-4 h-4"/>
-                            <span className="text-xs uppercase tracking-wider font-medium">Armor</span>
+                        <div className="flex items-center justify-between gap-2 text-muted-foreground mb-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                                <Shirt className="w-4 h-4 shrink-0"/>
+                                <span className="text-xs uppercase tracking-wider font-medium">Armor</span>
+                            </div>
+                            <ProficiencyAlert message={armorProfWarn} />
                         </div>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>

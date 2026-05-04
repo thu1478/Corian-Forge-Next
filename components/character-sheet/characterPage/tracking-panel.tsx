@@ -7,6 +7,7 @@ import {BondEmotionType, BondTarget, Skill, Trait} from "@/lib/rules";
 import {TraitPowerRollCollapsible} from "@/components/power-roll/trait-power-roll-collapsible";
 import {Button} from "@/components/ui/button"
 import {Input} from "@/components/ui/input"
+import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover"
 import {
     Select,
     SelectContent,
@@ -23,6 +24,7 @@ import {
     normalizeBondRules,
 } from "@/lib/bonds"
 import {getDeityPassiveEntries} from "@/lib/priest-deities"
+import type {InventoryItem} from "@/lib/equipment-data"
 
 interface ClassesPanelProps {
     classes: { id: string; level: number }[]; // Character's specific data
@@ -90,6 +92,9 @@ interface TraitsPanelProps {
         willpower: number
         presence: number
     }
+    /** For trait power rolls with +Wpn (same resolution as combat action cards). */
+    activeWeapon?: InventoryItem | null
+    offhandWeapon?: InventoryItem | null
 }
 
 type TraitSource = "all" | "racial" | "feat" | "class" | "background" | "other"
@@ -111,7 +116,7 @@ const sourceFilterColors: Record<string, string> = {
     other: "bg-slate-600 text-white"
 }
 
-export function TraitsPanel({traits, attributes}: TraitsPanelProps) {
+export function TraitsPanel({traits, attributes, activeWeapon = null, offhandWeapon = null}: TraitsPanelProps) {
     const [filter, setFilter] = useState<TraitSource>("all")
 
     // Get unique sources from traits
@@ -148,7 +153,7 @@ export function TraitsPanel({traits, attributes}: TraitsPanelProps) {
                 ))}
             </div>
 
-            <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+            <div className="space-y-3 max-h-[65vh] overflow-y-auto pr-1">
                 {filteredTraits.map((trait) => (
                     <div
                         key={trait.uid}
@@ -163,7 +168,12 @@ export function TraitsPanel({traits, attributes}: TraitsPanelProps) {
                         </div>
                         <p className="text-base text-foreground/80 leading-relaxed whitespace-pre-line">{trait.description}</p>
                         {trait.powerRoll && (
-                            <TraitPowerRollCollapsible roll={trait.powerRoll} attributes={attributes} />
+                            <TraitPowerRollCollapsible
+                                roll={trait.powerRoll}
+                                attributes={attributes}
+                                currentWeapon={activeWeapon}
+                                offhandWeapon={offhandWeapon}
+                            />
                         )}
                     </div>
                 ))}
@@ -388,21 +398,67 @@ export function SkillsPanel({ skills, skillCatalog }: SkillsPanelProps) {
                                             key={`${catId}-${skill.name}-${i}`}
                                             className="flex items-center justify-between gap-2 px-2 py-1.5 rounded-md border border-border/40 bg-muted/5"
                                         >
-                                            <span
-                                                className="text-sm text-foreground font-medium truncate cursor-default"
-                                                title={desc || undefined}
-                                            >
-                                                {skill.name}
-                                            </span>
-                                            <span
-                                                className={cn(
-                                                    "h-2.5 w-2.5 rounded-full border-2 shrink-0 transition-colors",
-                                                    skill.hasExpertise
-                                                        ? "border-primary bg-primary"
-                                                        : "border-muted-foreground/50 bg-transparent"
-                                                )}
-                                                title={skill.hasExpertise ? "Expertise" : "No expertise"}
-                                            />
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                    <button
+                                                        type="button"
+                                                        className={cn(
+                                                            "text-sm text-foreground font-medium truncate text-left min-w-0",
+                                                            "rounded px-0.5 -mx-0.5 hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                                        )}
+                                                    >
+                                                        {skill.name}
+                                                    </button>
+                                                </PopoverTrigger>
+                                                <PopoverContent
+                                                    align="start"
+                                                    side="top"
+                                                    sideOffset={6}
+                                                    className="w-[min(92vw,28rem)] max-w-none border-border p-4 text-left shadow-md"
+                                                >
+                                                    <div className="space-y-2">
+                                                        <p className="text-sm font-semibold leading-tight text-foreground">
+                                                            {skill.name}
+                                                        </p>
+                                                        <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-line">
+                                                            {desc ||
+                                                                "No description for this skill in the rules catalog."}
+                                                        </p>
+                                                    </div>
+                                                </PopoverContent>
+                                            </Popover>
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                    <button
+                                                        type="button"
+                                                        aria-label={
+                                                            skill.hasExpertise
+                                                                ? "Expertise — tap for details"
+                                                                : "No expertise — tap for details"
+                                                        }
+                                                        className={cn(
+                                                            "h-2.5 w-2.5 rounded-full border-2 shrink-0 transition-colors",
+                                                            "hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                                                            skill.hasExpertise
+                                                                ? "border-primary bg-primary"
+                                                                : "border-muted-foreground/50 bg-transparent"
+                                                        )}
+                                                    />
+                                                </PopoverTrigger>
+                                                <PopoverContent
+                                                    align="end"
+                                                    side="top"
+                                                    sideOffset={6}
+                                                    className="w-[min(92vw,20rem)] border-border p-3 text-left shadow-md"
+                                                >
+                                                    <p className="text-sm font-semibold text-foreground">Expertise</p>
+                                                    <p className="text-sm leading-relaxed text-muted-foreground mt-1">
+                                                        {skill.hasExpertise
+                                                            ? "This skill is marked with expertise on your sheet (apply any expertise rules from your table or class features)."
+                                                            : "This skill is not marked with expertise."}
+                                                    </p>
+                                                </PopoverContent>
+                                            </Popover>
                                         </li>
                                     )
                                 })}

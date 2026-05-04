@@ -1,4 +1,9 @@
 import type { ArmorItem, InventoryItem, ShieldItem, WeaponItem } from "@/lib/equipment-data"
+import { actionTagsIncludeCanonical } from "@/lib/action-tag-utils"
+
+function martialSuffix(tags: string[] | undefined): string {
+  return tags && actionTagsIncludeCanonical(tags, "martial") ? " · Martial" : ""
+}
 
 function fmtAttrName(attr: string): string {
   if (!attr) return attr
@@ -21,13 +26,15 @@ export function weaponStatSummary(item: WeaponItem): string {
   const dmg = item.damage ?? 0
   const dt = typeof item.damageType === "string" && item.damageType.trim() ? item.damageType.trim() : null
   const rng = item.range ?? 0
-  return dt != null ? `Damage ${dmg} (${dt}) · Range ${rng}` : `Damage ${dmg} · Range ${rng}`
+  const m = martialSuffix(item.tags)
+  const base = dt != null ? `Damage ${dmg} (${dt}) · Range ${rng}` : `Damage ${dmg} · Range ${rng}`
+  return base + m
 }
 
 export function armorStatSummary(item: ArmorItem): string {
   const def = formatArmorDefenseValue(item.defense)
   const stab = item.stability ?? 0
-  return `Defense ${def} · Stability ${stab}`
+  return `Defense ${def} · Stability ${stab}${martialSuffix(item.tags)}`
 }
 
 export function shieldStatSummary(item: ShieldItem): string {
@@ -36,7 +43,8 @@ export function shieldStatSummary(item: ShieldItem): string {
       ? (item as ShieldItem & { stability: number }).stability
       : null
   const def = item.defense ?? 0
-  return stab != null ? `Defense ${def} · Stability ${stab}` : `Defense ${def}`
+  const base = stab != null ? `Defense ${def} · Stability ${stab}` : `Defense ${def}`
+  return base + martialSuffix(item.tags)
 }
 
 export function equipmentStatSummaryLine(item: InventoryItem): string | null {
@@ -46,15 +54,23 @@ export function equipmentStatSummaryLine(item: InventoryItem): string | null {
   return null
 }
 
+function tagsFromDef(def: Record<string, unknown>): string[] | undefined {
+  const raw = def.tags
+  if (!Array.isArray(raw)) return undefined
+  return raw.filter((x): x is string => typeof x === "string")
+}
+
 /** Catalog / raw rules object (pre-hydration shape). */
 export function equipmentStatSummaryFromDef(def: Record<string, unknown>): string | null {
   const t = def.type
+  const tags = tagsFromDef(def)
   if (t === "weapon") {
     const dmg = typeof def.damage === "number" ? def.damage : 0
     const rng = typeof def.range === "number" ? def.range : 0
     const rawDt = def.damageType
     const dt = typeof rawDt === "string" && rawDt.trim() ? rawDt.trim() : null
-    return dt != null ? `Damage ${dmg} (${dt}) · Range ${rng}` : `Damage ${dmg} · Range ${rng}`
+    const base = dt != null ? `Damage ${dmg} (${dt}) · Range ${rng}` : `Damage ${dmg} · Range ${rng}`
+    return base + martialSuffix(tags)
   }
   if (t === "armor" && def.defense != null && typeof def.defense === "object") {
     const d = def.defense as Record<string, unknown>
@@ -65,11 +81,12 @@ export function equipmentStatSummaryFromDef(def: Record<string, unknown>): strin
       if (typeof d.attrMax === "number") defStr += ` (max +${d.attrMax})`
     }
     const stab = typeof def.stability === "number" ? def.stability : 0
-    return `Defense ${defStr} · Stability ${stab}`
+    return `Defense ${defStr} · Stability ${stab}${martialSuffix(tags)}`
   }
   if (t === "shield" && typeof def.defense === "number") {
     const stab = typeof def.stability === "number" ? def.stability : null
-    return stab != null ? `Defense ${def.defense} · Stability ${stab}` : `Defense ${def.defense}`
+    const base = stab != null ? `Defense ${def.defense} · Stability ${stab}` : `Defense ${def.defense}`
+    return base + martialSuffix(tags)
   }
   return null
 }

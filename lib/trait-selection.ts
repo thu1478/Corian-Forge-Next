@@ -30,18 +30,24 @@ export function resolveTraitEffectsAfterSelection(
 export function formatTraitEffectChoiceLabel(effect: TraitEffect): string {
     switch (effect.type) {
         case "StatChange":
-            return effect.stat ? `${effect.stat} +${effect.value}` : `+${effect.value}`;
+            return effect.stat
+                ? `${effect.stat} +${effect.value ?? "0"}`
+                : `+${effect.value ?? "0"}`;
         case "Vulnerability": {
             const t = vulnerabilityDamageType(effect);
             const a = vulnerabilityAmount(effect);
             return t ? `${t} (+${a})` : "Vulnerability";
         }
         case "Resistance":
-            return effect.stat ? `Resist ${effect.stat}` : String(effect.value);
+            return effect.stat ? `Resist ${effect.stat}` : String(effect.value ?? "");
+        case "Immunity":
+            return effect.stat ? `Immune: ${effect.stat}` : "Immunity";
+        case "GrantSight":
+            return effect.stat ? `Sight: ${effect.stat}` : "Grant sight";
         case "Language":
-            return String(effect.value);
+            return String(effect.value ?? "");
         case "GrantActionCard":
-            return String(effect.value);
+            return String(effect.value ?? "");
         default:
             return effect.type;
     }
@@ -58,7 +64,7 @@ export function vulnerabilityDamageType(effect: TraitEffect): string | null {
 /** VU amount: uses numeric `value` when `stat` is set; otherwise defaults to 2 for type-only legacy rows. */
 export function vulnerabilityAmount(effect: TraitEffect): number {
     if (effect.stat?.trim()) {
-        return parseInt(effect.value, 10) || 0;
+        return parseInt(effect.value ?? "0", 10) || 0;
     }
     const val = effect.value?.trim() ?? "";
     if (val && !Number.isNaN(parseInt(val, 10))) {

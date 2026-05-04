@@ -120,7 +120,11 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
             : current === 0 ? [...localClasses, { id, level: next }]
                 : localClasses.map(c => c.id === id ? { ...c, level: next } : c);
         setLocalClasses(updated);
-        onUpdateClassData(updated, selectedOptions);
+        const optionsAfterLevelChange =
+            next === 0
+                ? selectedOptions.filter((o) => o.source !== id)
+                : selectedOptions;
+        onUpdateClassData(updated, optionsAfterLevelChange);
     };
 
     const renderTalentSection = (classId: string, type: 'passives' | 'actions' | 'reactions', lvl: number) => {

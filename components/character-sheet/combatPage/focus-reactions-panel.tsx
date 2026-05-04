@@ -5,7 +5,8 @@ import {ChevronDown, Lock, Plus, Target, Zap} from "lucide-react"
 import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger} from "@/components/ui/dropdown-menu";
 import {Button} from "@/components/ui/button";
 import {cn} from "@/lib/utils";
-import {FocusFeature, Reaction} from "@/lib/rules";
+import {FocusFeature, Reaction} from "@/lib/rules"
+import type {InventoryItem} from "@/lib/equipment-data"
 import {
     ActionCardComponent,
     type ActionCostBudget,
@@ -26,6 +27,8 @@ interface FocusReactionsPanelProps {
     /** Global catalog entries (e.g. feat/protect) the player can append to their reaction list. */
     catalogReactionOptions?: { id: string; label: string }[];
     onAddCatalogReaction?: (id: string) => void;
+    currentWeapon?: InventoryItem | null;
+    offhandWeapon?: InventoryItem | null;
 }
 
 export function FocusReactionsPanel({
@@ -40,6 +43,8 @@ export function FocusReactionsPanel({
                                         onSpendActionCost,
                                         catalogReactionOptions = [],
                                         onAddCatalogReaction,
+                                        currentWeapon = null,
+                                        offhandWeapon = null,
                                     }: FocusReactionsPanelProps) {
     // Get the default focus feat start of turn
     const globalFocus = rules?.system?.defaults?.focusFeat
@@ -290,6 +295,8 @@ export function FocusReactionsPanel({
                                                     forceCollapsed={false}
                                                     actionCostBudget={actionCostBudget}
                                                     onSpendActionCost={onSpendActionCost}
+                                                    currentWeapon={currentWeapon}
+                                                    offhandWeapon={offhandWeapon}
                                                 />
                                             </div>
                                         )}

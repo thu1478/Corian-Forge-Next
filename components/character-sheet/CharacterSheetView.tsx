@@ -1,17 +1,17 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import {useEffect, useMemo, useState} from "react"
 import {
     ActionCardComponent,
     type ActionCostBudget,
     type ActionSpendResourceKind,
 } from "@/components/character-sheet/combatPage/action-card-manager"
-import { FocusTracker } from "@/components/character-sheet/combatPage/focus-tracker"
-import { CombatStatsPanel, OtherStats, ResourceBars } from "@/components/character-sheet/combatPage/resource-bars"
-import { AttributesPanel } from "@/components/character-sheet/combatPage/attributes-panel"
-import { EquipmentPanel } from "@/components/character-sheet/trackingPage/equipment-panel"
-import { InventoryPanel } from "@/components/character-sheet/trackingPage/inventory-panel"
-import { FocusReactionsPanel } from "@/components/character-sheet/combatPage/focus-reactions-panel"
+import {FocusTracker} from "@/components/character-sheet/combatPage/focus-tracker"
+import {CombatStatsPanel, OtherStats, ResourceBars} from "@/components/character-sheet/combatPage/resource-bars"
+import {AttributesPanel} from "@/components/character-sheet/combatPage/attributes-panel"
+import {EquipmentPanel, ProficiencyAlert} from "@/components/character-sheet/trackingPage/equipment-panel"
+import {InventoryPanel} from "@/components/character-sheet/trackingPage/inventory-panel"
+import {FocusReactionsPanel} from "@/components/character-sheet/combatPage/focus-reactions-panel"
 import {
     BondsPanel,
     ClassesPanel,
@@ -20,9 +20,9 @@ import {
     SkillsPanel,
     TraitsPanel,
 } from "@/components/character-sheet/characterPage/tracking-panel"
-import { CharacterProfile } from "@/components/character-sheet/characterPage/character-panel"
-import { DamageCalculator } from "@/components/character-sheet/combatPage/damage-calculator"
-import { ShortRestPanel } from "@/components/character-sheet/combatPage/short-rest-panel"
+import {BackstoryPanel, CharacterProfile} from "@/components/character-sheet/characterPage/character-panel"
+import {DamageCalculator} from "@/components/character-sheet/combatPage/damage-calculator"
+import {ShortRestPanel} from "@/components/character-sheet/combatPage/short-rest-panel"
 import {
     AlertDialog,
     AlertDialogAction,
@@ -33,28 +33,54 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
-import { Input } from "@/components/ui/input"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { ChevronDown, Coffee, Filter, Flag, LayoutGrid, List, Moon, Package, Plus, Sparkles, Swords, User } from "lucide-react"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { capitalizeFirstLetter, cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { makeContainerId, makeInventoryUid } from "@/lib/inventory-filters"
-import { unequipInventoryUids } from "@/lib/inventory-helpers"
+import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs"
+import {ScrollArea} from "@/components/ui/scroll-area"
+import {Label} from "@/components/ui/label"
+import {Switch} from "@/components/ui/switch"
+import {Input} from "@/components/ui/input"
+import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover"
+import {
+    ChevronDown,
+    Coffee,
+    Crosshair,
+    Filter,
+    Flag,
+    GraduationCap,
+    LayoutGrid,
+    List,
+    Moon,
+    Package,
+    Plus,
+    Sparkles,
+    Swords,
+    Trash2,
+    User
+} from "lucide-react"
+import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger} from "@/components/ui/dropdown-menu"
+import {capitalizeFirstLetter, cn} from "@/lib/utils"
+import {Button} from "@/components/ui/button"
+import {makeContainerId, makeInventoryUid} from "@/lib/inventory-filters"
+import {unequipInventoryUids} from "@/lib/inventory-helpers"
 import rulesData from "@/lib/rules.json";
-import { actionTagMatchesFilterChip, actionTagMatchesSearchQuery } from "@/lib/action-tag-utils";
-import { Equipment, EQUIPMENT_RULES, type InventoryContainer } from "@/lib/equipment-data";
-import { useDataLoader } from "@/components/character-sheet/hooks/DataLoader";
-import { CharacterClass } from "@/lib/rules";
-import { restoreReactionCharges } from "@/lib/rest-helpers";
-import { listCatalogActionCardIds, listCatalogReactionCardIds } from "@/lib/generic-catalog";
+import {actionTagMatchesFilterChip, actionTagMatchesSearchQuery} from "@/lib/action-tag-utils";
+import {Equipment, EQUIPMENT_RULES, type InventoryContainer} from "@/lib/equipment-data";
+import {useDataLoader} from "@/components/character-sheet/hooks/DataLoader";
+import {CharacterClass} from "@/lib/rules";
+import {restoreReactionCharges} from "@/lib/rest-helpers";
+import {listCatalogActionCardIds, listCatalogReactionCardIds} from "@/lib/generic-catalog";
+import {collectClassProficiencies, martialProficiencyDeficitMessage} from "@/lib/equipment-proficiency";
+import {ProficienciesPanel} from "@/components/character-sheet/characterPage/proficiencies-panel";
 
 type ActionFilter = string;
 type ViewMode = "grid" | "list"
+
+function weaponRangeLabel(weapon: unknown): string | null {
+    if (weapon == null || typeof weapon !== "object") return null
+    const r = (weapon as Record<string, unknown>).range
+    if (r === undefined || r === null) return null
+    const s = typeof r === "number" ? (Number.isFinite(r) ? String(r) : "") : String(r).trim()
+    return s.length > 0 ? s : null
+}
 
 export function CharacterSheetView() {
     const {
@@ -63,6 +89,7 @@ export function CharacterSheetView() {
         setCharacter,
         importJSON,
         exportJSON,
+        clearSavedCharacter,
         isLoading
     } = useDataLoader(rulesData);
 
@@ -74,13 +101,14 @@ export function CharacterSheetView() {
     const [showDamageCalculator, setShowDamageCalculator] = useState(false)
     const [showShortRest, setShowShortRest] = useState(false)
     const [longRestDialogOpen, setLongRestDialogOpen] = useState(false)
+    const [clearLocalSaveDialogOpen, setClearLocalSaveDialogOpen] = useState(false)
 
     useEffect(() => {
         if (!character) return
         const max = derived.maxRespite
         const r = Number(character.respite)
         if (!Number.isFinite(r) || r <= max) return
-        setCharacter((prev: any) => ({ ...prev, respite: max }))
+        setCharacter((prev: any) => ({...prev, respite: max}))
     }, [character, character?.respite, derived.maxRespite, setCharacter])
 
     const filteredActions = useMemo(() => {
@@ -118,6 +146,15 @@ export function CharacterSheetView() {
     }, [character, actionFilter, actionSearch]);
 
     const catalogActionIds = useMemo(() => listCatalogActionCardIds(rulesData as any), []);
+
+    const classProficiencies = useMemo(
+        () =>
+            collectClassProficiencies(
+                (character?.classes ?? []) as { id: string; level: number }[],
+                rulesData.classes as Record<string, { proficiencies?: string[] }>
+            ),
+        [character?.classes]
+    );
     const catalogReactionOptions = useMemo(
         () =>
             listCatalogReactionCardIds(rulesData as any).map((id) => ({
@@ -133,22 +170,33 @@ export function CharacterSheetView() {
         (item: any) => item.uid === character.activeWeaponUid
     ) || null;
 
+    const activeWeaponProficiencyMessage = martialProficiencyDeficitMessage(
+        currentWeapon,
+        classProficiencies
+    );
+
+    const offhandWeapon =
+        character.inventory.find((item: any) => item.uid === character.offhandUid) || null;
+
+    const activeWeaponRangeLabel = weaponRangeLabel(currentWeapon)
+
     const availableWeapons = [
         ...character.inventory
             .filter((item: any) => item.type === "weapon")
             .map((item: any) => ({
                 uid: item.uid,
                 name: item.name,
-                damage: item.damage || "0"
+                damage: item.damage || "0",
+                range: item.range,
             })),
-        { uid: "empty", name: "Empty", damage: "0" }
+        {uid: "empty", name: "Empty", damage: "0" as const},
     ];
 
     const handleAddInventoryItem = (itemId: string) => {
         const uid = makeInventoryUid(itemId);
         setCharacter((prev: any) => ({
             ...prev,
-            inventory: [...(prev.inventory || []), { id: itemId, uid }],
+            inventory: [...(prev.inventory || []), {id: itemId, uid}],
         }));
     };
 
@@ -157,7 +205,7 @@ export function CharacterSheetView() {
             ...prev,
             inventory: (prev.inventory || []).map((e: any) =>
                 e.uid === itemUid
-                    ? { ...e, containerId: containerId === null ? null : containerId }
+                    ? {...e, containerId: containerId === null ? null : containerId}
                     : e
             ),
         }));
@@ -166,7 +214,7 @@ export function CharacterSheetView() {
     const handleAddContainer = (name: string) => {
         setCharacter((prev: any) => ({
             ...prev,
-            containers: [...(prev.containers || []), { id: makeContainerId(), name: name.trim() || "Container" }],
+            containers: [...(prev.containers || []), {id: makeContainerId(), name: name.trim() || "Container"}],
         }));
     };
 
@@ -174,7 +222,7 @@ export function CharacterSheetView() {
         setCharacter((prev: any) => ({
             ...prev,
             containers: (prev.containers || []).map((c: any) =>
-                c.id === id ? { ...c, name: name.trim() || c.name } : c
+                c.id === id ? {...c, name: name.trim() || c.name} : c
             ),
         }));
     };
@@ -184,13 +232,13 @@ export function CharacterSheetView() {
             ...prev,
             containers: (prev.containers || []).filter((c: any) => c.id !== id),
             inventory: (prev.inventory || []).map((e: any) =>
-                e.containerId === id ? { ...e, containerId: null } : e
+                e.containerId === id ? {...e, containerId: null} : e
             ),
         }));
     };
 
     const handleReorderContainers = (next: InventoryContainer[]) => {
-        setCharacter((prev: any) => ({ ...prev, containers: next }));
+        setCharacter((prev: any) => ({...prev, containers: next}));
     };
 
     const handleRemoveInventoryItem = (itemUid: string) => {
@@ -206,7 +254,7 @@ export function CharacterSheetView() {
         setCharacter((prev: any) => ({
             ...prev,
             inventory: (prev.inventory || []).map((e: any) =>
-                e.uid === itemUid ? { ...e, quantity: q } : e
+                e.uid === itemUid ? {...e, quantity: q} : e
             ),
         }));
     };
@@ -217,45 +265,45 @@ export function CharacterSheetView() {
             ...prev,
             inventory: (prev.inventory || []).map((e: any) =>
                 e.uid === itemUid
-                    ? { ...e, customName: trimmed ? trimmed : undefined }
+                    ? {...e, customName: trimmed ? trimmed : undefined}
                     : e
             ),
         }));
     };
 
     const filterOptions = [
-        { value: "all", label: "All" },
-        { value: "equipment", label: "Equipment" },
+        {value: "all", label: "All"},
+        {value: "equipment", label: "Equipment"},
         ...(character.classes || []).map((c: CharacterClass) => ({
             value: c.id.toLowerCase(),
             label: capitalizeFirstLetter(c.id)
         })),
-        { value: "Weapon", label: "Weapon" },
-        { value: "Spell", label: "Spell" },
-        { value: "Melee", label: "Melee" },
-        { value: "Ranged", label: "Ranged" },
+        {value: "Weapon", label: "Weapon"},
+        {value: "Spell", label: "Spell"},
+        {value: "Melee", label: "Melee"},
+        {value: "Ranged", label: "Ranged"},
     ];
 
     // ... Keep all your update handlers (updateHp, updateMp, handleEquipmentChange, etc.) here ...
     // <editor-fold desc="Update Handlers">
     const updateHp = (current: number) => {
         const clampedHp = Math.min(Math.max(current, derived.deathThreshold), derived.maxHP);
-        setCharacter(prev => ({ ...prev, hp: clampedHp }));
+        setCharacter(prev => ({...prev, hp: clampedHp}));
     }
-    const updateBarrier = (current: number) => setCharacter(prev => ({ ...prev, barrier: current }));
+    const updateBarrier = (current: number) => setCharacter(prev => ({...prev, barrier: current}));
     const updateMp = (current: number) => {
         const clampedMp = Math.min(Math.max(current, 0), derived.maxMP);
-        setCharacter(prev => ({ ...prev, mp: clampedMp }));
+        setCharacter(prev => ({...prev, mp: clampedMp}));
     };
-    const updateFocus = (current: number) => setCharacter(prev => ({ ...prev, focus: current }));
+    const updateFocus = (current: number) => setCharacter(prev => ({...prev, focus: current}));
     const updateIp = (current: number) => {
         const clampedIp = Math.min(Math.max(current, 0), derived.maxIP);
-        setCharacter(prev => ({ ...prev, ip: clampedIp }));
+        setCharacter(prev => ({...prev, ip: clampedIp}));
     };
     const updateRespite = (current: number) => {
         const max = derived.maxRespite;
         const clamped = Math.min(Math.max(0, current), max);
-        setCharacter((prev: any) => ({ ...prev, respite: clamped }));
+        setCharacter((prev: any) => ({...prev, respite: clamped}));
     };
     const handleSpendActionCost = (kind: ActionSpendResourceKind, amount: number) => {
         if (amount <= 0) return;
@@ -263,13 +311,13 @@ export function CharacterSheetView() {
             switch (kind) {
                 case "mp":
                     if (prev.mp < amount) return prev;
-                    return { ...prev, mp: prev.mp - amount };
+                    return {...prev, mp: prev.mp - amount};
                 case "focus":
                     if (prev.focus < amount) return prev;
-                    return { ...prev, focus: prev.focus - amount };
+                    return {...prev, focus: prev.focus - amount};
                 case "ip":
                     if (prev.ip < amount) return prev;
-                    return { ...prev, ip: prev.ip - amount };
+                    return {...prev, ip: prev.ip - amount};
                 default:
                     return prev;
             }
@@ -296,20 +344,20 @@ export function CharacterSheetView() {
             ),
         }));
     };
-    const updateProfileImage = (url: string) => setCharacter(prev => ({ ...prev, profileImage: url }))
-    const updateBackstory = (backstory: string) => setCharacter(prev => ({ ...prev, backstory }))
+    const updateProfileImage = (url: string) => setCharacter(prev => ({...prev, profileImage: url}))
+    const updateBackstory = (backstory: string) => setCharacter(prev => ({...prev, backstory}))
     const handleApplyDamage = (newHp: number, newBarrier: number) => {
         const clampedHp = Math.min(newHp, derived.maxHP);
-        setCharacter(prev => ({ ...prev, hp: clampedHp, barrier: Math.max(newBarrier, 0) }))
+        setCharacter(prev => ({...prev, hp: clampedHp, barrier: Math.max(newBarrier, 0)}))
     }
     const handleAccessoryChange = (slot: keyof Equipment["accessories"], uid: string | null) => {
         setCharacter((prev: any) => ({
             ...prev,
-            equipment: { ...prev.equipment, accessories: { ...prev.equipment.accessories, [slot]: uid } }
+            equipment: {...prev.equipment, accessories: {...prev.equipment.accessories, [slot]: uid}}
         }));
     };
     const handleEquipmentChange = (slot: "activeWeapon" | "offhand" | "armor", item: any) => {
-        setCharacter((prev: any) => ({ ...prev, ...EQUIPMENT_RULES.getNewState(slot, item, prev) }));
+        setCharacter((prev: any) => ({...prev, ...EQUIPMENT_RULES.getNewState(slot, item, prev)}));
     };
     const handleSelectFeat = (index: number, newSrc: string) => {
         setCharacter(prev => {
@@ -318,8 +366,8 @@ export function CharacterSheetView() {
             return {
                 ...prev,
                 focusFeatures: (prev.focusFeatures || []).map(feat => {
-                    if (feat.classSrc === newSrc && newSrc !== "") return { ...feat, slotIndex: index };
-                    if (feat.classSrc === oldName && feat.classSrc !== newSrc) return { ...feat, slotIndex: -1 };
+                    if (feat.classSrc === newSrc && newSrc !== "") return {...feat, slotIndex: index};
+                    if (feat.classSrc === oldName && feat.classSrc !== newSrc) return {...feat, slotIndex: -1};
                     return feat;
                 })
             };
@@ -332,8 +380,8 @@ export function CharacterSheetView() {
             return {
                 ...prev,
                 reactions: (prev.reactions || []).map(reaction => {
-                    if (reaction.id === newID && newID !== "") return { ...reaction, slotIndex: index };
-                    if (reaction.id === oldID && reaction.id !== newID) return { ...reaction, slotIndex: -1 };
+                    if (reaction.id === newID && newID !== "") return {...reaction, slotIndex: index};
+                    if (reaction.id === oldID && reaction.id !== newID) return {...reaction, slotIndex: -1};
                     return reaction;
                 })
             };
@@ -344,7 +392,7 @@ export function CharacterSheetView() {
             const actions = prev.actions || [];
             const has = actions.some((a: any) => (typeof a === "string" ? a : a?.id) === id);
             if (has) return prev;
-            return { ...prev, actions: [...actions, { id }] };
+            return {...prev, actions: [...actions, {id}]};
         });
     };
     const handleAddCatalogReaction = (id: string) => {
@@ -353,14 +401,14 @@ export function CharacterSheetView() {
             if (reactions.some((r: any) => r.id === id)) return prev;
             return {
                 ...prev,
-                reactions: [...reactions, { id, slotIndex: -1, charges: -1 }],
+                reactions: [...reactions, {id, slotIndex: -1, charges: -1}],
             };
         });
     };
     const handleUpdateReactionCharges = (reactionId: string, newCount: number) => {
         setCharacter(prev => ({
             ...prev,
-            reactions: (prev.reactions || []).map(rx => rx.id === reactionId ? { ...rx, charges: newCount } : rx)
+            reactions: (prev.reactions || []).map(rx => rx.id === reactionId ? {...rx, charges: newCount} : rx)
         }));
     };
 
@@ -412,9 +460,10 @@ export function CharacterSheetView() {
         <>
             {/* The Character Name Header Sub-Bar */}
             <div className="bg-muted/30 border-b border-border">
-                <div className="container mx-auto px-4 py-3 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div
+                    className="container mx-auto px-4 py-3 flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
-                        <Swords className="w-6 h-6 text-primary shrink-0" />
+                        <Swords className="w-6 h-6 text-primary shrink-0"/>
                         <div>
                             <h1 className="text-lg font-bold text-foreground tracking-wider leading-none">
                                 {character.name}
@@ -434,7 +483,7 @@ export function CharacterSheetView() {
                                 className="h-8 gap-1.5 text-xs font-semibold"
                                 onClick={handleEndOfCombat}
                             >
-                                <Flag className="w-3.5 h-3.5" />
+                                <Flag className="w-3.5 h-3.5"/>
                                 End of combat
                             </Button>
                             <Button
@@ -444,7 +493,7 @@ export function CharacterSheetView() {
                                 className="h-8 gap-1.5 text-xs font-semibold border-emerald-600/40 hover:bg-emerald-950/20"
                                 onClick={() => setShowShortRest(true)}
                             >
-                                <Coffee className="w-3.5 h-3.5" />
+                                <Coffee className="w-3.5 h-3.5"/>
                                 Short rest
                             </Button>
                             <Button
@@ -454,21 +503,38 @@ export function CharacterSheetView() {
                                 className="h-8 gap-1.5 text-xs font-semibold"
                                 onClick={() => setLongRestDialogOpen(true)}
                             >
-                                <Moon className="w-3.5 h-3.5" />
+                                <Moon className="w-3.5 h-3.5"/>
                                 Long rest
                             </Button>
                         </div>
                         <div className="flex items-center bg-muted/50 p-1 rounded-md border border-border">
-                            <Button variant="ghost" size="sm" className="h-8 text-xs font-bold gap-2" onClick={() => document.getElementById('char-upload')?.click()}>
-                                <Sparkles className="w-3 h-3 text-blue-500" /> LOAD
+                            <Button variant="ghost" size="sm" className="h-8 text-xs font-bold gap-2"
+                                    onClick={() => document.getElementById('char-upload')?.click()}>
+                                <Sparkles className="w-3 h-3 text-blue-500"/> LOAD
                             </Button>
                             <input id="char-upload" type="file" className="hidden" accept=".json" onChange={(e) => {
                                 const file = e.target.files?.[0];
-                                if (file) { importJSON(file); e.target.value = ""; }
-                            }} />
-                            <div className="w-[1px] h-4 bg-border mx-1" />
-                            <Button variant="ghost" size="sm" className="h-8 text-xs font-bold gap-2 text-primary" onClick={exportJSON}>
-                                <LayoutGrid className="w-3 h-3" /> SAVE
+                                if (file) {
+                                    importJSON(file);
+                                    e.target.value = "";
+                                }
+                            }}/>
+                            <div className="w-[1px] h-4 bg-border mx-1"/>
+                            <Button variant="ghost" size="sm" className="h-8 text-xs font-bold gap-2 text-primary"
+                                    onClick={exportJSON}>
+                                <LayoutGrid className="w-3 h-3"/> SAVE
+                            </Button>
+                            <div className="w-[1px] h-4 bg-border mx-1"/>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 text-xs font-bold gap-2 text-muted-foreground hover:text-destructive"
+                                onClick={() => setClearLocalSaveDialogOpen(true)}
+                                title="Remove character stored in this browser"
+                            >
+                                <Trash2 className="w-3 h-3"/>
+                                Clear local
                             </Button>
                         </div>
                     </div>
@@ -478,12 +544,15 @@ export function CharacterSheetView() {
             <main className="container mx-auto px-4 py-6">
                 <Tabs defaultValue="combat" className="w-full">
                     <div className="sticky top-0 z-40 bg-background/95 backdrop-blur py-4 mb-2">
-                        <TabsList className="w-full grid grid-cols-3">
+                        <TabsList className="w-full grid grid-cols-2 sm:grid-cols-4 gap-1 h-auto min-h-10 py-1">
                             <TabsTrigger value="combat" className="gap-2">
                                 <Swords className="w-4 h-4"/> Combat
                             </TabsTrigger>
                             <TabsTrigger value="tracking" className="gap-2">
                                 <Package className="w-4 h-4"/> Tracking
+                            </TabsTrigger>
+                            <TabsTrigger value="abilities" className="gap-2">
+                                <GraduationCap className="w-4 h-4"/> Abilities
                             </TabsTrigger>
                             <TabsTrigger value="character" className="gap-2">
                                 <User className="w-4 h-4"/> Character
@@ -496,12 +565,16 @@ export function CharacterSheetView() {
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                             {/*Resource section*/}
                             <div className="lg:col-span-3 space-y-4">
-                                <FocusTracker current={character.focus} onChange={updateFocus} />
+                                <FocusTracker current={character.focus} onChange={updateFocus}/>
                                 <ResourceBars
-                                    hp={{ current: Math.min(character.hp, derived.maxHP), max: derived.maxHP, min: derived.deathThreshold }}
+                                    hp={{
+                                        current: Math.min(character.hp, derived.maxHP),
+                                        max: derived.maxHP,
+                                        min: derived.deathThreshold
+                                    }}
                                     barrier={character.barrier}
-                                    mp={{ current: Math.min(character.mp, derived.maxMP), max: derived.maxMP }}
-                                    ip={{ current: Math.min(character.ip, derived.maxIP), max: derived.maxIP }}
+                                    mp={{current: Math.min(character.mp, derived.maxMP), max: derived.maxMP}}
+                                    ip={{current: Math.min(character.ip, derived.maxIP), max: derived.maxIP}}
                                     respite={{
                                         current: Math.min(
                                             Number(character.respite ?? derived.maxRespite),
@@ -509,19 +582,27 @@ export function CharacterSheetView() {
                                         ),
                                         max: derived.maxRespite,
                                     }}
-                                    onHpChange={updateHp} onBarrierChange={updateBarrier} onMpChange={updateMp} onIpChange={updateIp}
+                                    onHpChange={updateHp} onBarrierChange={updateBarrier} onMpChange={updateMp}
+                                    onIpChange={updateIp}
                                     onRespiteChange={updateRespite}
                                     onOpenDamageCalculator={() => setShowDamageCalculator(true)}
                                     attributes={derived.attributes} knownClasses={character.classes}
                                 />
-                                <CombatStatsPanel defense={derived.defense} stability={derived.stability} speed={derived.speed} resistances={derived.resistances} vulnerabilities={derived.vulnerabilities} />
-                                <AttributesPanel attributes={derived.attributes} />
+                                <CombatStatsPanel defense={derived.defense} stability={derived.stability}
+                                                  speed={derived.speed} resistances={derived.resistances}
+                                                  vulnerabilities={derived.vulnerabilities}
+                                                  conditionImmunities={derived.conditionImmunities}
+                                                  specialSight={derived.specialSight}/>
+                                <AttributesPanel attributes={derived.attributes}/>
                                 <OtherStats
                                     xp={character.xp}
                                     inspiration={character.inspiration}
                                     victories={character.victories}
-                                    onUpdateInspiration={(v) => setCharacter((prev) => ({ ...prev, inspiration: v }))}
-                                    onUpdateVictories={(v) => setCharacter((prev) => ({ ...prev, victories: Math.max(0, Math.floor(v)) }))}
+                                    onUpdateInspiration={(v) => setCharacter((prev) => ({...prev, inspiration: v}))}
+                                    onUpdateVictories={(v) => setCharacter((prev) => ({
+                                        ...prev,
+                                        victories: Math.max(0, Math.floor(v))
+                                    }))}
                                 />
                             </div>
 
@@ -529,7 +610,8 @@ export function CharacterSheetView() {
                             <div className="lg:col-span-6">
                                 <div className="bg-card rounded-xl border border-border p-4">
                                     <div className="flex items-center justify-between mb-4">
-                                        <h2 className="text-lg font-bold text-foreground flex items-center gap-2"><Sparkles className="w-5 h-5 text-primary" /> Actions</h2>
+                                        <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+                                            <Sparkles className="w-5 h-5 text-primary"/> Actions</h2>
                                         <div className="flex items-center gap-2 flex-wrap justify-end">
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
@@ -540,24 +622,29 @@ export function CharacterSheetView() {
                                                         className="h-8 text-[10px] font-black uppercase tracking-widest gap-1.5"
                                                         title="Add an action from global rules (all non-monster action cards: feat, fairy, generic, equipment, …)"
                                                     >
-                                                        <Plus className="w-3 h-3" />
+                                                        <Plus className="w-3 h-3"/>
                                                         Catalog
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end" className="max-h-64 overflow-y-auto">
                                                     {catalogActionIds.length === 0 ? (
-                                                        <DropdownMenuItem disabled>No catalog actions in rules</DropdownMenuItem>
+                                                        <DropdownMenuItem disabled>No catalog actions in
+                                                            rules</DropdownMenuItem>
                                                     ) : (
                                                         catalogActionIds.map((id) => (
-                                                            <DropdownMenuItem key={id} onClick={() => handleAddCatalogAction(id)}>
+                                                            <DropdownMenuItem key={id}
+                                                                              onClick={() => handleAddCatalogAction(id)}>
                                                                 {(rulesData as any).actionCards?.[id]?.name ?? id}
                                                             </DropdownMenuItem>
                                                         ))
                                                     )}
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
-                                            <Button variant="outline" size="sm" onClick={() => setAllCollapsed(!allCollapsed)} className="h-8 text-[10px] font-black uppercase tracking-widest gap-2">
-                                                <ChevronDown className={cn("w-3 h-3 transition-transform duration-300", allCollapsed ? "-rotate-90" : "rotate-0")} />
+                                            <Button variant="outline" size="sm"
+                                                    onClick={() => setAllCollapsed(!allCollapsed)}
+                                                    className="h-8 text-[10px] font-black uppercase tracking-widest gap-2">
+                                                <ChevronDown
+                                                    className={cn("w-3 h-3 transition-transform duration-300", allCollapsed ? "-rotate-90" : "rotate-0")}/>
                                                 {allCollapsed ? "Expand All" : "Collapse All"}
                                             </Button>
                                             <div
@@ -577,18 +664,23 @@ export function CharacterSheetView() {
                                                     className="scale-90"
                                                 />
                                             </div>
-                                            <div className="w-[1px] h-4 bg-border mx-1" />
-                                            <Button variant="ghost" size="sm" onClick={() => setViewMode("grid")} className={cn(viewMode === "grid" && "bg-muted")}><LayoutGrid className="w-4 h-4" /></Button>
-                                            <Button variant="ghost" size="sm" onClick={() => setViewMode("list")} className={cn(viewMode === "list" && "bg-muted")}><List className="w-4 h-4" /></Button>
+                                            <div className="w-[1px] h-4 bg-border mx-1"/>
+                                            <Button variant="ghost" size="sm" onClick={() => setViewMode("grid")}
+                                                    className={cn(viewMode === "grid" && "bg-muted")}><LayoutGrid
+                                                className="w-4 h-4"/></Button>
+                                            <Button variant="ghost" size="sm" onClick={() => setViewMode("list")}
+                                                    className={cn(viewMode === "list" && "bg-muted")}><List
+                                                className="w-4 h-4"/></Button>
                                         </div>
                                     </div>
                                     {/* ... Global Weapon Selector, Filters, and Action Grid (truncated for brevity) ... */}
                                     <div className="mb-4 p-3 bg-muted/30 rounded-lg border border-border">
                                         <div className="flex items-center justify-between gap-4">
-                                            <div className="flex items-center gap-2">
-                                                <Swords className="w-4 h-4 text-primary"/>
+                                            <div className="flex items-center gap-2 min-w-0">
+                                                <Swords className="w-4 h-4 text-primary shrink-0"/>
                                                 <span
                                                     className="text-sm font-medium text-foreground">Active Weapon</span>
+                                                <ProficiencyAlert message={activeWeaponProficiencyMessage}/>
                                             </div>
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
@@ -597,24 +689,29 @@ export function CharacterSheetView() {
                                                         size="sm"
                                                         className="min-w-[180px] justify-between"
                                                     >
-                            <span className="flex items-center gap-2">
-            {/* Logic: If currentWeapon exists (is an object), show name. Else show "Empty" */}
+                            <span className="flex items-center gap-2 flex-wrap justify-end">
                                 {currentWeapon ? currentWeapon.name : "Empty"}
-
-                                {/* Damage display: only show if the object exists and has damage */}
-
                                 {(currentWeapon as any)?.damage && (currentWeapon as any).damage !== "0" && (
                                     <span
                                         className="flex items-center gap-1 text-xs text-muted-foreground font-mono bg-muted px-1.5 py-0.5 rounded border border-border">
-            <Swords className="w-3 h-3"/>
+                                        <Swords className="w-3 h-3 shrink-0"/>
                                         {(currentWeapon as any).damage}
-        </span>
+                                    </span>
+                                )}
+                                {activeWeaponRangeLabel != null && (
+                                    <span
+                                        className="flex items-center gap-1 text-xs text-muted-foreground font-mono bg-muted px-1.5 py-0.5 rounded border border-border"
+                                        title="Range"
+                                    >
+                                        <Crosshair className="w-3 h-3 shrink-0"/>
+                                        {activeWeaponRangeLabel}
+                                    </span>
                                 )}
         </span>
                                                         <ChevronDown className="w-4 h-4"/>
                                                     </Button>
                                                 </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end" className="w-[220px]">
+                                                <DropdownMenuContent align="end" className="w-[min(92vw,280px)]">
                                                     {availableWeapons.map((weapon) => (
                                                         <DropdownMenuItem
                                                             key={weapon.uid}
@@ -622,13 +719,24 @@ export function CharacterSheetView() {
                                                             className="justify-between"
                                                         >
                                                             <span className="font-medium">{weapon.name}</span>
-                                                            {weapon.damage !== "0" && (
-                                                                <div
-                                                                    className="flex items-center gap-1 text-xs text-muted-foreground font-mono">
-                                                                    <Swords className="w-3 h-3 opacity-70"/>
-                                                                    {weapon.damage}
-                                                                </div>
-                                                            )}
+                                                            <div className="flex items-center gap-1 shrink-0">
+                                                                {weapon.damage !== "0" && (
+                                                                    <div
+                                                                        className="flex items-center gap-1 text-xs text-muted-foreground font-mono">
+                                                                        <Swords className="w-3 h-3 opacity-70"/>
+                                                                        {weapon.damage}
+                                                                    </div>
+                                                                )}
+                                                                {weaponRangeLabel(weapon) != null && (
+                                                                    <div
+                                                                        className="flex items-center gap-1 text-xs text-muted-foreground font-mono"
+                                                                        title="Range"
+                                                                    >
+                                                                        <Crosshair className="w-3 h-3 opacity-70"/>
+                                                                        {weaponRangeLabel(weapon)}
+                                                                    </div>
+                                                                )}
+                                                            </div>
                                                         </DropdownMenuItem>
                                                     ))}
                                                 </DropdownMenuContent>
@@ -645,7 +753,7 @@ export function CharacterSheetView() {
                                                     className="h-8 w-8 shrink-0"
                                                     title="Search actions"
                                                 >
-                                                    <Filter className="w-4 h-4" />
+                                                    <Filter className="w-4 h-4"/>
                                                 </Button>
                                             </PopoverTrigger>
                                             <PopoverContent className="w-80" align="start">
@@ -688,7 +796,8 @@ export function CharacterSheetView() {
                                         ))}
                                     </div>
                                     <ScrollArea className="h-[calc(100vh-150px)]">
-                                        <div className={cn(viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 gap-4" : "space-y-4")}>
+                                        <div
+                                            className={cn(viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 gap-4" : "space-y-4")}>
                                             {filteredActions.map((action) => (
                                                 <ActionCardComponent
                                                     key={action.id}
@@ -696,6 +805,7 @@ export function CharacterSheetView() {
                                                     attributes={derived.attributes}
                                                     disabled={(action.focusCost || 0) > character.focus}
                                                     currentWeapon={currentWeapon}
+                                                    offhandWeapon={offhandWeapon}
                                                     forceCollapsed={allCollapsed}
                                                     actionCostBudget={actionCostBudget}
                                                     onSpendActionCost={handleSpendActionCost}
@@ -720,6 +830,8 @@ export function CharacterSheetView() {
                                     onSpendActionCost={handleSpendActionCost}
                                     catalogReactionOptions={catalogReactionOptions}
                                     onAddCatalogReaction={handleAddCatalogReaction}
+                                    currentWeapon={currentWeapon}
+                                    offhandWeapon={offhandWeapon}
                                 />
                             </div>
                         </div>
@@ -728,7 +840,13 @@ export function CharacterSheetView() {
                     {/* ... Tracking and Character Tabs Content ... */}
                     <TabsContent value="tracking">
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            <EquipmentPanel equipment={character.equipment} inventory={character.inventory} onAccessoryChange={handleAccessoryChange} onEquipmentChange={handleEquipmentChange} />
+                            <EquipmentPanel
+                                equipment={character.equipment}
+                                inventory={character.inventory}
+                                martialProficiencyIds={classProficiencies}
+                                onAccessoryChange={handleAccessoryChange}
+                                onEquipmentChange={handleEquipmentChange}
+                            />
                             <InventoryPanel
                                 inventory={character.inventory}
                                 containers={character.containers ?? []}
@@ -753,30 +871,9 @@ export function CharacterSheetView() {
                         </div>
                     </TabsContent>
 
-                    {/*Character tab*/}
-                    <TabsContent value="character">
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                            <div className="space-y-4 min-w-0 lg:col-span-6">
-                                <CharacterProfile
-                                    name={character.name}
-                                    race={character.race}
-                                    age={character.age}
-                                    gender={character.gender}
-                                    background={character.background}
-                                    backstory={character.backstory}
-                                    profileImage={character.profileImage}
-                                    onProfileImageChange={updateProfileImage}
-                                    onBackstoryChange={updateBackstory}
-                                />
-                                <BondsPanel
-                                    bondTargets={character.bondTargets ?? []}
-                                    rulesSystem={rulesData.system}
-                                    onBondTargetsChange={(next) =>
-                                        setCharacter((prev: any) => ({ ...prev, bondTargets: next }))
-                                    }
-                                />
-                            </div>
-                            <div className="space-y-4 min-w-0 lg:col-span-4">
+                    <TabsContent value="abilities">
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <div className="space-y-4 min-w-0">
                                 <ClassesPanel
                                     classes={character.classes}
                                     rules={rulesData.classes}
@@ -790,16 +887,53 @@ export function CharacterSheetView() {
                                     occupation={character.occupation ?? null}
                                     system={rulesData.system}
                                 />
-                                <TraitsPanel traits={derived.activeTraits} attributes={derived.attributes} />
+                                <LanguagesPanel languages={derived.languages}/>
                             </div>
-                            <div className="space-y-4 min-w-0 lg:col-span-2">
-                                <LanguagesPanel languages={derived.languages} />
+                            <div className="min-w-0">
+                                <TraitsPanel
+                                    traits={derived.activeTraits}
+                                    attributes={derived.attributes}
+                                    activeWeapon={currentWeapon}
+                                    offhandWeapon={offhandWeapon}
+                                />
+                            </div>
+                            <div className="space-y-4 min-w-0">
                                 <SkillsPanel
                                     skills={character.skills ?? []}
                                     skillCatalog={
                                         (rulesData.system as { skills?: Record<string, Record<string, unknown>> })
                                             ?.skills ?? {}
                                     }
+                                />
+                                <ProficienciesPanel proficiencies={classProficiencies} />
+                            </div>
+                        </div>
+                    </TabsContent>
+
+                    <TabsContent value="character">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div className="space-y-4 min-w-0">
+                                <CharacterProfile
+                                    name={character.name}
+                                    race={character.race}
+                                    age={character.age}
+                                    gender={character.gender}
+                                    background={character.background}
+                                    profileImage={character.profileImage}
+                                    onProfileImageChange={updateProfileImage}
+                                />
+                                <BondsPanel
+                                    bondTargets={character.bondTargets ?? []}
+                                    rulesSystem={rulesData.system}
+                                    onBondTargetsChange={(next) =>
+                                        setCharacter((prev: any) => ({...prev, bondTargets: next}))
+                                    }
+                                />
+                            </div>
+                            <div className="min-w-0">
+                                <BackstoryPanel
+                                    backstory={character.backstory}
+                                    onBackstoryChange={updateBackstory}
                                 />
                             </div>
                         </div>
@@ -811,7 +945,7 @@ export function CharacterSheetView() {
                 isOpen={showDamageCalculator}
                 onClose={() => setShowDamageCalculator(false)}
                 defense={derived.defense}
-                hp={{ current: character.hp, max: derived.maxHP }}
+                hp={{current: character.hp, max: derived.maxHP}}
                 barrier={character.barrier}
                 onApplyDamage={handleApplyDamage}
                 damageTypes={
@@ -845,6 +979,30 @@ export function CharacterSheetView() {
                 deathThreshold={derived.deathThreshold}
                 onApply={handleShortRestApply}
             />
+
+            <AlertDialog open={clearLocalSaveDialogOpen} onOpenChange={setClearLocalSaveDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Clear saved character in this browser?</AlertDialogTitle>
+                        <AlertDialogDescription className="text-left">
+                            This removes the auto-saved character from local storage and restores the sample character.
+                            Your downloaded JSON files are not affected.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={() => {
+                                clearSavedCharacter()
+                                setClearLocalSaveDialogOpen(false)
+                            }}
+                        >
+                            Clear local save
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
 
             <AlertDialog open={longRestDialogOpen} onOpenChange={setLongRestDialogOpen}>
                 <AlertDialogContent>

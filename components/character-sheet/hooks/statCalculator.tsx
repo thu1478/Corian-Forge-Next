@@ -4,11 +4,16 @@ import {
     computeMaxHP,
     computeMaxMP,
     computeSpeed,
+    getAttributeModifier,
     getCharacterLevelForStats,
     sumClassStatBonus,
     sumGearStatBonus,
     sumTraitStatChangeEffects,
 } from "@/lib/character-data";
+import {
+    collectConditionImmunitiesFromTraits,
+    collectSpecialSightFromTraits,
+} from "@/lib/combat-more-info";
 import {
     resolveTraitEffectsAfterSelection,
     vulnerabilityAmount,
@@ -160,12 +165,14 @@ export function useDerivedStats(character: any, rulesData: any) {
     const grantedActionIds = activeTraits
         .flatMap(t => t.effects || [])
         .filter(e => e.type === "GrantActionCard")
-        .map(e => e.value);
+        .map(e => e.value)
+        .filter((v): v is string => typeof v === "string" && v.length > 0);
 
     const languages = activeTraits
         .flatMap(t => t.effects || [])
         .filter(e => e.type === "Language")
         .map(e => e.value)
+        .filter((v): v is string => typeof v === "string" && v.length > 0)
     
     // Also include legacy languages from save data (backward compatibility)
     const legacyLanguages = character?.languages || [];
@@ -189,9 +196,13 @@ export function useDerivedStats(character: any, rulesData: any) {
         maxHP,
         deathThreshold,
         maxMP,
-        maxIP: 4 + sumClassStatBonus(character.classes || [], rulesData, "ip") + sumGearStatBonus(character, "ip") + sumTraitStatChangeEffects(activeTraits, "maxIP"),
+        maxIP: 6 + sumClassStatBonus(character.classes || [], rulesData, "ip") + sumGearStatBonus(character, "ip") + sumTraitStatChangeEffects(activeTraits, "maxIP"),
         maxRespite:
-            4 + sumTraitStatChangeEffects(activeTraits, "maxRespites"),
+            6 +
+            sumTraitStatChangeEffects(activeTraits, "maxRespites") +
+            Math.min(2, Math.max(0, getAttributeModifier(attributes.might))),
+        conditionImmunities: collectConditionImmunitiesFromTraits(activeTraits),
+        specialSight: collectSpecialSightFromTraits(activeTraits),
         defense,
         stability,
         speed: computeSpeed({

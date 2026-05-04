@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { PowerRoll } from "@/lib/rules"
@@ -10,6 +10,7 @@ import {
     type PowerRollAttributes,
     type PowerRollDisplayMode,
 } from "@/components/power-roll/power-roll-tier-row"
+import { resolveWeaponForActionPowerRoll } from "@/lib/weapon-power-roll"
 
 const TRAIT_BADGE = "bg-violet-200 text-violet-950 dark:bg-violet-900/80 dark:text-violet-100"
 
@@ -25,6 +26,9 @@ type TraitPowerRollCollapsibleProps = {
     /** Default collapsed for traits (creator + sheet). */
     defaultExpanded?: boolean
     currentWeapon?: InventoryItem | null
+    offhandWeapon?: InventoryItem | null
+    /** When set, melee/ranged matching uses these tags (e.g. trait mirrors a weapon attack). */
+    actionTags?: string[]
     powerRollDisplayMode?: PowerRollDisplayMode
     className?: string
 }
@@ -34,10 +38,23 @@ export function TraitPowerRollCollapsible({
     attributes,
     defaultExpanded = false,
     currentWeapon = null,
+    offhandWeapon = null,
+    actionTags,
     powerRollDisplayMode = "simple",
     className,
 }: TraitPowerRollCollapsibleProps) {
     const [open, setOpen] = useState(defaultExpanded)
+
+    const weaponForPowerRollDamage = useMemo(
+        () =>
+            resolveWeaponForActionPowerRoll(
+                actionTags,
+                roll.rollStats,
+                currentWeapon,
+                offhandWeapon
+            ),
+        [actionTags, roll.rollStats, currentWeapon, offhandWeapon]
+    )
 
     if (!isValidPowerRoll(roll)) return null
 
@@ -85,7 +102,7 @@ export function TraitPowerRollCollapsible({
                     tier={1}
                     badgeStyle={TRAIT_BADGE}
                     attributes={attributes}
-                    currentWeapon={currentWeapon}
+                    weaponForPowerRoll={weaponForPowerRollDamage}
                     powerRollDisplayMode={powerRollDisplayMode}
                 />
                 <PowerRollTierRow
@@ -94,7 +111,7 @@ export function TraitPowerRollCollapsible({
                     tier={2}
                     badgeStyle={TRAIT_BADGE}
                     attributes={attributes}
-                    currentWeapon={currentWeapon}
+                    weaponForPowerRoll={weaponForPowerRollDamage}
                     powerRollDisplayMode={powerRollDisplayMode}
                 />
                 <PowerRollTierRow
@@ -103,7 +120,7 @@ export function TraitPowerRollCollapsible({
                     tier={3}
                     badgeStyle={TRAIT_BADGE}
                     attributes={attributes}
-                    currentWeapon={currentWeapon}
+                    weaponForPowerRoll={weaponForPowerRollDamage}
                     powerRollDisplayMode={powerRollDisplayMode}
                 />
             </div>

@@ -286,6 +286,8 @@ interface CombatStatsPanelProps {
     speed: number
     resistances: string[]
     vulnerabilities: Record<string,number>
+    conditionImmunities: string[]
+    specialSight: string[]
 }
 
 /** Damage types that appear as both resistance and vulnerability (netted out in play; still listed, de-emphasized). */
@@ -299,7 +301,15 @@ function useConflictingDamageTypes(
     )
 }
 
-export function CombatStatsPanel({defense, stability, speed, resistances, vulnerabilities}: CombatStatsPanelProps) {
+export function CombatStatsPanel({
+    defense,
+    stability,
+    speed,
+    resistances,
+    vulnerabilities,
+    conditionImmunities,
+    specialSight,
+}: CombatStatsPanelProps) {
     const conflictingTypes = useConflictingDamageTypes(resistances, vulnerabilities)
 
     return (
@@ -390,6 +400,40 @@ export function CombatStatsPanel({defense, stability, speed, resistances, vulner
                         })}
                     </div>
                 )}
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-border space-y-3">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">More info</p>
+                <div className="space-y-2">
+                    <div>
+                        <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+                            Condition immunities
+                        </span>
+                        {conditionImmunities.length === 0 ? (
+                            <p className="text-xs text-muted-foreground/80 mt-1">—</p>
+                        ) : (
+                            <ul className="mt-1 space-y-0.5 list-disc list-inside text-sm text-foreground">
+                                {conditionImmunities.map((c) => (
+                                    <li key={c}>{c}</li>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
+                    <div>
+                        <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+                            Special sight
+                        </span>
+                        {specialSight.length === 0 ? (
+                            <p className="text-xs text-muted-foreground/80 mt-1">—</p>
+                        ) : (
+                            <ul className="mt-1 space-y-0.5 list-disc list-inside text-sm text-foreground">
+                                {specialSight.map((s) => (
+                                    <li key={s}>{s}</li>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
+                </div>
             </div>
         </div>
     )

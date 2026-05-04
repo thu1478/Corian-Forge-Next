@@ -65,13 +65,14 @@ export default function Page() {
                 </div>
             </header>
 
-            {/* Viewport Render */}
+            {/* Viewport: keep both mounted so sheet/creator state survives tab switches; localStorage still covers full refresh. */}
             <div className="flex-1">
-                {mode === "sheet" ? (
+                <div className={mode === "sheet" ? "" : "hidden"} aria-hidden={mode !== "sheet"}>
                     <CharacterSheetView />
-                ) : (
+                </div>
+                <div className={mode === "creator" ? "" : "hidden"} aria-hidden={mode !== "creator"}>
                     <CharacterCreator />
-                )}
+                </div>
             </div>
 
             <footer className="border-t border-border py-6">

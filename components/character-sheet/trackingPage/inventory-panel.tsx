@@ -168,6 +168,12 @@ function formatTraitEffectLine(effect: unknown): string {
   if (e.type === "GrantActionCard" && e.value != null) {
     return `Grants action card: ${e.value}`
   }
+  if (e.type === "Immunity" && typeof e.stat === "string" && e.stat.trim()) {
+    return `Immune: ${e.stat}`
+  }
+  if (e.type === "GrantSight" && typeof e.stat === "string" && e.stat.trim()) {
+    return `Sight: ${e.stat}`
+  }
   try {
     return JSON.stringify(e)
   } catch {

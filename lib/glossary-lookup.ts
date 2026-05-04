@@ -51,6 +51,25 @@ function keyMatchesCandidate(key: string, candidate: string): boolean {
   return false
 }
 
+/** Match UI labels like `First Strike` to glossary keys like `firstStrike` or names like `First Strike`. */
+function normalizedTagId(s: string): string {
+  return s.replace(/\s+/g, "").toLowerCase()
+}
+
+function tagMatchesGlossaryKeyOrName(
+  key: string,
+  displayName: string,
+  candidates: string[]
+): boolean {
+  const nk = normalizedTagId(key)
+  const nn = normalizedTagId(displayName)
+  return candidates.some((c) => {
+    const nc = normalizedTagId(c.trim())
+    if (!nc) return false
+    return keyMatchesCandidate(key, c) || nc === nk || nc === nn
+  })
+}
+
 /**
  * Resolve a UI tag string (e.g. from an action card) to a glossary term under
  * `rules.glossary.effectDictionary`, trying common casings and section priority.
@@ -70,8 +89,8 @@ export function findEffectGlossaryEntry(tag: string): GlossaryTerm | null {
     if (!section || typeof section !== "object") continue
     for (const [key, value] of Object.entries(section)) {
       if (!isGlossaryTerm(value)) continue
-      if (candidates.some((c) => keyMatchesCandidate(key, c))) {
-        const name = typeof value.name === "string" && value.name.trim() ? value.name : key
+      const name = typeof value.name === "string" && value.name.trim() ? value.name : key
+      if (tagMatchesGlossaryKeyOrName(key, name, candidates)) {
         return { name, description: value.description }
       }
     }

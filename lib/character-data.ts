@@ -92,151 +92,66 @@ export const defaultCharacter: CharacterSaveData = {
     // Character Info
     name: "Kira Shadowmend",
     age: 27,
-    gender: "Female",
-    race: "Half-Elf",
+    gender: "",
+    race: "",
     profileImage: "",
-    background: "Shadow Touched Mercenary",
-    backstory: "Born under a lunar eclipse in the border town of Ashwick, Kira's half-elven heritage made her an outsider in both human and elven societies. Her mother, an elven diplomat, was killed when Kira was twelve during a political assassination that was never solved. This tragedy awakened her latent magical abilities - a dark, shadow-tinged arcane power that frightened the townsfolk.\n\nShe spent her teenage years in the Shadow Guild, learning to harness her abilities and survive in the underworld of Ashwick. However, when the Guild demanded she assassinate an innocent family to prove her loyalty, she fled, becoming a freelance mercenary and adventurer.\n\nNow she travels with her current party, seeking both redemption for her past and answers about who ordered her mother's death. Her sister Elara, whom she left behind in Ashwick, is one of the few people she truly trusts.",
+    background: "",
+    backstory: "",
 
     // Classes
     classes: [
-        {id: "weaponmaster", level: 3},
-        {id: "sorcerer", level: 1}
     ],
 
     // Combat Resources
-    hp: 20,
-    barrier: 8,
-    mp: 18,
-    focus: 3,
-    respite: 4,
+    hp: 1,
+    barrier: 0,
+    mp: 0,
+    focus: 0,
+    respite: 0,
 
     // Attributes
     attributes: {
-        might: 14,
-        dexterity: 16,
-        reason: 15,
-        willpower: 12,
-        presence: 13
+        might: 10,
+        dexterity: 10,
+        reason: 10,
+        willpower: 10,
+        presence: 10
     },
 
     // Non-resource stats
     speed: 4,
 
     // Other stats
-    xp: 2450,
-    inspiration: 2,
-    victories: 7,
+    xp: 0,
+    inspiration: 0,
+    victories: 0,
 
     // Focus Features
-    focusFeatures: [
-        {
-            classSrc: "weaponmaster",
-            slotIndex: -1
-        },
-        {
-            classSrc: "sorcerer",
-            slotIndex: -1
-        },
-    ],
+    focusFeatures: [],
 
     // Reactions
-    reactions: [
-        {
-            id: "counterattack",
-            slotIndex: -1,
-            charges: -1
-        },
-        {
-            id: "parry",
-            slotIndex: -1,
-            charges: 0
-        },
-        {
-            id: "returnFire",
-            slotIndex: -1,
-            charges: 0
-        },
-    ],
+    reactions: [],
 
     // Actions
-    actions: [
-        {id: "honedStrike"},
-        {id: "partingSlash"},
-        {id: "acidSplash"},
-        {id: "shadowSpears"},
-    ],
+    actions: [],
 
     // Traits
-    traits: [
-        {
-            id: "statBuffTest",
-            source: "Innate"
-        },
-        {
-            id: "resistTest",
-            source: "Innate"
-        },
-        {
-            id: "weaponBond",
-            source: "Weaponmaster"
-        },
-        {
-            id: "bladestorm",
-            source: "Weaponmaster"
-        },
-        {
-            id: "statBuffTest2",
-            source: "Innate"
-        },
-        {
-            id: "statBuffTest3",
-            source: "Innate"
-        },
-        {
-            id: "languageTest",
-            source: "Innate"
-        },
-    ],
+    traits: [],
 
     // Skills
-    skills: [
-        {name: "Athletics", attribute: "might", hasExpertise: false},
-        {name: "Acrobatics", attribute: "dexterity", hasExpertise: true},
-        {name: "Stealth", attribute: "dexterity", hasExpertise: true},
-        {name: "Arcana", attribute: "reason", hasExpertise: false},
-        {name: "Investigation", attribute: "reason", hasExpertise: false},
-        {name: "Perception", attribute: "willpower", hasExpertise: false},
-        {name: "Insight", attribute: "willpower", hasExpertise: false},
-        {name: "Intimidation", attribute: "presence", hasExpertise: false},
-        {name: "Persuasion", attribute: "presence", hasExpertise: false}
-    ],
+    skills: [],
 
     // Inventory
-    money: 127,
-    ip: 3,
-    inventory: [
-        {id: "sword_w1", uid: "sword_w1-v4n9z2"},
-        {id: "shield_s1", uid: "shield_s1-v4n9z2"},
-        {id: "wand_w2", uid: "wand_w2-x7m3k1"},
-        {id: "dagger_w1", uid: "dagger_w1-p9l5r8"},
-        {id: "i-a1", uid: "i-a1-q2w4e6"},
-        {id: "i-a2", uid: "i-a2-t8y1u3"},
-        {id: "i-a3", uid: "i-a3-i0o2p4"},
-        {id: "i-a4", uid: "i-a4-a7s9d1"},
-        {id: "i-acc1", uid: "i-acc1-f3g5h7"},
-        {id: "i-acc2", uid: "i-acc2-j9k1l3"},
-        {id: "i-acc3", uid: "i-acc3-z8x0c2"},
-        {id: "i-1", uid: "i-1-v4b6n8"},
-        {id: "i-3", uid: "i-3-m1q3w5"}
-    ],
+    money: 0,
+    ip: 0,
+    inventory: [],
     containers: [],
 
     // Equipment
     equipment: {
-        activeWeapon: "sword_w1-v4n9z2",
-        offhand: "shield_s1-v4n9z2",
-        armor: "i-a1-q2w4e6",
+        activeWeapon: null,
+        offhand: null,
+        armor: null,
         accessories: {
             head: null,
             face: null,
@@ -251,23 +166,7 @@ export const defaultCharacter: CharacterSaveData = {
         }
     },
 
-    bondTargets: [
-        {
-            id: "bt-marcus",
-            name: "Marcus (Party Leader)",
-            emotions: [{id: "be-m1", type: "loyalty"}],
-        },
-        {
-            id: "bt-elara",
-            name: "Elara (Sister)",
-            emotions: [{id: "be-e1", type: "affection"}],
-        },
-        {
-            id: "bt-guild",
-            name: "The Shadow Guild",
-            emotions: [{id: "be-g1", type: "mistrust"}],
-        },
-    ],
+    bondTargets: [],
 
     cultureEnvironment: null,
     cultureOrganization: null,
@@ -344,14 +243,14 @@ export function sumClassStatBonus(
     }, 0)
 }
 
-type TraitLike = { effects?: Array<{ type: string; stat?: string; value: string }> };
+type TraitLike = { effects?: Array<{ type: string; stat?: string; value?: string }> };
 
 /** Sums StatChange effects for a stat key (e.g. might, maxHP). */
 export function sumTraitStatChangeEffects(traits: TraitLike[], statName: string): number {
     return traits.reduce((total, trait) => {
         const bonuses =
             trait.effects?.filter(e => e.type === "StatChange" && e.stat === statName) || [];
-        const sum = bonuses.reduce((s, b) => s + parseInt(b.value, 10), 0);
+        const sum = bonuses.reduce((s, b) => s + parseInt(b.value ?? "0", 10), 0);
         return total + sum;
     }, 0);
 }

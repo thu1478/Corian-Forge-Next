@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils"
 import { InventoryItem } from "@/lib/equipment-data"
-import { CharAttribute, PotencyEffect, PowerRoll } from "@/lib/rules"
+import { PotencyEffect, PowerRoll } from "@/lib/rules"
 import { getAttributeModifier } from "@/lib/character-data"
 import { potencyStrengthDisplayLabel, potencyStrengthToModifier } from "@/lib/potency-strength"
 
@@ -22,7 +22,7 @@ export function PowerRollTierRow({
     tier,
     badgeStyle,
     attributes,
-    currentWeapon,
+    weaponForPowerRoll,
     powerRollDisplayMode,
 }: {
     label: string
@@ -30,7 +30,8 @@ export function PowerRollTierRow({
     tier: number
     badgeStyle: string
     attributes: PowerRollAttributes
-    currentWeapon?: InventoryItem | null
+    /** Weapon whose damage applies for +Wpn tiers (already resolved for active/offhand + melee/ranged). */
+    weaponForPowerRoll?: InventoryItem | null
     powerRollDisplayMode: PowerRollDisplayMode
 }) {
     const baseDmg = (roll[`tier${tier}Dmg` as keyof PowerRoll] as number) || 0
@@ -38,13 +39,9 @@ export function PowerRollTierRow({
     const potency = roll[`tier${tier}Effect` as keyof PowerRoll] as PotencyEffect | undefined
 
     let weaponBonus = 0
-    if (currentWeapon && currentWeapon.type === "weapon" && currentWeapon.attributes) {
-        const isCompatible = currentWeapon.attributes.some((attr) =>
-            roll.rollStats.includes(attr as CharAttribute)
-        )
-        if (isCompatible) {
-            weaponBonus = currentWeapon.damage || 0
-        }
+    if (hasWpn && weaponForPowerRoll && weaponForPowerRoll.type === "weapon") {
+        const raw = weaponForPowerRoll.damage as number | string | undefined
+        weaponBonus = typeof raw === "number" && Number.isFinite(raw) ? raw : Number(raw) || 0
     }
 
     const finalDmg = (hasWpn ? weaponBonus : 0) + baseDmg

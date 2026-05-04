@@ -14,7 +14,8 @@ export function useDataLoader(rulesDataParam: any) {
         character: rawCharacter,
         setCharacter,
         importJSON,
-        exportJSON
+        exportJSON,
+        clearSavedCharacter,
     } = useCharacterIO();
 
     // 2. Base Hydration (Getting item details from JSON)
@@ -34,6 +35,14 @@ export function useDataLoader(rulesDataParam: any) {
             rawCharacter.equipment.armor,
             ...Object.values(rawCharacter.equipment.accessories || {})
         ].filter(Boolean);
+    }, [rawCharacter?.equipment]);
+
+    const handSlotUids = useMemo((): [string | null, string | null] | null => {
+        if (!rawCharacter?.equipment) return null;
+        return [
+            rawCharacter.equipment.activeWeapon ?? null,
+            rawCharacter.equipment.offhand ?? null,
+        ];
     }, [rawCharacter?.equipment]);
 
     const classNames = useMemo(() =>
@@ -71,7 +80,8 @@ export function useDataLoader(rulesDataParam: any) {
         hydratedItemsChar?.inventory || [],
         equippedUids,
         classNames,
-        [...(rawCharacter?.actions || []), ...traitActionIds.map(id => ({ id }))]
+        [...(rawCharacter?.actions || []), ...traitActionIds.map(id => ({ id }))],
+        handSlotUids,
     );
 
     // 5. Final Object Assembly
@@ -108,6 +118,7 @@ export function useDataLoader(rulesDataParam: any) {
         setCharacter,
         importJSON,
         exportJSON,
+        clearSavedCharacter,
         isLoading: !rawCharacter || !character
     };
 }

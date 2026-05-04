@@ -10,7 +10,8 @@ import {findEffectGlossaryEntry} from "@/lib/glossary-lookup"
 import {
     PowerRollTierRow,
     type PowerRollDisplayMode,
-} from "@/components/power-roll/power-roll-tier-row";
+} from "@/components/power-roll/power-roll-tier-row"
+import { resolveWeaponForActionPowerRoll } from "@/lib/weapon-power-roll"
 
 export type ActionSpendResourceKind = "mp" | "focus" | "ip"
 
@@ -33,7 +34,10 @@ interface ActionCardProps {
         presence: number;
     }
     disabled?: boolean
+    /** Main hand (active weapon slot). */
     currentWeapon?: InventoryItem | null
+    /** Off hand; only weapons contribute to +Wpn resolution (shields ignored). */
+    offhandWeapon?: InventoryItem | null
     forceCollapsed: boolean
     /** When set with `actionCostBudget`, cost chips spend that resource on click (e.g. combat tab). */
     onSpendActionCost?: (kind: ActionSpendResourceKind, amount: number) => void
@@ -109,6 +113,7 @@ export function ActionCardComponent({
                                         attributes,
                                         disabled = false,
                                         currentWeapon,
+                                        offhandWeapon = null,
                                         forceCollapsed = false,
                                         onSpendActionCost,
                                         actionCostBudget,
@@ -117,6 +122,17 @@ export function ActionCardComponent({
     // Each card maintains its own independent state
     const [isExpanded, setIsExpanded] = useState(true);
     const [isPowerRollExpanded, setIsPowerRollExpanded] = useState(true);
+
+    const weaponForPowerRollDamage = useMemo(
+        () =>
+            resolveWeaponForActionPowerRoll(
+                action.tags,
+                action.powerRoll?.rollStats,
+                currentWeapon ?? null,
+                offhandWeapon ?? null
+            ),
+        [action.tags, action.powerRoll?.rollStats, currentWeapon, offhandWeapon]
+    );
 
     // Effect to listen to the "Global Collapse" button from parent
     useEffect(() => {
@@ -344,7 +360,7 @@ export function ActionCardComponent({
                                 tier={1}
                                 badgeStyle={config.badge}
                                 attributes={attributes}
-                                currentWeapon={currentWeapon}
+                                weaponForPowerRoll={weaponForPowerRollDamage}
                                 powerRollDisplayMode={powerRollDisplayMode}
                             />
                             <PowerRollTierRow
@@ -353,7 +369,7 @@ export function ActionCardComponent({
                                 tier={2}
                                 badgeStyle={config.badge}
                                 attributes={attributes}
-                                currentWeapon={currentWeapon}
+                                weaponForPowerRoll={weaponForPowerRollDamage}
                                 powerRollDisplayMode={powerRollDisplayMode}
                             />
                             <PowerRollTierRow
@@ -362,7 +378,7 @@ export function ActionCardComponent({
                                 tier={3}
                                 badgeStyle={config.badge}
                                 attributes={attributes}
-                                currentWeapon={currentWeapon}
+                                weaponForPowerRoll={weaponForPowerRollDamage}
                                 powerRollDisplayMode={powerRollDisplayMode}
                             />
                         </div>
