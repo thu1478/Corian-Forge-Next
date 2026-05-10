@@ -61,6 +61,7 @@ import {capitalizeFirstLetter, cn} from "@/lib/utils"
 import {Button} from "@/components/ui/button"
 import {makeContainerId, makeInventoryUid} from "@/lib/inventory-filters"
 import {unequipInventoryUids} from "@/lib/inventory-helpers"
+import { itemStackQuantity, sumDirectChildQuantities } from "@/lib/inventory-container-rules"
 import rulesData from "@/lib/rules.json";
 import {actionTagMatchesFilterChip, actionTagMatchesSearchQuery} from "@/lib/action-tag-utils";
 import {Equipment, EQUIPMENT_RULES, type InventoryContainer} from "@/lib/equipment-data";
@@ -244,19 +245,59 @@ export function CharacterSheetView() {
     const handleRemoveInventoryItem = (itemUid: string) => {
         setCharacter((prev: any) => ({
             ...prev,
-            inventory: (prev.inventory || []).filter((e: any) => e.uid !== itemUid),
+            inventory: (prev.inventory || [])
+                .map((e: any) => (e.containerId === itemUid ? { ...e, containerId: null } : e))
+                .filter((e: any) => e.uid !== itemUid),
             equipment: unequipInventoryUids(prev.equipment, [itemUid]),
         }));
     };
 
     const handleSetItemQuantity = (itemUid: string, quantity: number) => {
-        const q = Math.max(1, Math.floor(quantity));
-        setCharacter((prev: any) => ({
-            ...prev,
-            inventory: (prev.inventory || []).map((e: any) =>
-                e.uid === itemUid ? {...e, quantity: q} : e
-            ),
-        }));
+        setCharacter((prev: any) => {
+            const inv = prev.inventory || []
+            const item = inv.find((e: any) => e.uid === itemUid)
+            if (!item) return prev
+            let q = Math.max(1, Math.floor(quantity))
+            const parentId = item.containerId
+            if (parentId) {
+                const parent = inv.find((e: any) => e.uid === parentId && e.type === "container")
+                const cap = parent?.containerCapacity
+                if (parent && typeof cap === "number" && cap >= 0) {
+                    const oldQty = itemStackQuantity(item)
+                    const others =
+                        sumDirectChildQuantities(inv, String(parentId)) - oldQty
+                    const maxAllowed = Math.max(0, cap - others)
+                    q = Math.min(q, Math.max(1, maxAllowed))
+                }
+            }
+            return {
+                ...prev,
+                inventory: inv.map((e: any) => (e.uid === itemUid ? {...e, quantity: q} : e)),
+            }
+        })
+    };
+
+    const handleUnpackItemContainer = (itemUid: string) => {
+        setCharacter((prev: any) => {
+            const inv = prev.inventory || []
+            const bag = inv.find((e: any) => e.uid === itemUid && e.type === "container")
+            if (!bag) return prev
+            const newId = makeContainerId()
+            const bagName =
+                (typeof bag.customName === "string" && bag.customName.trim()) ||
+                String(bag.name || "").trim() ||
+                "Container"
+            const nextContainers = [...(prev.containers || []), { id: newId, name: bagName }]
+            const nextInventory = inv
+                .filter((e: any) => e.uid !== itemUid)
+                .map((e: any) => (e.containerId === itemUid ? { ...e, containerId: newId } : e))
+            return {
+                ...prev,
+                containers: nextContainers,
+                inventory: nextInventory,
+                equipment: unequipInventoryUids(prev.equipment, [itemUid]),
+            }
+        })
     };
 
     const handleSetInventoryItemCustomName = (itemUid: string, customName: string) => {
@@ -351,13 +392,26 @@ export function CharacterSheetView() {
         setCharacter(prev => ({...prev, hp: clampedHp, barrier: Math.max(newBarrier, 0)}))
     }
     const handleAccessoryChange = (slot: keyof Equipment["accessories"], uid: string | null) => {
-        setCharacter((prev: any) => ({
-            ...prev,
-            equipment: {...prev.equipment, accessories: {...prev.equipment.accessories, [slot]: uid}}
-        }));
+        setCharacter((prev: any) => {
+            let equipment = prev.equipment
+            if (uid) {
+                equipment = unequipInventoryUids(equipment, [uid])
+            }
+            return {
+                ...prev,
+                equipment: {...equipment, accessories: {...equipment.accessories, [slot]: uid}},
+            }
+        })
     };
     const handleEquipmentChange = (slot: "activeWeapon" | "offhand" | "armor", item: any) => {
-        setCharacter((prev: any) => ({...prev, ...EQUIPMENT_RULES.getNewState(slot, item, prev)}));
+        setCharacter((prev: any) => {
+            const incomingUid = item?.uid ?? null
+            const base =
+                incomingUid != null && incomingUid !== ""
+                    ? {...prev, equipment: unequipInventoryUids(prev.equipment, [String(incomingUid)])}
+                    : prev
+            return {...base, ...EQUIPMENT_RULES.getNewState(slot, item, base)}
+        })
     };
     const handleSelectFeat = (index: number, newSrc: string) => {
         setCharacter(prev => {
@@ -593,11 +647,16 @@ export function CharacterSheetView() {
                                                   vulnerabilities={derived.vulnerabilities}
                                                   conditionImmunities={derived.conditionImmunities}
                                                   specialSight={derived.specialSight}/>
-                                <AttributesPanel attributes={derived.attributes}/>
                                 <OtherStats
-                                    xp={character.xp}
+                                    xp={Math.max(0, Math.floor(Number(character.xp ?? 0) || 0))}
                                     inspiration={character.inspiration}
                                     victories={character.victories}
+                                    onUpdateXp={(next) =>
+                                        setCharacter((prev) => ({
+                                            ...prev,
+                                            xp: Math.max(0, Math.floor(Number(next)) || 0),
+                                        }))
+                                    }
                                     onUpdateInspiration={(v) => setCharacter((prev) => ({...prev, inspiration: v}))}
                                     onUpdateVictories={(v) => setCharacter((prev) => ({
                                         ...prev,
@@ -817,7 +876,8 @@ export function CharacterSheetView() {
                                 </div>
                             </div>
 
-                            <div className="lg:col-span-3">
+                            <div className="lg:col-span-3 space-y-4">
+                                <AttributesPanel attributes={derived.attributes}/>
                                 <FocusReactionsPanel
                                     rules={rulesData}
                                     knownFocusFeats={character.focusFeatures}
@@ -867,6 +927,7 @@ export function CharacterSheetView() {
                                 onRemoveInventoryItem={handleRemoveInventoryItem}
                                 onSetItemQuantity={handleSetItemQuantity}
                                 onSetInventoryItemCustomName={handleSetInventoryItemCustomName}
+                                onUnpackItemContainer={handleUnpackItemContainer}
                             />
                         </div>
                     </TabsContent>
@@ -900,6 +961,7 @@ export function CharacterSheetView() {
                             <div className="space-y-4 min-w-0">
                                 <SkillsPanel
                                     skills={character.skills ?? []}
+                                    attributes={derived.attributes}
                                     skillCatalog={
                                         (rulesData.system as { skills?: Record<string, Record<string, unknown>> })
                                             ?.skills ?? {}

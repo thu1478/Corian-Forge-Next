@@ -26,6 +26,8 @@ export type ResolveIncomingDamageInput = {
   rawDamage: number
   penetration: number
   defense: number
+  /** When physical: treat defense as halved (round up) before subtracting penetration. */
+  sundered?: boolean
   /** Physical vs magical delivery — controls defense + penetration (separate from elemental type for R/V). */
   damageChannel: DamageChannel
   /** Rules damage type (crushing, fire, …) for resist / vulnerability only. */
@@ -47,6 +49,7 @@ export type ResolveIncomingDamageBreakdown = {
 
 /**
  * Incoming hit: defense + penetration when damageChannel is physical (any damage type),
+ * optional sundered halves defense (round up) before penetration,
  * then resistance (half, round up), then flat vulnerability keyed by damageType.
  * If the type is both resisted and vulnerable, neither modifier applies.
  */
@@ -60,7 +63,8 @@ export function resolveIncomingDamage(input: ResolveIncomingDamageInput): Resolv
   let afterDefense: number
 
   if (input.damageChannel === "physical") {
-    relevantDefense = Math.max(defense - pen, 0)
+    const defenseForHit = input.sundered ? Math.ceil(defense / 2) : defense
+    relevantDefense = Math.max(defenseForHit - pen, 0)
     if (raw <= 0) {
       afterDefense = 0
     } else {

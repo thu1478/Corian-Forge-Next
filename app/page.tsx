@@ -4,10 +4,11 @@ import {useState} from "react"
 import {useTheme} from "next-themes"
 import {CharacterSheetView} from "@/components/character-sheet/CharacterSheetView"
 import {Button} from "@/components/ui/button"
-import {Moon, PlusCircle, Sun, Swords} from "lucide-react"
-import CharacterCreator from "@/components/character-creator/CharacterCreator";
+import {BookOpen, Moon, PlusCircle, Sun, Swords} from "lucide-react"
+import CharacterCreator from "@/components/character-creator/CharacterCreator"
+import {RulesLibraryView} from "@/components/library/RulesLibraryView"
 
-type AppMode = "sheet" | "creator"
+type AppMode = "sheet" | "creator" | "library"
 
 export default function Page() {
     const [mode, setMode] = useState<AppMode>("sheet")
@@ -46,6 +47,15 @@ export default function Page() {
                                 <PlusCircle className="w-4 h-4 mr-2" />
                                 Creator
                             </Button>
+                            <Button
+                                variant={mode === "library" ? "secondary" : "ghost"}
+                                size="sm"
+                                onClick={() => setMode("library")}
+                                className="font-bold"
+                            >
+                                <BookOpen className="w-4 h-4 mr-2" />
+                                Library
+                            </Button>
                         </nav>
                     </div>
 
@@ -65,13 +75,16 @@ export default function Page() {
                 </div>
             </header>
 
-            {/* Viewport: keep both mounted so sheet/creator state survives tab switches; localStorage still covers full refresh. */}
+            {/* Viewport: keep views mounted so sheet/creator state survives tab switches; localStorage still covers full refresh. */}
             <div className="flex-1">
                 <div className={mode === "sheet" ? "" : "hidden"} aria-hidden={mode !== "sheet"}>
                     <CharacterSheetView />
                 </div>
                 <div className={mode === "creator" ? "" : "hidden"} aria-hidden={mode !== "creator"}>
                     <CharacterCreator />
+                </div>
+                <div className={mode === "library" ? "" : "hidden"} aria-hidden={mode !== "library"}>
+                    <RulesLibraryView />
                 </div>
             </div>
 

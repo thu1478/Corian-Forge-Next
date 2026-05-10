@@ -1,4 +1,4 @@
-import {CharAttribute} from "@/lib/rules";
+import { CharAttribute, type PowerRoll } from "@/lib/rules"
 
 export const EQUIPMENT_RULES = {
     getNewState: (slot: string, item: any, prev: any) => {
@@ -64,7 +64,7 @@ export interface InventoryEntry {
     uid: string;
     /** Stack count; defaults from item rules when omitted. */
     quantity?: number;
-    /** Items with no container (or null) sit in the main pack. */
+    /** Items with no container (or null) are carried loose (not inside any bag). */
     containerId?: string | null;
     /** Local display name only; does not change rules catalog. */
     customName?: string;
@@ -86,6 +86,8 @@ interface BaseItem {
     actionIDs?: string[];
     /** Rule ids and/or inline `{ traitId: passive }` objects from catalog. */
     traits?: Array<string | Record<string, unknown>>;
+    /** Optional item effect table (e.g. consumables, coatings); not merged into combat actions. */
+    powerRoll?: PowerRoll;
 }
 
 // 2. Define specific "Sub-Types"
@@ -113,13 +115,26 @@ export interface ArmorItem extends BaseItem {
     statBonuses?: Record<string, number>;
 }
 
-// Consumables and other items
+// Other items
+export interface ConsumableItem extends BaseItem {
+    type: "consumable";
+}
+
+/** Inventory bag as an item; children use `containerId` = this instance's `uid`. */
+export interface ContainerItem extends BaseItem {
+    type: "container";
+    /** Max total item quantity inside (sum of stack sizes); omit for unlimited. */
+    containerCapacity?: number;
+    /** If set and non-empty, only these item types may be stored. Omit for any type (except nested containers). */
+    containerAllowedTypes?: Array<"weapon" | "shield" | "armor" | "misc" | "consumable">;
+}
+
 export interface MiscItem extends BaseItem {
     type: "misc";
 }
 
 // 3. Combine them into a single Union Type
-export type InventoryItem = WeaponItem | ShieldItem | ArmorItem | MiscItem;
+export type InventoryItem = WeaponItem | ShieldItem | ArmorItem | ConsumableItem | MiscItem | ContainerItem;
 
 export interface Equipment {
     activeWeapon: string | null

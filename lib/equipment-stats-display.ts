@@ -5,6 +5,13 @@ function martialSuffix(tags: string[] | undefined): string {
   return tags && actionTagsIncludeCanonical(tags, "martial") ? " · Martial" : ""
 }
 
+function weaponHandsSuffix(tags: string[] | undefined): string {
+  if (!tags) return ""
+  if (actionTagsIncludeCanonical(tags, "1H")) return " · 1H"
+  if (actionTagsIncludeCanonical(tags, "2H")) return " · 2H"
+  return ""
+}
+
 function fmtAttrName(attr: string): string {
   if (!attr) return attr
   return attr.charAt(0).toUpperCase() + attr.slice(1)
@@ -27,8 +34,9 @@ export function weaponStatSummary(item: WeaponItem): string {
   const dt = typeof item.damageType === "string" && item.damageType.trim() ? item.damageType.trim() : null
   const rng = item.range ?? 0
   const m = martialSuffix(item.tags)
+  const h = weaponHandsSuffix(item.tags)
   const base = dt != null ? `Damage ${dmg} (${dt}) · Range ${rng}` : `Damage ${dmg} · Range ${rng}`
-  return base + m
+  return base + m + h
 }
 
 export function armorStatSummary(item: ArmorItem): string {
@@ -51,6 +59,15 @@ export function equipmentStatSummaryLine(item: InventoryItem): string | null {
   if (item.type === "weapon") return weaponStatSummary(item)
   if (item.type === "armor") return armorStatSummary(item)
   if (item.type === "shield") return shieldStatSummary(item)
+  if (item.type === "consumable") return "Consumable"
+  if (item.type === "container") {
+    const cap = item.containerCapacity
+    const allowed = item.containerAllowedTypes
+    const parts: string[] = []
+    if (typeof cap === "number" && cap >= 0) parts.push(`Max ${cap} items`)
+    if (allowed?.length) parts.push(allowed.join("/"))
+    return parts.length ? `Container · ${parts.join(" · ")}` : "Container"
+  }
   return null
 }
 
@@ -70,7 +87,7 @@ export function equipmentStatSummaryFromDef(def: Record<string, unknown>): strin
     const rawDt = def.damageType
     const dt = typeof rawDt === "string" && rawDt.trim() ? rawDt.trim() : null
     const base = dt != null ? `Damage ${dmg} (${dt}) · Range ${rng}` : `Damage ${dmg} · Range ${rng}`
-    return base + martialSuffix(tags)
+    return base + martialSuffix(tags) + weaponHandsSuffix(tags)
   }
   if (t === "armor" && def.defense != null && typeof def.defense === "object") {
     const d = def.defense as Record<string, unknown>
@@ -87,6 +104,19 @@ export function equipmentStatSummaryFromDef(def: Record<string, unknown>): strin
     const stab = typeof def.stability === "number" ? def.stability : null
     const base = stab != null ? `Defense ${def.defense} · Stability ${stab}` : `Defense ${def.defense}`
     return base + martialSuffix(tags)
+  }
+  if (t === "container") {
+    const cap = def.containerCapacity
+    const allowed = def.containerAllowedTypes
+    const parts: string[] = []
+    if (typeof cap === "number" && cap >= 0) parts.push(`Max ${cap} items`)
+    if (Array.isArray(allowed) && allowed.length > 0) {
+      parts.push(`Only ${allowed.join(", ")}`)
+    }
+    return parts.length > 0 ? parts.join(" · ") : "Container"
+  }
+  if (t === "consumable") {
+    return "Consumable"
   }
   return null
 }

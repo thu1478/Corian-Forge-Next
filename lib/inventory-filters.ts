@@ -8,7 +8,7 @@ export function itemMatchesKindFilter(item: Pick<InventoryItem, "type">, filter:
     const t = item.type;
     if (filter === "weapons") return t === "weapon";
     if (filter === "armor_shield") return t === "armor" || t === "shield";
-    return t === "misc";
+    return t === "misc" || t === "consumable" || t === "container";
 }
 
 export function itemMatchesSearch(

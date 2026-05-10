@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { PowerRoll } from "@/lib/rules"
@@ -31,6 +31,8 @@ type TraitPowerRollCollapsibleProps = {
     actionTags?: string[]
     powerRollDisplayMode?: PowerRollDisplayMode
     className?: string
+    /** Increment (e.g. library "Collapse all") to collapse tier rows. */
+    collapseAllSignal?: number
 }
 
 export function TraitPowerRollCollapsible({
@@ -42,8 +44,14 @@ export function TraitPowerRollCollapsible({
     actionTags,
     powerRollDisplayMode = "simple",
     className,
+    collapseAllSignal,
 }: TraitPowerRollCollapsibleProps) {
     const [open, setOpen] = useState(defaultExpanded)
+
+    useEffect(() => {
+        if (collapseAllSignal == null || collapseAllSignal < 1) return
+        setOpen(false)
+    }, [collapseAllSignal])
 
     const weaponForPowerRollDamage = useMemo(
         () =>

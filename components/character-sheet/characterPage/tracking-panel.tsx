@@ -3,7 +3,8 @@
 import {useMemo, useState} from "react"
 import {cn} from "@/lib/utils"
 import {Brain, Briefcase, Filter, Globe2, GraduationCap, Heart, Languages, Plus, ScrollText, Sparkles, Trash2} from "lucide-react"
-import {BondEmotionType, BondTarget, Skill, Trait} from "@/lib/rules";
+import {BondEmotionType, BondTarget, type PowerRoll, Skill, Trait} from "@/lib/rules";
+import type {PowerRollAttributes} from "@/components/power-roll/power-roll-tier-row";
 import {TraitPowerRollCollapsible} from "@/components/power-roll/trait-power-roll-collapsible";
 import {Button} from "@/components/ui/button"
 import {Input} from "@/components/ui/input"
@@ -305,6 +306,7 @@ type SkillCatalogEntry = {
     name?: string
     description?: string
     categories?: string[]
+    powerRoll?: PowerRoll
 }
 
 const UNCATEGORIZED = "__uncategorized__"
@@ -333,11 +335,12 @@ function categoryHeadingLabel(categoryId: string): string {
 
 interface SkillsPanelProps {
     skills: Skill[]
-    /** `rules.system.skills` — names, descriptions, categories. */
+    /** `rules.system.skills` — names, descriptions, categories, optional power rolls. */
     skillCatalog: Record<string, SkillCatalogEntry>
+    attributes: PowerRollAttributes
 }
 
-export function SkillsPanel({ skills, skillCatalog }: SkillsPanelProps) {
+export function SkillsPanel({ skills, skillCatalog, attributes }: SkillsPanelProps) {
     const categoryOrder = useMemo(() => {
         const ids = new Set<string>()
         for (const def of Object.values(skillCatalog)) {
@@ -424,6 +427,12 @@ export function SkillsPanel({ skills, skillCatalog }: SkillsPanelProps) {
                                                             {desc ||
                                                                 "No description for this skill in the rules catalog."}
                                                         </p>
+                                                        {rule?.powerRoll && (
+                                                            <TraitPowerRollCollapsible
+                                                                roll={rule.powerRoll}
+                                                                attributes={attributes}
+                                                            />
+                                                        )}
                                                     </div>
                                                 </PopoverContent>
                                             </Popover>

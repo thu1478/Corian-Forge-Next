@@ -4,7 +4,19 @@ import {useMemo, useState} from "react"
 import {cn} from "@/lib/utils"
 import { normalizeDamageTypeKey } from "@/lib/damage-type-key"
 import { conflictingDamageTypeKeys } from "@/lib/damage-resolution"
-import {Calculator, Droplets, Footprints, Heart, Leaf, Minus, Plus, Shield, ShieldCheck, Swords} from "lucide-react"
+import {
+    Award,
+    Calculator,
+    Droplets,
+    Footprints,
+    Heart,
+    Leaf,
+    Minus,
+    Plus,
+    Shield,
+    ShieldCheck,
+    Swords,
+} from "lucide-react"
 import {Button} from "@/components/ui/button"
 import {Input} from "@/components/ui/input"
 
@@ -443,26 +455,45 @@ interface OtherStatsProps {
     xp: number
     inspiration: number
     victories: number
+    onUpdateXp: (nextTotal: number) => void
     onUpdateInspiration: (newCount: number) => void
     onUpdateVictories: (newCount: number) => void
 }
+
+const XP_QUICK_ADD = [10, 25, 50, 100] as const
 
 export function OtherStats({
     xp,
     inspiration,
     victories,
+    onUpdateXp,
     onUpdateInspiration,
     onUpdateVictories,
 }: OtherStatsProps) {
+    const [customAdd, setCustomAdd] = useState("")
+    const [exactTotal, setExactTotal] = useState("")
+    const [showSetTotal, setShowSetTotal] = useState(false)
+
+    const applyCustomAdd = () => {
+        const n = Math.floor(Number.parseInt(customAdd.trim(), 10))
+        if (!Number.isFinite(n) || n <= 0) return
+        onUpdateXp(xp + n)
+        setCustomAdd("")
+    }
+
+    const applyExactTotal = () => {
+        const n = Math.floor(Number.parseInt(exactTotal.trim(), 10))
+        if (!Number.isFinite(n) || n < 0) return
+        onUpdateXp(n)
+        setExactTotal("")
+        setShowSetTotal(false)
+    }
+
     return (
         <div className="p-4 bg-card rounded-xl border border-border">
-            <h3 className="text-base font-semibold uppercase tracking-wider text-primary mb-4">Progress</h3>
+            <h3 className="text-base font-semibold text-foreground mb-3">Progress</h3>
 
             <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground uppercase tracking-wider font-medium">XP</span>
-                    <span className="font-mono font-bold text-foreground text-base">{xp.toLocaleString()}</span>
-                </div>
                 <div className="flex items-center justify-between">
     <span className="text-sm text-muted-foreground uppercase tracking-wider font-medium">
         Inspiration
@@ -525,6 +556,103 @@ export function OtherStats({
                             <Plus className="w-3.5 h-3.5"/>
                         </Button>
                     </div>
+                </div>
+                <div
+                    className="rounded-lg border border-violet-200/70 bg-violet-50/35 p-2.5 dark:border-violet-900/45 dark:bg-violet-950/20 space-y-2"
+                    title="Add points you earned, or set the exact total if you need to fix a mistake."
+                >
+                    <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 min-w-0 text-muted-foreground">
+                            <Award className="h-3.5 w-3.5 shrink-0 text-violet-600 dark:text-violet-400" aria-hidden />
+                            <span className="text-xs font-medium">Experience</span>
+                        </div>
+                        <span className="text-base font-semibold tabular-nums text-foreground shrink-0">
+                            {xp.toLocaleString()}
+                        </span>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-1.5">
+                        {XP_QUICK_ADD.map((n) => (
+                            <Button
+                                key={n}
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                className="h-7 rounded-full px-2.5 text-xs font-medium shadow-none"
+                                onClick={() => onUpdateXp(xp + n)}
+                            >
+                                +{n}
+                            </Button>
+                        ))}
+                        <div className="flex min-w-0 flex-1 items-center gap-1.5 sm:max-w-[10rem]">
+                            <Input
+                                id="xp-custom-add"
+                                type="number"
+                                min={1}
+                                step={1}
+                                inputMode="numeric"
+                                placeholder="Other"
+                                aria-label="Custom XP to add"
+                                value={customAdd}
+                                onChange={(e) => setCustomAdd(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                        e.preventDefault()
+                                        applyCustomAdd()
+                                    }
+                                }}
+                                className="h-7 min-w-0 flex-1 font-mono text-xs"
+                            />
+                            <Button type="button" size="sm" className="h-7 shrink-0 px-2.5 text-xs" onClick={applyCustomAdd}>
+                                Add
+                            </Button>
+                        </div>
+                    </div>
+
+                    {!showSetTotal ? (
+                        <button
+                            type="button"
+                            onClick={() => setShowSetTotal(true)}
+                            className="text-[11px] text-violet-700 underline-offset-2 hover:underline dark:text-violet-300"
+                        >
+                            Set total instead…
+                        </button>
+                    ) : (
+                        <div className="flex flex-wrap items-center gap-1.5 border-t border-violet-200/50 pt-2 dark:border-violet-800/40">
+                            <Input
+                                type="number"
+                                min={0}
+                                step={1}
+                                inputMode="numeric"
+                                placeholder="Total XP"
+                                aria-label="New experience total"
+                                value={exactTotal}
+                                onChange={(e) => setExactTotal(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                        e.preventDefault()
+                                        applyExactTotal()
+                                    }
+                                }}
+                                className="h-7 min-w-[6rem] flex-1 font-mono text-xs sm:max-w-[8rem]"
+                            />
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-7 px-2 text-xs"
+                                onClick={() => {
+                                    setShowSetTotal(false)
+                                    setExactTotal("")
+                                }}
+                            >
+                                Cancel
+                            </Button>
+                            <Button type="button" size="sm" className="h-7 px-2.5 text-xs" onClick={applyExactTotal}>
+                                Save
+                            </Button>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

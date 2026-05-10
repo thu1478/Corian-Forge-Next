@@ -134,6 +134,7 @@ export type PotencyEffect =
     | {
     type: 'Condition';
     srcStats?: CharAttribute[];
+    fixedSrcVal?: number;
     targetStats?: CharAttribute[];
     effect: Condition;
     duration?: PotencyDuration;
@@ -142,8 +143,9 @@ export type PotencyEffect =
     | {
     type: 'ForcedMovement';
     srcStats?: CharAttribute[];
+    fixedSrcVal?: number;
     targetStats?: CharAttribute[];
-    effect: 'push' | 'pull' | 'slide';
+    effect: 'push' | 'pull' | 'slide' | 'verticalpush' | 'verticalpull';
     distance: number;
     strength?: PotencyStrength;
 }

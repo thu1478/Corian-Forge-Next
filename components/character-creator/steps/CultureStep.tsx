@@ -1,17 +1,29 @@
 import React, { useMemo, useState } from "react";
 import rulesData from "@/lib/rules.json";
+import type { PowerRoll } from "@/lib/rules";
+import type { PowerRollAttributes } from "@/components/power-roll/power-roll-tier-row";
+import { TraitPowerRollCollapsible } from "@/components/power-roll/trait-power-roll-collapsible";
 import { ChevronRightIcon, ChevronLeftIcon, CheckIcon } from "lucide-react";
 import {
   collectUnlockedSkillIdsForOccupation,
   getCultureSourceChips,
   skillSourceChipClassName,
 } from "@/lib/occupation";
+
+type SkillCatalogRow = {
+  name?: string;
+  description?: string;
+  categories?: string[];
+  powerRoll?: PowerRoll;
+};
+
 interface CultureStepProps {
   cultureEnvironment: string | null;
   cultureOrganization: string | null;
   cultureUpbringing: string | null;
   selectedSkills: string[];
   globalSkillCounts: Record<string, number>;
+  attributes: PowerRollAttributes;
   onSelectEnvironment: (id: string) => void;
   onSelectOrganization: (id: string) => void;
   onSelectUpbringing: (id: string) => void;
@@ -25,6 +37,7 @@ export function CultureStep({
   cultureUpbringing,
   selectedSkills,
   globalSkillCounts,
+  attributes,
   onSelectEnvironment,
   onSelectOrganization,
   onSelectUpbringing,
@@ -39,10 +52,7 @@ export function CultureStep({
   cultureEnvironment && cultureOrganization && cultureUpbringing;
   const isComplete = allChoicesMade && selectedSkills.length === 3;
   const culture = rulesData.system.culture;
-  const allSkills = rulesData.system.skills as Record<
-    string,
-    { name?: string; description?: string; categories?: string[] }
-  >;
+  const allSkills = rulesData.system.skills as Record<string, SkillCatalogRow>;
 
   /** Same bucket rules as occupations: category names unlock all skills in that category; catalog keys unlock that skill. */
   const cultureUnlockBuckets = useMemo(() => {
@@ -221,24 +231,30 @@ export function CultureStep({
               const canAdd = !atExpertiseCap && selectedSkills.length < 3;
               const canInteract = inCulture || canAdd;
               return (
-                <button
+                <div
                   key={id}
-                  onClick={() => {
-                    if (inCulture) {
-                      onToggleSkill(id);
-                    } else if (canAdd) {
-                      onToggleSkill(id);
-                    }
-                  }}
-                  disabled={!canInteract}
-                  className={`flex flex-col items-start p-3 rounded-xl border-2 transition-all text-left w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.75rem)] ${
+                  className={`flex flex-col rounded-xl border-2 transition-all w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.75rem)] ${
                     count >= 2
                       ? "bg-purple-100 border-purple-600 text-foreground ring-1 ring-purple-500/30 dark:bg-purple-900/40 dark:border-purple-500 dark:ring-purple-500/50"
                       : count === 1
                         ? "bg-muted border-purple-400/60 dark:border-purple-500/50"
-                        : "bg-card border-border hover:border-muted-foreground/60"
-                  } disabled:opacity-50 disabled:cursor-not-allowed`}>
-                  
+                        : "bg-card border-border"
+                  } ${!canInteract ? "opacity-50" : ""}`}
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (inCulture) {
+                        onToggleSkill(id);
+                      } else if (canAdd) {
+                        onToggleSkill(id);
+                      }
+                    }}
+                    disabled={!canInteract}
+                    className={`flex flex-col items-start p-3 text-left w-full rounded-t-xl transition-all ${
+                      canInteract ? "hover:bg-foreground/[0.03] cursor-pointer" : "cursor-not-allowed"
+                    } disabled:cursor-not-allowed`}
+                  >
                     <div className="flex justify-between items-start w-full mb-1">
                       <span className="font-bold text-foreground">
                         {skill.name}
@@ -262,12 +278,18 @@ export function CultureStep({
                       </span>
                     )}
                     <span className="text-[10px] uppercase font-bold text-muted-foreground mb-2 tracking-wide">
-                      {skill.categories.join(', ')}
+                      {(skill.categories ?? []).join(', ')}
                     </span>
                     <p className="text-xs text-muted-foreground line-clamp-2 whitespace-pre-line">
                       {skill.description}
                     </p>
-                  </button>);
+                  </button>
+                  {skill.powerRoll && (
+                    <div className="px-2 pb-2 pt-0">
+                      <TraitPowerRollCollapsible roll={skill.powerRoll} attributes={attributes} />
+                    </div>
+                  )}
+                </div>);
 
             })}
               {availableSkills.length === 0 &&

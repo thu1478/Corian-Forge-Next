@@ -74,7 +74,7 @@
       "environment": {
         "nomadic": {
           "name": "Nomadic",
-          "description": "You traveled from place, never staying too long in one location.",
+          "description": "You traveled from place to place, never staying too long in one location.",
           "skillCategories": [
             "exploration",
             "interpersonal"
@@ -411,24 +411,18 @@
       },
       "cooking": {
         "name": "Cooking",
-        "description": "Preparing food and restoring resources during rests",
+        "description": "Once per day you can cook food during a short rest to restore additional HP. Make a Willpower roll.",
         "categories": [
           "crafting"
         ],
-        "table": [
-          {
-            "result": "<= 11",
-            "effect": "4 HP"
-          },
-          {
-            "result": "12-16",
-            "effect": "8 HP, 4 mana"
-          },
-          {
-            "result": ">= 17",
-            "effect": "12 HP, 6 mana"
-          }
-        ]
+        "powerRoll": {
+          "rollStats": [
+            "willpower"
+          ],
+          "tier1Dmg": 2,
+          "tier2Dmg": 3,
+          "tier3Dmg": 5
+        }
       },
       "forgery": {
         "name": "Forgery",
@@ -1250,7 +1244,7 @@
           "actionCard": {
             "name": "Minor Synthesize",
             "type": "action",
-            "description": "Create one of the following potions. You may only have one of them at a time, but you may make more after using the existing one.\n\n- Glue - Creates difficult terrain in a 2x2 area when thrown.\n\n- Minor Healing - Heals when drunk or poured on someone. Restore 3 HP.\n\n- Oil - Creates flammable oil in a 3x3 area. When subjected to fire it burns for 1 minute.\n\n- Poison - This is a coating with the following potency. It can be added to a weapon:",
+            "description": "Create one of the following alchemical creations. You may reduce the IP cost by 1 if you spend the corresponding ingredient instead:\n\t\t- Vial of Glue - Slime Nuclei\n\t\t- Minor Healing Potion - Traveler's Grass\n\t\t- Vial of Oil - Amber\n\t\t- Vial of Poison - Alexander Root",
             "apCost": 1,
             "focusCost": 1,
             "mpCost": 0,
@@ -1258,20 +1252,7 @@
             "tags": [],
             "source": "artificer",
             "ipCost": 1,
-            "duration": "Permanent",
-            "powerRoll": {
-              "rollStats": [
-                "reason"
-              ],
-              "tier2Effect": {
-                "type": "Special",
-                "effect": "R < 1 poisoned [round ends]"
-              },
-              "tier3Effect": {
-                "type": "Special",
-                "effect": "R < 2 poisoned [round ends]"
-              }
-            }
+            "duration": "Permanent"
           }
         },
         "healingBullet": {
@@ -1287,18 +1268,19 @@
             "tags": [
               "Ranged",
               "Spell",
-              "Weapon"
+              "Weapon",
+              "Firearm"
             ],
             "source": "artificer",
             "powerRoll": {
               "rollStats": [
                 "reason"
               ],
-              "tier1Dmg": 4,
+              "tier1Dmg": 2,
               "tier1Wpn": true,
-              "tier2Dmg": 7,
+              "tier2Dmg": 3,
               "tier2Wpn": true,
-              "tier3Dmg": 10,
+              "tier3Dmg": 5,
               "tier3Wpn": true
             }
           }
@@ -1324,7 +1306,7 @@
               "rollStats": [
                 "might"
               ],
-              "tier1Dmg": 2,
+              "tier1Dmg": 3,
               "tier1Effect": {
                 "type": "Condition",
                 "srcStats": [
@@ -1337,7 +1319,7 @@
                 "strength": "strong",
                 "duration": "saveEnd"
               },
-              "tier2Dmg": 1,
+              "tier2Dmg": 2,
               "tier2Effect": {
                 "type": "Condition",
                 "srcStats": [
@@ -1363,7 +1345,7 @@
           "actionCard": {
             "name": "Elemental Coating",
             "type": "action",
-            "description": "Create a coating that can only applies to projectiles used by ranged weapon attacks. You may immediately use this coating on a weapon you're holding. Using this coating on a weapon give it an Infusion of the chosen damage type for the next ranged weapon attack using the weapon only. You may only have one of these at a time. Choose from the following:\n\n- Air (air)\n\n- Volt (volt)\n\n- Earth (earth)\n\n- Nature (nature)",
+            "description": "Create a coating that can only applies to projectiles used by ranged weapon attacks. You may immediately use this coating on a weapon you're holding. Using this coating on a weapon give it an Infusion of the chosen damage type for the next ranged weapon attack using the weapon only. You may only have one of these at a time. Choose from the following:\n- Air\n- Volt\n- Earth\n- Nature",
             "apCost": 1,
             "focusCost": 1,
             "mpCost": 2,
@@ -1401,7 +1383,7 @@
               "tier1Effect": {
                 "type": "ForcedMovement",
                 "effect": "push",
-                "distance": 3
+                "distance": 4
               },
               "tier2Effect": {
                 "type": "ForcedMovement",
@@ -1422,7 +1404,7 @@
             "name": "Deployable Shield",
             "type": "action",
             "description": "Create and deploy a semi-transparent shield that acts as cover. You may only have up to 2 of these deployed at a time.",
-            "apCost": 2,
+            "apCost": 1,
             "focusCost": 3,
             "mpCost": 0,
             "range": "3",
@@ -1440,7 +1422,7 @@
           "actionCard": {
             "name": "Flamethrower",
             "type": "action",
-            "description": "Release flames into a 3x3 area whose edge is adjacent to you, dealing fire (fire) damage to all creatures in the area. Flames remain in the area for 1 minute.",
+            "description": "Release flames into a 3x3 area whose edge is adjacent to you, dealing fire damage to all creatures in the area. Flames remain in the area for 1 minute.",
             "apCost": 2,
             "focusCost": 1,
             "mpCost": 5,
@@ -1467,7 +1449,7 @@
           "actionCard": {
             "name": "Synthesize",
             "type": "action",
-            "description": "Create one of the following potions:\n\n- Acid - Creates an acid pit in a 2x2 area when thrown.\n\n- Healing - Heals when drunk or poured on someone. Allows the receiver to spend a Respite immediately.\n\n- Smoke - Releases smoke in a 3x3 area when throwing, obscuring vision and making all creatures inside Blinded.\n\n- Anti-coagulant - This is a coating with the following potency. It can be added to a weapon:",
+            "description": "Create one of the following alchemical creations. You may reduce the IP cost by 1 if you spend the corresponding ingredient instead:\n\t\t- Vial of Acid - Blister Leaf\n\t\t- Healing Potion - Heal Root\n\t\t- Smokepowder Vial - Puffball Spores\n\t\t- Anti-coagulant - Minor Snake Venom",
             "apCost": 1,
             "focusCost": 3,
             "mpCost": 0,
@@ -1496,7 +1478,7 @@
           "actionCard": {
             "name": "Shotgun Blast",
             "type": "action",
-            "description": "Create and fire a bullet that spreads into a 3x3 area whose edge is adjacent to you, dealing magical piercing (piercing) damage to all creatures in the area. If there is only one creature in the area increase damage dealt by 3. Afterwards you shift 2 backwards. This action does not gain a Bane from being within 1 tile of a hostile creature.",
+            "description": "Create and fire a bullet that spreads into a 3x3 area whose edge is adjacent to you, dealing magical piercing damage to all creatures in the area. If there is only one creature in the area the damage is doubled. Afterwards you shift 2 backwards. This action does not gain a Bane from being within 1 tile of a hostile creature.",
             "apCost": 2,
             "focusCost": 5,
             "mpCost": 8,
@@ -1505,7 +1487,8 @@
               "Ranged",
               "Spell",
               "Weapon",
-              "Area"
+              "Area",
+              "Firearm"
             ],
             "source": "artificer",
             "powerRoll": {
@@ -1526,7 +1509,7 @@
           "actionCard": {
             "name": "Electro Bomb",
             "type": "action",
-            "description": "Creates a bomb that explodes in a 3x3 area centered on the bomb dealing volt (volt) damage.",
+            "description": "Creates a bomb that explodes in a 3x3 area centered on the bomb dealing volt damage.",
             "apCost": 2,
             "focusCost": 5,
             "mpCost": 0,
@@ -1556,7 +1539,7 @@
             "name": "Personal Barrier",
             "type": "action",
             "description": "Grant yourself some Barrier",
-            "apCost": 2,
+            "apCost": 1,
             "focusCost": 3,
             "mpCost": 0,
             "range": "Self",
@@ -1568,9 +1551,9 @@
               "rollStats": [
                 "reason"
               ],
-              "tier1Dmg": 4,
+              "tier1Dmg": 5,
               "tier2Dmg": 7,
-              "tier3Dmg": 10
+              "tier3Dmg": 9
             }
           }
         },
@@ -1587,7 +1570,8 @@
             "tags": [
               "Ranged",
               "Spell",
-              "Weapon"
+              "Weapon",
+              "Firearm"
             ],
             "source": "artificer",
             "ipCost": 3,
@@ -1609,7 +1593,7 @@
           "actionCard": {
             "name": "Turret",
             "type": "action",
-            "description": "Create and deploy a stone turret on an adjacent unoccupied tile. This turret is treated as an object, but has 1 HP and 5 Def. The turret has charges equal to your Reason modifier. Whenever a hostile creatures within 12 tiles Strides or attacks an ally it shoots magical rocks at them, dealing earth (earth) damage. Afterwards 1 charge is lost. When no charges remain the turret crumbles to dust. You may only have up to 2 turrets at a time.",
+            "description": "Create and deploy a stone turret on an adjacent unoccupied tile. This turret is treated as an object, but has 1 HP and 5 Def. The turret has charges equal to your Reason modifier. Whenever a hostile creatures within 12 tiles Strides or attacks an ally it shoots magical rocks at them, dealing earth damage. Afterwards 1 charge is lost. When no charges remain the turret crumbles to dust. You may only have up to 2 turrets at a time.",
             "apCost": 3,
             "focusCost": 7,
             "mpCost": 13,
@@ -1659,7 +1643,8 @@
           "type": "Reaction",
           "level": 1,
           "trigger": "A Concealed creature attacks an ally within 3 tiles of you",
-          "description": "Use your radar to detect the attack beforehand, allowing you to warn them and remove the Boon granted by Concealment to the attacker."
+          "description": "Use your radar to detect the attack beforehand, allowing you to warn them and remove the Boon granted by Concealment to the attacker.",
+          "focusCost": 1
         },
         {
           "id": "scavenge",
@@ -1667,27 +1652,506 @@
           "type": "Reaction",
           "level": 3,
           "trigger": "A hostile creature dies within 2 tiles of you",
-          "description": "Shift to their location and quickly scavenge the body for resources, restoring 1 IP."
+          "description": "Shift to their location and quickly scavenge the body for resources, restoring 1 IP.",
+          "focusCost": 1
         }
       ]
     },
     "bard": {
       "name": "Bard",
-      "description": "Performers who weave magic through songs and emanations. Class actions were imported from Nandeck ActionSheet.xlsx; add class passives and song rules as you finalize the class.",
+      "description": "The Bard uses the power of music to control the tempo of battle.",
       "proficiencies": [],
       "primaryAttribute": "presence",
       "statBonus": {
-        "stat": "mp",
+        "stat": "hp",
         "amount": 1,
-        "frequency": 1
+        "frequency": 2
       },
       "focusFeat": {
-        "name": "Encore",
-        "description": "The first time per round a hostile creature is affected by one of your Songs, gain 1 Focus."
+        "name": "Lyrical Pride",
+        "description": "At the start of your turn, if there are at least 3 creatures within 8 tiles that can be affected by your Songs, you gain 1 Focus."
       },
-      "passives": {},
-      "actions": {},
-      "reactions": []
+      "passives": {
+        "tapDancing": {
+          "name": "Tap Dancing",
+          "minLevel": 1,
+          "description": "Once you start a Song this round you may immediately shift 1."
+        },
+        "segue": {
+          "name": "Segue",
+          "minLevel": 1,
+          "description": "You may make Opportunity Attacks with your instrument, dealing damage equal to half your Presence modifier, rounding up"
+        },
+        "backupSinger": {
+          "name": "Backup Singer",
+          "minLevel": 3,
+          "description": "You gain a tiny pet animal like a small frog or parrot as an Assistant that can repeat your song at the start of your next turn."
+        },
+        "targetAudience": {
+          "name": "Target Audience",
+          "minLevel": 5,
+          "description": "When you play a Song with the Emanation tag you may choose who is affected by it."
+        }
+      },
+      "actions": {
+        "melodyOfTranquility": {
+          "minLevel": 1,
+          "actionCard": {
+            "name": "Melody of Tranquility",
+            "type": "action",
+            "description": "Play a song of gentle peace, causing all affected targets to be afflicted with weakened.",
+            "apCost": 2,
+            "focusCost": 0,
+            "mpCost": 0,
+            "tags": [
+              "Ranged",
+              "Song",
+              "Emanation"
+            ],
+            "source": "bard",
+            "powerRoll": {
+              "rollStats": [
+                "reason"
+              ],
+              "tier1Effect": {
+                "type": "Condition",
+                "effect": "weakened"
+              },
+              "tier2Effect": {
+                "type": "Condition",
+                "effect": "weakened"
+              },
+              "tier3Effect": {
+                "type": "Condition",
+                "effect": "weakened"
+              }
+            }
+          }
+        },
+        "riffOfRage": {
+          "minLevel": 1,
+          "actionCard": {
+            "name": "Riff of Rage",
+            "type": "action",
+            "description": "Play a song of fiery vengeance. All affected creatures are Sundered during this song. \n\nFocus 3: Any creature afflicted with Bleeding is immediately affected by Hemorrhage.",
+            "apCost": 2,
+            "focusCost": 0,
+            "mpCost": 0,
+            "tags": [
+              "Ranged",
+              "Song",
+              "Emanation"
+            ],
+            "source": "bard",
+            "tier1Effect": {
+              "type": "Condition",
+              "effect": "sundered"
+            },
+            "tier2Effect": {
+              "type": "Condition",
+              "effect": "sundered"
+            },
+            "tier3Effect": {
+              "type": "Condition",
+              "effect": "sundered"
+            }
+          }
+        },
+        "odeOfHealing": {
+          "minLevel": 1,
+          "actionCard": {
+            "name": "Ode of Healing",
+            "type": "action",
+            "description": "Heal affected creatures with the power of your music.",
+            "apCost": 1,
+            "focusCost": 3,
+            "mpCost": 0,
+            "tags": [
+              "Ranged",
+              "Song"
+            ],
+            "source": "bard",
+            "powerRoll": {
+              "rollStats": [
+                "presence"
+              ],
+              "tier1Dmg": 1,
+              "tier2Dmg": 2,
+              "tier3Dmg": 3
+            }
+          }
+        },
+        "chantOfTheDying": {
+          "minLevel": 1,
+          "actionCard": {
+            "name": "Chant of the Dying",
+            "type": "action",
+            "description": "Choose 2 targets. Play a song of death, causing the target to see illusions of specters and undead. Deals physical dark damage.",
+            "apCost": 2,
+            "focusCost": 3,
+            "mpCost": 0,
+            "tags": [
+              "Ranged",
+              "Song",
+              "Multi(2)"
+            ],
+            "source": "bard",
+            "damageType": "dark",
+            "powerRoll": {
+              "rollStats": [
+                "presence"
+              ],
+              "tier1Dmg": 1,
+              "tier1Effect": {
+                "type": "Condition",
+                "srcStats": [
+                  "presence"
+                ],
+                "targetStats": [
+                  "reason"
+                ],
+                "effect": "frightened",
+                "strength": "weak",
+                "duration": "turnEnd"
+              },
+              "tier2Dmg": 2,
+              "tier2Effect": {
+                "type": "Condition",
+                "srcStats": [
+                  "presence"
+                ],
+                "targetStats": [
+                  "reason"
+                ],
+                "effect": "frightened",
+                "strength": "average",
+                "duration": "turnEnd"
+              },
+              "tier3Dmg": 3,
+              "tier3Effect": {
+                "type": "Condition",
+                "srcStats": [
+                  "presence"
+                ],
+                "targetStats": [
+                  "reason"
+                ],
+                "effect": "frightened",
+                "strength": "strong",
+                "duration": "turnEnd"
+              }
+            }
+          }
+        },
+        "noteBlast": {
+          "minLevel": 1,
+          "actionCard": {
+            "name": "Note Blast",
+            "type": "action",
+            "description": "Fire a note from your instrument, dealing physical air damage",
+            "apCost": 2,
+            "focusCost": 1,
+            "mpCost": 0,
+            "range": "10",
+            "tags": [
+              "Ranged",
+              "Song"
+            ],
+            "source": "bard",
+            "damageType": "air",
+            "powerRoll": {
+              "rollStats": [
+                "presence"
+              ],
+              "tier1Dmg": 3,
+              "tier1Effect": {
+                "type": "ForcedMovement",
+                "effect": "push",
+                "distance": 1
+              },
+              "tier2Dmg": 4,
+              "tier2Effect": {
+                "type": "ForcedMovement",
+                "effect": "push",
+                "distance": 1
+              },
+              "tier3Dmg": 6,
+              "tier3Effect": {
+                "type": "ForcedMovement",
+                "effect": "push",
+                "distance": 2
+              }
+            }
+          }
+        },
+        "echolocation": {
+          "minLevel": 1,
+          "actionCard": {
+            "name": "Echolocation",
+            "type": "action",
+            "description": "Release an upbeat song that helps triangulate enemy locations, negating the benefits of Concealed for all hostile creatures for the duration.",
+            "apCost": 2,
+            "focusCost": 1,
+            "mpCost": 0,
+            "tags": [
+              "Ranged",
+              "Song",
+              "Emanation"
+            ],
+            "source": "bard"
+          }
+        },
+        "symphonyOfDance": {
+          "minLevel": 3,
+          "actionCard": {
+            "name": "Symphony of Dance",
+            "type": "action",
+            "description": "Play an upbeat song of dance. All affected creatures have their Speed increased by 2. Remove Slowed or Restrained effects. They do not trigger Opportunity Attacks.",
+            "apCost": 2,
+            "focusCost": 5,
+            "mpCost": 0,
+            "tags": [
+              "Ranged",
+              "Song",
+              "Emanation"
+            ],
+            "source": "bard"
+          }
+        },
+        "unnecessarySqueaking": {
+          "minLevel": 3,
+          "actionCard": {
+            "name": "Unnecessary Squeaking",
+            "type": "action",
+            "description": "Does not affect allies. Play a song so badly that it makes everyone want to stop you.",
+            "apCost": 2,
+            "focusCost": 5,
+            "mpCost": 0,
+            "tags": [
+              "Ranged",
+              "Song",
+              "Emanation"
+            ],
+            "source": "bard",
+            "powerRoll": {
+              "rollStats": [
+                "presence"
+              ],
+              "tier1Effect": {
+                "type": "Condition",
+                "srcStats": [
+                  "presence"
+                ],
+                "targetStats": [
+                  "presence"
+                ],
+                "effect": "taunt",
+                "strength": "weak",
+                "duration": "turnEnd"
+              },
+              "tier2Effect": {
+                "type": "Condition",
+                "srcStats": [
+                  "presence"
+                ],
+                "targetStats": [
+                  "presence"
+                ],
+                "effect": "taunt",
+                "strength": "average",
+                "duration": "turnEnd"
+              },
+              "tier3Effect": {
+                "type": "Condition",
+                "srcStats": [
+                  "presence"
+                ],
+                "targetStats": [
+                  "presence"
+                ],
+                "effect": "taunt",
+                "strength": "strong",
+                "duration": "turnEnd"
+              }
+            }
+          }
+        },
+        "danceSequence": {
+          "minLevel": 3,
+          "actionCard": {
+            "name": "Dance Sequence",
+            "type": "action",
+            "description": "Force your targets to move according to your dance routine",
+            "apCost": 2,
+            "focusCost": 5,
+            "mpCost": 0,
+            "range": "10",
+            "tags": [
+              "Ranged",
+              "Song",
+              "Emanation",
+              "Multi(3)"
+            ],
+            "source": "bard",
+            "powerRoll": {
+              "rollStats": [
+                "presence"
+              ],
+              "tier1Effect": {
+                "type": "ForcedMovement",
+                "srcStats": [
+                  "presence"
+                ],
+                "targetStats": [
+                  "might"
+                ],
+                "effect": "slide",
+                "distance": 2
+              },
+              "tier2Effect": {
+                "type": "ForcedMovement",
+                "srcStats": [
+                  "presence"
+                ],
+                "targetStats": [
+                  "might"
+                ],
+                "effect": "slide",
+                "distance": 3
+              },
+              "tier3Effect": {
+                "type": "ForcedMovement",
+                "srcStats": [
+                  "presence"
+                ],
+                "targetStats": [
+                  "might"
+                ],
+                "effect": "slide",
+                "distance": 5
+              }
+            }
+          }
+        },
+        "pitchTrauma": {
+          "minLevel": 3,
+          "actionCard": {
+            "name": "Pitch Trauma",
+            "type": "action",
+            "description": "Inflict bleeding onto all affected creatures.",
+            "apCost": 2,
+            "focusCost": 5,
+            "mpCost": 0,
+            "tags": [
+              "Ranged",
+              "Song",
+              "Emanation"
+            ],
+            "source": "bard",
+            "powerRoll": {
+              "rollStats": [
+                "presence"
+              ],
+              "tier1Effect": {
+                "type": "Condition",
+                "srcStats": [
+                  "presence"
+                ],
+                "targetStats": [
+                  "presence"
+                ],
+                "strength": "weak",
+                "effect": "bleeding",
+                "duration": "turnEnd"
+              },
+              "tier2Effect": {
+                "type": "Condition",
+                "srcStats": [
+                  "presence"
+                ],
+                "targetStats": [
+                  "presence"
+                ],
+                "strength": "average",
+                "effect": "bleeding",
+                "duration": "turnEnd"
+              },
+              "tier3Effect": {
+                "type": "Condition",
+                "srcStats": [
+                  "presence"
+                ],
+                "targetStats": [
+                  "presence"
+                ],
+                "strength": "strong",
+                "effect": "bleeding",
+                "duration": "turnEnd"
+              }
+            }
+          }
+        },
+        "songOfFlowingWater": {
+          "minLevel": 5,
+          "actionCard": {
+            "name": "Song of Flowing Water",
+            "type": "action",
+            "description": "End up to 2 status effects on each affected target. Grant Barrier.",
+            "apCost": 2,
+            "focusCost": 7,
+            "mpCost": 0,
+            "tags": [
+              "Ranged",
+              "Song",
+              "Emanation"
+            ],
+            "source": "bard",
+            "powerRoll": {
+              "rollStats": [
+                "presence"
+              ],
+              "tier1Dmg": 8,
+              "tier2Dmg": 11,
+              "tier3Dmg": 16
+            }
+          }
+        },
+        "rhapsodyOfWar": {
+          "minLevel": 5,
+          "actionCard": {
+            "name": "Rhapsody of War",
+            "type": "action",
+            "description": "All targets gain Penetrate (3), mana costs reduced by 3, and can shift up to Speed as a free Reaction.",
+            "apCost": 1,
+            "focusCost": 7,
+            "mpCost": 0,
+            "tags": [
+              "Ranged",
+              "Song",
+              "Multi(3)"
+            ],
+            "source": "bard"
+          }
+        }
+      },
+      "reactions": [
+        {
+          "id": "cantStopTheMusic",
+          "name": "Can't stop the music",
+          "level": 1,
+          "trigger": "You are about to take physical damage while playing a Song",
+          "description": "Immediately grant yourself 6 Barrier",
+          "focusCost": 1
+        },
+        {
+          "id": "spellsinger",
+          "name": "Spellsinger",
+          "level": 3,
+          "trigger": "An ally spends mana",
+          "description": "They regain 3 Mana",
+          "focusCost": 1
+        }
+      ]
     },
     "brawler": {
       "name": "Brawler",
@@ -1805,7 +2269,7 @@
           "actionCard": {
             "name": "Force Palm",
             "type": "action",
-            "description": "Emit a short blast of energy from your open palm, dealing crushing (crushing) damage",
+            "description": "Emit a short blast of energy from your open palm, dealing crushing damage",
             "apCost": 2,
             "focusCost": 0,
             "mpCost": 3,
@@ -1897,9 +2361,9 @@
           "actionCard": {
             "name": "Ox Stance",
             "type": "action",
-            "description": "Enter an enhanced state for the duration. You cannot have multiple Stances active at once. In this stance your Speed is set to 1, but you gain 5 Barrier on use and during the Start Phase. You also gain 1 Stability. Your Might modifier is treated as 1 higher than it normally is for the sake of resisting Potencies.",
+            "description": "Enter an enhanced state for the duration. In this stance your Speed is set to 1, but you gain 8 Barrier on use and during the Start Phase. You also gain 1 Stability. Your Might modifier is treated as 1 higher than it normally is for the sake of resisting Potencies.",
             "apCost": 1,
-            "focusCost": 3,
+            "focusCost": 1,
             "mpCost": 0,
             "range": "Self",
             "tags": [
@@ -1914,7 +2378,7 @@
           "actionCard": {
             "name": "Rabbit Stance",
             "type": "action",
-            "description": "Enter an enhanced state for the duration. You cannot have multiple Stances active at once. In this stance your Speed is doubled, your step is increased to 2 tiles and is treated as shift instead of stride. Your Dexterity modifier is treated as 1 higher than it normally is for the sake of resisting Potencies.",
+            "description": "Enter an enhanced state for the duration. In this stance your Speed is increased by 3, your step is increased to 2 tiles and is treated as shift instead of stride. Your Dexterity modifier is treated as 1 higher than it normally is for the sake of resisting Potencies.",
             "apCost": 1,
             "focusCost": 3,
             "mpCost": 0,
@@ -1972,7 +2436,7 @@
           "actionCard": {
             "name": "Swallow Kick",
             "type": "action",
-            "description": "You unleash a powerful vertical kick, dealing physical air (air) damage",
+            "description": "You unleash a powerful vertical kick, dealing physical air damage",
             "apCost": 2,
             "focusCost": 5,
             "mpCost": 0,
@@ -1993,14 +2457,30 @@
               "tier2Dmg": 4,
               "tier2Wpn": true,
               "tier2Effect": {
-                "type": "Special",
-                "effect": "D < [D average] vertical push 2"
+                "type": "ForcedMovement",
+                "srcStats": [
+                  "dexterity"
+                ],
+                "targetStats": [
+                  "dexterity"
+                ],
+                "effect": "verticalpush",
+                "distance": 2,
+                "strength": "average"
               },
               "tier3Dmg": 6,
               "tier3Wpn": true,
               "tier3Effect": {
-                "type": "Special",
-                "effect": "D < [D strong] vertical push 3"
+                "type": "ForcedMovement",
+                "srcStats": [
+                  "dexterity"
+                ],
+                "targetStats": [
+                  "dexterity"
+                ],
+                "effect": "verticalpush",
+                "distance": 3,
+                "strength": "strong"
               }
             }
           }
@@ -2010,7 +2490,7 @@
           "actionCard": {
             "name": "Tiger Stance",
             "type": "action",
-            "description": "Enter an enhanced state for the duration. You cannot have multiple Stances active at once. In this stance all your melee attacks gain a Boon and deal +2 damage.",
+            "description": "Enter an enhanced state for the duration. In this stance all your melee attacks gain a Boon and deal +2 damage.",
             "apCost": 1,
             "focusCost": 3,
             "mpCost": 0,
@@ -2043,9 +2523,9 @@
                 "might",
                 "dexterity"
               ],
-              "tier1Dmg": 2,
+              "tier1Dmg": 4,
               "tier1Wpn": true,
-              "tier2Dmg": 3,
+              "tier2Dmg": 6,
               "tier2Wpn": true,
               "tier2Effect": {
                 "type": "Condition",
@@ -2060,7 +2540,7 @@
                 "strength": "average",
                 "duration": "roundEnd"
               },
-              "tier3Dmg": 5,
+              "tier3Dmg": 8,
               "tier3Wpn": true,
               "tier3Effect": {
                 "type": "Condition",
@@ -2072,7 +2552,7 @@
                   "might"
                 ],
                 "effect": "sundered",
-                "strength": "average",
+                "strength": "strong",
                 "duration": "roundEnd"
               }
             }
@@ -2132,12 +2612,12 @@
             }
           }
         },
-        "throatRipper": {
+        "gentleFist": {
           "minLevel": 5,
           "actionCard": {
-            "name": "Throat Ripper",
+            "name": "Gentle Fist",
             "type": "action",
-            "description": "Tear up their jugular",
+            "description": "Force your energy into their body with this strike, causing their blood vessels to rupture",
             "apCost": 2,
             "focusCost": 7,
             "mpCost": 0,
@@ -2218,7 +2698,8 @@
           "type": "Reaction",
           "level": 3,
           "trigger": "You are subjected to forced movement",
-          "description": "Reduce the distance by 2 after factoring in Stability. If the remaining distance is 0 then you may instead inflict slide 2 on the attacker after the attack."
+          "description": "Reduce the distance by 2 after factoring in Stability. If the remaining distance is 0 then you may instead inflict slide 2 on the attacker after the attack. This slide ignores stability",
+          "focusCost": 1
         }
       ]
     },
@@ -2307,7 +2788,7 @@
           "actionCard": {
             "name": "Pebble Blast",
             "type": "action",
-            "description": "Fire magically infused pebbles at the target, dealing earth (earth) damage.",
+            "description": "Fire magically infused pebbles at the target, dealing earth damage.",
             "apCost": 2,
             "focusCost": 0,
             "mpCost": 3,
@@ -2333,7 +2814,7 @@
           "actionCard": {
             "name": "Summoner's Infusion",
             "type": "action",
-            "description": "Give Infusion ( Earth ) (earth) or Infusion ( Dark ) (Dark) depending on whether you chose Geomancy or Necromancy to your weapon or an ally's weapon. That weapon's damage type changes to earth. You may only have one of these active at a time. You cannot use this if you don't have the Summoner passive.",
+            "description": "Give Infusion ( Earth ) or Infusion ( Dark ) depending on whether you chose Geomancy or Necromancy to your weapon or an ally's weapon. That weapon's damage type changes to earth. You may only have one of these active at a time. You cannot use this if you don't have the Summoner passive.",
             "apCost": 1,
             "focusCost": 0,
             "mpCost": 2,
@@ -2536,7 +3017,8 @@
           "type": "Reaction",
           "level": 3,
           "trigger": "An ally within 3 tiles of you is targeted by an attack while your Summon is within 5 tiles of you",
-          "description": "Swap the locations of the target and your Summon. Your Summon takes the attack instead."
+          "description": "Swap the locations of the target and your Summon. Your Summon takes the attack instead.",
+          "focusCost": 1
         }
       ]
     },
@@ -2652,7 +3134,8 @@
           "type": "Reaction",
           "level": 3,
           "trigger": "You are attacked",
-          "description": "Gain Resistance to the damage type of the attack for this attack only if you have a fairy summoned of the corresponding element."
+          "description": "Gain Resistance to the damage type of the attack for this attack only if you have a fairy summoned of the corresponding element.",
+          "focusCost": 1
         }
       ]
     },
@@ -3216,7 +3699,8 @@
           "type": "Reaction",
           "level": 3,
           "trigger": "You take damage from a hostile creature while already Bloodied",
-          "description": "Choose one of the following\n\n -Restore 2 times your Might modifier HP\n\n -Restore Might modifier MP\n\n -End one status effect on yourself."
+          "description": "Choose one of the following\n\n -Restore 2 times your Might modifier HP\n\n -Restore Might modifier MP\n\n -End one status effect on yourself.",
+          "focusCost": 1
         }
       ]
     },
@@ -3553,7 +4037,8 @@
           "type": "Reaction",
           "level": 1,
           "trigger": "You are about to be attacked",
-          "description": "You raise your shield, gaining its defense bonus until the start of your next turn."
+          "description": "You raise your shield, gaining its defense bonus until the start of your next turn.",
+          "focusCost": 1
         },
         {
           "id": "castle",
@@ -3561,7 +4046,8 @@
           "type": "Reaction",
           "level": 3,
           "trigger": "An adjacent ally is attacked by a hostile creature",
-          "description": "Swap places with the ally and take that attack for them"
+          "description": "Swap places with the ally and take that attack for them",
+          "focusCost": 1
         }
       ]
     },
@@ -4051,7 +4537,8 @@
               "tier3Dmg": 3,
               "tier3Wpn": true
             }
-          }
+          },
+          "focusCost": 1
         },
         {
           "id": "crossfire",
@@ -4334,7 +4821,7 @@
           "actionCard": {
             "name": "Prism",
             "type": "action",
-            "description": "Deals light (light) damage",
+            "description": "Deals light damage",
             "apCost": 2,
             "focusCost": 1,
             "mpCost": 5,
@@ -4403,7 +4890,7 @@
           "actionCard": {
             "name": "Repel Undead",
             "type": "action",
-            "description": "This spell only affects Undead. Release a force of divine power against all undead within 3 tiles of you, dealing light (light) damage.",
+            "description": "This spell only affects Undead. Release a force of divine power against all undead within 3 tiles of you, dealing light damage.",
             "apCost": 2,
             "focusCost": 5,
             "mpCost": 10,
@@ -4574,7 +5061,7 @@
           "actionCard": {
             "name": "Night Slash",
             "type": "action",
-            "description": "Lokrus: Release blades of darkness at your targets to deal dark (dark) damage. A roll of 18 is also considered a critical hit for this spell.",
+            "description": "Lokrus: Release blades of darkness at your targets to deal dark damage. A roll of 18 is also considered a critical hit for this spell.",
             "apCost": 2,
             "focusCost": 3,
             "mpCost": 8,
@@ -4965,7 +5452,7 @@
           "actionCard": {
             "name": "Sunbeam",
             "type": "action",
-            "description": "Melios: Fire a beam of concentrated light, dealing light (light) damage",
+            "description": "Melios: Fire a beam of concentrated light, dealing light damage",
             "apCost": 2,
             "focusCost": 3,
             "mpCost": 5,
@@ -5053,7 +5540,8 @@
           "type": "Reaction",
           "level": 1,
           "trigger": "An attack against an ally within 10 tiles afflicts them with Bleeding, Slowed, Frightened, or Poisoned.",
-          "description": "Cancel the status effect before it applies"
+          "description": "Cancel the status effect before it applies",
+          "focusCost": 2
         },
         {
           "id": "sanctuary",
@@ -5061,7 +5549,9 @@
           "type": "Reaction",
           "level": 3,
           "trigger": "You or an ally is about to receive magic damage",
-          "description": "Reduce that magical damage by 5."
+          "description": "Reduce that magical damage by 5.",
+          "focusCost": 1,
+          "mpCost": 5
         }
       ]
     },
@@ -5095,7 +5585,15 @@
         "forage": {
           "name": "Forage",
           "minLevel": 1,
-          "description": "Whenever you take a Short Rest and spend at least one Respite or travel over long distances in habitable locations you may take the Forage option. Make a Scouting Check.\n\n- Restore 1 IP\n- Restore 3 IP\n- Restore 5 IP"
+          "description": "Whenever you take a Short Rest and spend at least one Respite or travel over long distances in habitable locations you may take the Forage option to restore some IP. Make a Willpower Roll",
+          "powerRoll": {
+            "rollStats": [
+              "willpower"
+            ],
+            "tier1Dmg": 1,
+            "tier2Dmg": 3,
+            "tier3Dmg": 5
+          }
         },
         "backstep": {
           "name": "Backstep",
@@ -5572,7 +6070,8 @@
           "type": "Reaction",
           "level": 1,
           "trigger": "An ally damages a hostile creature reachable within 3 tiles",
-          "description": "If you have a 1H melee weapon equipped and are not wearing martial armor then you may shift 3 to any tile that puts them in your melee range. You must then make an Opportunity Attack on them."
+          "description": "If you have a 1H melee weapon equipped and are not wearing martial armor then you may shift 3 to any tile that puts them in your melee range. You must then make an Opportunity Attack on them.",
+          "focusCost": 1
         },
         {
           "id": "evasion",
@@ -5627,7 +6126,7 @@
           "actionCard": {
             "name": "Mana Sphere",
             "type": "action",
-            "description": "Unleash a blast of pure mana, dealing magical crushing (crushing) damage",
+            "description": "Unleash a blast of pure mana, dealing magical crushing damage",
             "apCost": 2,
             "focusCost": 0,
             "mpCost": 5,
@@ -5663,7 +6162,7 @@
           "actionCard": {
             "name": "Flame Pillar",
             "type": "action",
-            "description": "Prepare to unleash columns of flames in a 3x3 area that reach 5 tiles high, dealing fire (fire) damage\n\nMaintain: During the start phase you may spend 1 Focus and 10 Mana to maintain this ability. If you do so then you can retrigger the ability in the same area during the End Phase.",
+            "description": "Prepare to unleash columns of flames in a 3x3 area that reach 5 tiles high, dealing fire damage\n\nMaintain: During the start phase you may spend 1 Focus and 10 Mana to maintain this ability. If you do so then you can retrigger the ability in the same area during the End Phase.",
             "apCost": 2,
             "focusCost": 3,
             "mpCost": 10,
@@ -5692,7 +6191,7 @@
           "actionCard": {
             "name": "Icicle Lance",
             "type": "action",
-            "description": "Launch two sharp icicles at multiple targets, dealing water (water) damage",
+            "description": "Launch two sharp icicles at multiple targets, dealing water damage",
             "apCost": 2,
             "focusCost": 1,
             "mpCost": 8,
@@ -5730,7 +6229,7 @@
           "actionCard": {
             "name": "Volatile Bubble",
             "type": "action",
-            "description": "Create a bubble at your current location that stays there until the Delay effect triggers. It drifts towards the target and deals water (water) damage.",
+            "description": "Create a bubble at your current location that stays there until the Delay effect triggers. It drifts towards the target and deals water damage.",
             "apCost": 2,
             "focusCost": 1,
             "mpCost": 8,
@@ -5757,7 +6256,7 @@
           "actionCard": {
             "name": "Wind Cutter",
             "type": "action",
-            "description": "Unleash slicing wind blades at the target to deal air (air) damage",
+            "description": "Unleash slicing wind blades at the target to deal air damage",
             "apCost": 2,
             "focusCost": 3,
             "mpCost": 8,
@@ -5808,7 +6307,7 @@
           "actionCard": {
             "name": "Acid Splash",
             "type": "action",
-            "description": "Launch acid at some nearby enemies to deal nature (nature) damage",
+            "description": "Launch acid at some nearby enemies to deal nature damage",
             "apCost": 2,
             "focusCost": 1,
             "mpCost": 5,
@@ -5836,7 +6335,7 @@
           "actionCard": {
             "name": "Fireball",
             "type": "action",
-            "description": "Choose a target. The target must be a creature. Charge up a powerful concentration of flames that explodes in a 3x3 area once it hits its target dealing fire (fire) damage to all creatures in the area. The target is pushed away from the caster, but other creatures in the area are pushed away from the target. If you take at least 10 damage in one turn the explosive orb explodes prematurely on your location. In this case the push affecting you is changed to vertical push upwards. After the attack flames remain in the area for 1 minute",
+            "description": "Choose a target. The target must be a creature. Charge up a powerful concentration of flames that explodes in a 3x3 area once it hits its target dealing fire damage to all creatures in the area. The target is pushed away from the caster, but other creatures in the area are pushed away from the target. If you take at least 10 damage in one turn the explosive orb explodes prematurely on your location. In this case the push affecting you is changed to vertical push upwards. After the attack flames remain in the area for 1 minute",
             "apCost": 2,
             "focusCost": 3,
             "mpCost": 10,
@@ -5879,7 +6378,7 @@
           "actionCard": {
             "name": "Shadow Spears",
             "type": "action",
-            "description": "Several large shadowy spears erupt around the target, impaling them to deal dark (dark) damage",
+            "description": "Several large shadowy spears erupt around the target, impaling them to deal dark damage",
             "apCost": 2,
             "focusCost": 5,
             "mpCost": 10,
@@ -5906,7 +6405,7 @@
           "actionCard": {
             "name": "Blazing Solis",
             "type": "action",
-            "description": "Unleash a powerful beam of light in a 3x15 line starting from you. Each creature in the area takes light (light) damage.",
+            "description": "Unleash a powerful beam of light in a 3x15 line starting from you. Each creature in the area takes light damage.",
             "apCost": 3,
             "focusCost": 5,
             "mpCost": 13,
@@ -5934,7 +6433,7 @@
           "actionCard": {
             "name": "Stone Cannon",
             "type": "action",
-            "description": "Compress several rocks together before blasting them at your target to deal earth (earth) damage",
+            "description": "Compress several rocks together before blasting them at your target to deal earth damage",
             "apCost": 2,
             "focusCost": 5,
             "mpCost": 11,
@@ -5976,7 +6475,7 @@
           "actionCard": {
             "name": "Geyser",
             "type": "action",
-            "description": "Boiling water bursts from the ground in a 3x3 area, reaching up to 10 tiles high, to deal water (water) damage",
+            "description": "Boiling water bursts from the ground in a 3x3 area, reaching up to 10 tiles high, to deal water damage",
             "apCost": 2,
             "focusCost": 7,
             "mpCost": 13,
@@ -6003,7 +6502,7 @@
           "actionCard": {
             "name": "Energy Javelins",
             "type": "action",
-            "description": "Prepare to unleash a volley of glowing javelins in a 7x7 area. All hostile creatures in the area will take light (light) damage.\n\nMaintain: During the Start phase you may spend 3 Focus and 10 Mana to maintain this ability. If you do so then you can retrigger the ability in the same area during the End Phase.",
+            "description": "Prepare to unleash a volley of glowing javelins in a 7x7 area. All hostile creatures in the area will take light damage.\n\nMaintain: During the Start phase you may spend 3 Focus and 10 Mana to maintain this ability. If you do so then you can retrigger the ability in the same area during the End Phase.",
             "apCost": 2,
             "focusCost": 7,
             "mpCost": 21,
@@ -6032,7 +6531,7 @@
           "actionCard": {
             "name": "Lightning Blast",
             "type": "action",
-            "description": "Release a bolt of lightning to deal volt (volt) damage",
+            "description": "Release a bolt of lightning to deal volt damage",
             "apCost": 3,
             "focusCost": 7,
             "mpCost": 21,
@@ -6085,11 +6584,11 @@
           "type": "Reaction",
           "level": 3,
           "trigger": "You are attacked by a ranged attack",
-          "description": "After you are attacked by a ranged attack you may fire back at the attacker with Flare Arrow to deal fire (fire) damage:",
+          "description": "After you are attacked by a ranged attack you may fire back at the attacker with Flare Arrow to deal fire damage:",
           "actionCard": {
             "name": "Flare Arrow",
             "type": "reaction",
-            "description": "After you are attacked by a ranged attack you may fire back at the attacker with Flare Arrow to deal fire (fire) damage:",
+            "description": "After you are attacked by a ranged attack you may fire back at the attacker with Flare Arrow to deal fire damage:",
             "apCost": 0,
             "focusCost": 1,
             "mpCost": 5,
@@ -6458,7 +6957,8 @@
           "type": "Reaction",
           "level": 3,
           "trigger": "A hostile creature uses a Delay action",
-          "description": "Allow one of your allies targeted by it or in its area of effect to immediately shift 2."
+          "description": "Allow one of your allies targeted by it or in its area of effect to immediately shift 2.",
+          "focusCost": 1
         }
       ]
     },
@@ -6614,7 +7114,7 @@
           "actionCard": {
             "name": "Pommel Strike",
             "type": "action",
-            "description": "Smack them with a blunt part of your weapon. The damage type is changed to Crushing (crushing).",
+            "description": "Smack them with a blunt part of your weapon. The damage type is changed to Crushing.",
             "apCost": 1,
             "focusCost": 0,
             "mpCost": 0,
@@ -7469,7 +7969,8 @@
           "type": "Reaction",
           "level": 1,
           "trigger": "You are attacked by a ranged attack",
-          "description": "Throw up a quick magical shield against the attack, reducing the damage by 5."
+          "description": "Throw up a quick magical shield against the attack, reducing the damage by 5.",
+          "mpCost": 10
         },
         {
           "id": "subjugate",
@@ -7477,7 +7978,45 @@
           "type": "Reaction",
           "level": 3,
           "trigger": "An ally afflicts a hostile creature with Shaken or Dazed",
-          "description": "Target them with Subjugate. Subjugate cannot trigger off of other Subjugate reactions and if multiple creatures are affected at the same time you may only choose one target."
+          "description": "Target them with Subjugate. Subjugate cannot trigger off of other Subjugate reactions and if multiple creatures are affected at the same time you may only choose one target.",
+          "actionCard": {
+            "name": "Subjugate",
+            "type": "reaction",
+            "description": "Subjugate cannot trigger off of other Subjugate reactions and if multiple creatures are affected at the same time you may only choose one target",
+            "apCost": 0,
+            "focusCost": 3,
+            "mpCost": 10,
+            "range": "10",
+            "tags": [
+              "Ranged",
+              "Spell"
+            ],
+            "source": "wizard",
+            "powerRoll": {
+              "rollStats": [
+                "reason",
+                "willpower"
+              ],
+              "tier1Effect": 3,
+              "tier2Dmg": 4,
+              "tier2Effect": {
+                "type": "Special",
+                "srcStats": [
+                  "willpower"
+                ],
+                "targetStats": [
+                  "presence"
+                ],
+                "effect": "restrained",
+                "strength": "weak"
+              },
+              "tier3Dmg": 6,
+              "tier3Effect": {
+                "type": "Special",
+                "effect": "R < 2 poisoned [round ends]"
+              }
+            }
+          }
         }
       ]
     }
@@ -7602,24 +8141,18 @@
     },
     "elf": {
       "name": "Elf",
-      "description": "Elves are a long-living race created by Urkesh for the First War of the Gods. but their patron god has since become Eyja. They have received the fairy blessings of air and water which enable them to see fairies and other metaphysical beings. They are known for being graceful and intelligent, but also overbearing and pretentious.\n\nThey are characterized by being slightly taller than humans and having pointed ears, but otherwise not being too different. Their skin dries easily so they prefer to stay near water.\n\nThey usually only have up to 3 children and usually wait at least 50 years between each child to have another one. This is because gestation lasts for almost 2 years. Childbirth is easier though and they usually give birth in water.",
+      "description": "Elves are a long-living race created by Urkesh for the First War of the Gods, but their patron god has since become Eyja. They have received the fairy blessings of air and water which enable them to see fairies and other metaphysical beings. They are known for being graceful and intelligent, but also overbearing and pretentious.\n\nThey are characterized by being slightly taller than humans and having pointed ears, but otherwise not being too different. Their skin dries easily so they prefer to stay near water.\n\nThey usually only have up to 3 children and usually wait at least 50 years between each child to have another one. This is because gestation lasts for almost 2 years. Childbirth is easier though and they usually give birth in water.",
       "passives": {
         "elf_fairysGrace": {
           "name": "Fairy's Grace",
           "type": "innate",
           "description": "You can see fairies and other metaphysical beings",
-          "elf_manasight": {
-            "name": "Manasight",
-            "type": "selectable",
-            "ptCost": 1,
-            "description": "You can see through most obscuring effects like smoke or fog. You don't take a bane against concealed creatures",
-            "effects": [
-              {
-                "type": "GrantSight",
-                "stat": "metaphysical"
-              }
-            ]
-          }
+          "effects": [
+            {
+              "type": "GrantSight",
+              "stat": "metaphysical"
+            }
+          ]
         },
         "elf_swimmingGrace": {
           "name": "Swimming Grace",
@@ -7658,8 +8191,7 @@
           "effects": [
             {
               "type": "GrantSight",
-              "stat": "mana",
-              "value": "1"
+              "stat": "mana"
             }
           ]
         },
@@ -7719,7 +8251,7 @@
     },
     "fayar": {
       "name": "Fayar",
-      "description": "The Fayar are a race created by Antioch during the Second War of the Gods. but their patron god has since become Nera. They tend to value hierarchy and martial prowess greatly. They are characterized by having small patches of scales covering parts of their body, impressive horns of various shapes and sizes, and a powerful tail that they can use in combat. They also have wings, but not all Fayar can fly. Otherwise they are fairly similar to humans.",
+      "description": "The Fayar are a race created by Antioch during the Second War of the Gods, but their patron god has since become Nera. They tend to value hierarchy and martial prowess greatly. They are characterized by having small patches of scales covering parts of their body, impressive horns of various shapes and sizes, and a powerful tail that they can use in combat. They also have wings, but not all Fayar can fly. Otherwise they are fairly similar to humans.",
       "passives": {
         "fayar_powerfulTail": {
           "name": "Powerful tail",
@@ -7808,7 +8340,7 @@
     },
     "florian": {
       "name": "Florian",
-      "description": "Florians are a race created by Urkesh during the Age of Chaos. but their patron god has since become Melios. Although they are unable to see fairies innately they make up for it with their healthy and unique constitution. They are unique in that the type of plant that they represent has a strong correlation with their total lifespan. Flower-like florians often only have a total lifespan of 20 years, while more arboreal florians can have a lifespan of 250 years. They are known for being shy and uncommon. They are characterized by having some plant-like structures on their body such as flowers coming out of their head or bark covering small parts of their body. They have a very wide range in sizes often ranging from 3.5 ft - 6.5 ft.",
+      "description": "Florians are a race created by Urkesh during the Age of Chaos, but their patron god has since become Melios. Although they are unable to see fairies innately they make up for it with their healthy and unique constitution. They are unique in that the type of plant that they represent has a strong correlation with their total lifespan. Flower-like florians often only have a total lifespan of 20 years, while more arboreal florians can have a lifespan of 250 years. They are known for being shy and uncommon. They are characterized by having some plant-like structures on their body such as flowers coming out of their head or bark covering small parts of their body. They have a very wide range in sizes often ranging from 3.5 ft - 6.5 ft.",
       "passives": {
         "florian_plantSense": {
           "name": "Plant sense",
@@ -7887,7 +8419,7 @@
     },
     "gradia": {
       "name": "Gradia",
-      "description": "Gradians are a race created by Urkesh during the Age of Chaos. but their patron god has since become Etar. Although they are unable to see fairies innately they make up for it with their strength and swiftness. They have a short lifespan of only 80 years. They are known for being reserved and unfriendly with strangers, but very close and loyal to their friends. They are characterized by mammalian-like ears and tails in addition to human-like ears. Their height range is similar to humans.",
+      "description": "Gradians are a race created by Urkesh during the Age of Chaos, but their patron god has since become Etar. Although they are unable to see fairies innately they make up for it with their strength and swiftness. They have a short lifespan of only 80 years. They are known for being reserved and unfriendly with strangers, but very close and loyal to their friends. They are characterized by mammalian-like ears and tails in addition to human-like ears. Their height range is similar to humans.",
       "passives": {
         "gradia_speed": {
           "name": "Speed",
@@ -8106,7 +8638,7 @@
           "effects": [
             {
               "type": "Immunity",
-              "stat": "frigthened"
+              "stat": "frightened"
             }
           ]
         },
@@ -8127,8 +8659,7 @@
       "value": 150,
       "allowedSlots": [
         "rightHand",
-        "leftHand",
-        "back"
+        "leftHand"
       ],
       "tags": [
         "implement"
@@ -8142,12 +8673,11 @@
     "wp_fist": {
       "name": "Fist",
       "quantity": 1,
-      "description": "",
+      "description": "This represents your hands, feet, or any other tool you use for unarmed strikes",
       "value": 0,
       "allowedSlots": [
         "rightHand",
-        "leftHand",
-        "back"
+        "leftHand"
       ],
       "tags": [
         "melee",
@@ -8174,8 +8704,7 @@
       "value": 25,
       "allowedSlots": [
         "rightHand",
-        "leftHand",
-        "back"
+        "leftHand"
       ],
       "tags": [
         "melee",
@@ -8201,8 +8730,7 @@
       "value": 25,
       "allowedSlots": [
         "rightHand",
-        "leftHand",
-        "back"
+        "leftHand"
       ],
       "tags": [
         "melee",
@@ -8227,8 +8755,7 @@
       "value": 50,
       "allowedSlots": [
         "rightHand",
-        "leftHand",
-        "back"
+        "leftHand"
       ],
       "tags": [
         "ranged",
@@ -8253,8 +8780,7 @@
       "value": 25,
       "allowedSlots": [
         "rightHand",
-        "leftHand",
-        "back"
+        "leftHand"
       ],
       "tags": [
         "melee",
@@ -8274,15 +8800,37 @@
         "equipment/jab"
       ]
     },
-    "wp_wand_or_tome": {
-      "name": "Wand or Tome",
+    "wp_wand": {
+      "name": "Wand",
       "quantity": 1,
       "description": "",
       "value": 150,
       "allowedSlots": [
         "rightHand",
-        "leftHand",
-        "back"
+        "leftHand"
+      ],
+      "tags": [
+        "implement",
+        "1h"
+      ],
+      "type": "weapon",
+      "damage": 2,
+      "damageType": "magic",
+      "range": 1,
+      "attributes": [
+        "reason",
+        "willpower",
+        "presence"
+      ]
+    },
+    "wp_tome": {
+      "name": "Tome",
+      "quantity": 1,
+      "description": "",
+      "value": 150,
+      "allowedSlots": [
+        "rightHand",
+        "leftHand"
       ],
       "tags": [
         "implement",
@@ -8305,8 +8853,7 @@
       "value": 20,
       "allowedSlots": [
         "rightHand",
-        "leftHand",
-        "back"
+        "leftHand"
       ],
       "tags": [
         "melee",
@@ -8325,15 +8872,14 @@
         "equipment/whack"
       ]
     },
-    "wp_scimitar": {
-      "name": "Scimitar",
+    "wp_shortSword": {
+      "name": "Shortsword",
       "quantity": 1,
       "description": "",
       "value": 70,
       "allowedSlots": [
         "rightHand",
-        "leftHand",
-        "back"
+        "leftHand"
       ],
       "tags": [
         "melee",
@@ -8359,17 +8905,17 @@
       "value": 70,
       "allowedSlots": [
         "rightHand",
-        "leftHand",
-        "back"
+        "leftHand"
       ],
       "tags": [
+        "1h",
         "ranged",
         "martial",
         "firearm"
       ],
       "type": "weapon",
       "damage": 3,
-      "damageType": "magical piercing",
+      "damageType": "piercing",
       "range": 8,
       "attributes": [
         "dexterity"
@@ -8385,8 +8931,7 @@
       "value": 30,
       "allowedSlots": [
         "rightHand",
-        "leftHand",
-        "back"
+        "leftHand"
       ],
       "tags": [
         "melee",
@@ -8412,8 +8957,7 @@
       "value": 120,
       "allowedSlots": [
         "rightHand",
-        "leftHand",
-        "back"
+        "leftHand"
       ],
       "tags": [
         "ranged",
@@ -8437,8 +8981,7 @@
       "value": 120,
       "allowedSlots": [
         "rightHand",
-        "leftHand",
-        "back"
+        "leftHand"
       ],
       "tags": [
         "ranged",
@@ -8462,8 +9005,7 @@
       "value": 120,
       "allowedSlots": [
         "rightHand",
-        "leftHand",
-        "back"
+        "leftHand"
       ],
       "tags": [
         "melee",
@@ -8488,8 +9030,7 @@
       "value": 180,
       "allowedSlots": [
         "rightHand",
-        "leftHand",
-        "back"
+        "leftHand"
       ],
       "tags": [
         "implement",
@@ -8512,8 +9053,7 @@
       "value": 50,
       "allowedSlots": [
         "rightHand",
-        "leftHand",
-        "back"
+        "leftHand"
       ],
       "tags": [
         "melee",
@@ -8538,8 +9078,7 @@
       "value": 50,
       "allowedSlots": [
         "rightHand",
-        "leftHand",
-        "back"
+        "leftHand"
       ],
       "tags": [
         "melee",
@@ -8565,8 +9104,7 @@
       "value": 25,
       "allowedSlots": [
         "rightHand",
-        "leftHand",
-        "back"
+        "leftHand"
       ],
       "tags": [
         "melee",
@@ -8591,8 +9129,7 @@
       "value": 120,
       "allowedSlots": [
         "rightHand",
-        "leftHand",
-        "back"
+        "leftHand"
       ],
       "tags": [
         "melee",
@@ -8617,8 +9154,7 @@
       "value": 170,
       "allowedSlots": [
         "rightHand",
-        "leftHand",
-        "back"
+        "leftHand"
       ],
       "tags": [
         "ranged",
@@ -8643,8 +9179,7 @@
       "value": 170,
       "allowedSlots": [
         "rightHand",
-        "leftHand",
-        "back"
+        "leftHand"
       ],
       "tags": [
         "melee",
@@ -8669,8 +9204,7 @@
       "value": 180,
       "allowedSlots": [
         "rightHand",
-        "leftHand",
-        "back"
+        "leftHand"
       ],
       "tags": [
         "ranged",
@@ -8696,8 +9230,7 @@
       "value": 170,
       "allowedSlots": [
         "rightHand",
-        "leftHand",
-        "back"
+        "leftHand"
       ],
       "tags": [
         "melee",
@@ -8722,8 +9255,7 @@
       "value": 170,
       "allowedSlots": [
         "rightHand",
-        "leftHand",
-        "back"
+        "leftHand"
       ],
       "tags": [
         "melee",
@@ -8748,8 +9280,7 @@
       "value": 200,
       "allowedSlots": [
         "rightHand",
-        "leftHand",
-        "back"
+        "leftHand"
       ],
       "tags": [
         "melee",
@@ -8775,8 +9306,7 @@
       "value": 200,
       "allowedSlots": [
         "rightHand",
-        "leftHand",
-        "back"
+        "leftHand"
       ],
       "tags": [
         "melee",
@@ -9028,34 +9558,34 @@
     "con_minor_healing_potion": {
       "name": "Minor Healing Potion",
       "quantity": 1,
-      "description": "Restores 5 HP.",
+      "description": "Restores 3 HP.",
       "tags": [],
       "value": 60,
-      "type": "misc"
+      "type": "consumable"
     },
     "con_healing_potion": {
       "name": "Healing Potion",
       "quantity": 1,
-      "description": "Restores one Respite worth of HP.",
+      "description": "Immediately spend one Respite to restore the equivalent amount of HP",
       "tags": [],
       "value": 120,
-      "type": "misc"
+      "type": "consumable"
     },
     "con_minor_mana_potion": {
       "name": "Minor Mana Potion",
       "quantity": 1,
-      "description": "Restores 5 MP.",
+      "description": "Restores 5 MP",
       "tags": [],
       "value": 100,
-      "type": "misc"
+      "type": "consumable"
     },
     "con_mana_potion": {
       "name": "Mana Potion",
       "quantity": 1,
-      "description": "Restores one Respite worth of MP.",
+      "description": "Immediately spend one Respite to restore the equivalent amount of MP",
       "tags": [],
       "value": 250,
-      "type": "misc"
+      "type": "consumable"
     },
     "con_antidote": {
       "name": "Antidote",
@@ -9063,7 +9593,131 @@
       "description": "Cures poisoned and bleeding status. You do not take damage in combat from bleeding for the 1 AP you spend to drink this.",
       "tags": [],
       "value": 50,
-      "type": "misc"
+      "type": "consumable"
+    },
+    "con_vial_of_glue": {
+      "name": "Vial of Glue",
+      "quantity": 1,
+      "description": "Creates difficult terrain in a 2x2 area when thrown.",
+      "tags": [],
+      "value": 50,
+      "type": "consumable"
+    },
+    "con_vial_of_oil": {
+      "name": "Vial of Oil",
+      "quantity": 1,
+      "description": "Creates flammable oil in a 3x3 area. When subjected to fire it burns for 1 minute.",
+      "tags": [],
+      "value": 50,
+      "type": "consumable"
+    },
+    "con_vial_of_poison": {
+      "name": "Vial of Poison",
+      "quantity": 1,
+      "description": "This is a coating with the following potency that lasts for one attack or 1 minute. It can be added to a weapon:\n- No effect\n- R < 1 poisoned [round ends]\n- R < 2 poisoned [round ends]",
+      "tags": [],
+      "value": 50,
+      "type": "consumable",
+      "powerRoll": {
+        "rollStats": [
+          "might"
+        ],
+        "tier1Dmg": 0,
+        "tier1Effect": {
+          "type": "Special",
+          "effect": "No effect"
+        },
+        "tier2Dmg": 0,
+        "tier2Effect": {
+          "type": "Condition",
+          "fixedSrcVal": 1,
+          "targetStats": [
+            "might"
+          ],
+          "effect": "poisoned",
+          "duration": "roundEnd"
+        },
+        "tier3Dmg": 0,
+        "tier3Effect": {
+          "type": "Condition",
+          "fixedSrcVal": 2,
+          "targetStats": [
+            "might"
+          ],
+          "effect": "poisoned",
+          "duration": "roundEnd"
+        }
+      }
+    },
+    "con_vial_of_acid": {
+      "name": "Vial of Acid",
+      "quantity": 1,
+      "description": "Creates an acid pit in a 2x2 area when thrown. Acid deals 5 nature damage to any creature that enters the area or is standing in it during the End Phase",
+      "tags": [],
+      "value": 100,
+      "type": "consumable"
+    },
+    "con_smokepowder_vial": {
+      "name": "Smokepowder Vial",
+      "quantity": 1,
+      "description": "Releases smoke in a 3x3 area when throwing, obscuring vision and making all creatures inside Blinded.",
+      "tags": [],
+      "value": 100,
+      "type": "consumable"
+    },
+    "con_vial_of_jagged_oil": {
+      "name": "Vial of Jagged Oil",
+      "quantity": 1,
+      "description": "This is a coating with the following potency that lasts for one attack or 1 minute. It can be added to a weapon.",
+      "tags": [],
+      "value": 100,
+      "type": "consumable",
+      "powerRoll": {
+        "rollStats": [
+          "might"
+        ],
+        "tier1Dmg": 0,
+        "tier1Effect": {
+          "type": "Special",
+          "effect": "No effect"
+        },
+        "tier2Dmg": 0,
+        "tier2Effect": {
+          "type": "Condition",
+          "fixedSrcVal": 1,
+          "targetStats": [
+            "might"
+          ],
+          "effect": "bleeding",
+          "duration": "turnEnd"
+        },
+        "tier3Dmg": 0,
+        "tier3Effect": {
+          "type": "Condition",
+          "fixedSrcVal": 2,
+          "targetStats": [
+            "might"
+          ],
+          "effect": "bleeding",
+          "duration": "turnEnd"
+        }
+      }
+    },
+    "gear_alchemy_satchel": {
+      "name": "Alchemy Satchel",
+      "quantity": 1,
+      "description": "A compact satchel for potions and consumables. Holds up to three consumable items.",
+      "tags": [],
+      "value": 250,
+      "type": "container",
+      "containerCapacity": 3,
+      "containerAllowedTypes": [
+        "consumable"
+      ],
+      "allowedSlots": [
+        "waist",
+        "back"
+      ]
     },
     "herb_travelers_grass": {
       "name": "Traveler's Grass",
@@ -9071,7 +9725,7 @@
       "description": "Heals 3 HP. Cannot be used in combat.",
       "tags": [],
       "value": 10,
-      "type": "misc"
+      "type": "consumable"
     },
     "herb_heal_root": {
       "name": "Heal Root",
@@ -9079,7 +9733,7 @@
       "description": "Heals 8 HP. Cannot be used in combat.",
       "tags": [],
       "value": 30,
-      "type": "misc"
+      "type": "consumable"
     },
     "herb_blue_horn_shroom": {
       "name": "Blue Horn Shroom",
@@ -9087,7 +9741,7 @@
       "description": "Restores 3 Mana. Cannot be used in combat.",
       "tags": [],
       "value": 50,
-      "type": "misc"
+      "type": "consumable"
     },
     "herb_golden_clove": {
       "name": "Golden Clove",
@@ -9095,83 +9749,10 @@
       "description": "Restores 8 Mana. Cannot be used in combat.",
       "tags": [],
       "value": 150,
-      "type": "misc"
+      "type": "consumable"
     }
   },
   "actionCards": {
-    "generic/swing": {
-      "name": "Swing",
-      "type": "action",
-      "description": "Swing your weapon",
-      "apCost": 2,
-      "range": "Wpn",
-      "damageType": "slashing",
-      "powerRoll": {
-        "rollStats": [
-          "might",
-          "dexterity"
-        ],
-        "tier1Dmg": 0,
-        "tier1Wpn": true,
-        "tier2Dmg": 1,
-        "tier2Wpn": true,
-        "tier3Dmg": 2,
-        "tier3Wpn": true,
-        "tier3Effect": {
-          "type": "Condition",
-          "effect": "bleeding",
-          "duration": "turnEnd"
-        }
-      },
-      "tags": [
-        "Melee",
-        "Weapon"
-      ],
-      "source": "equipment"
-    },
-    "generic/stab": {
-      "name": "Stab",
-      "type": "action",
-      "description": "Stab with the weapon",
-      "apCost": 2,
-      "range": "Wpn",
-      "damageType": "slashing",
-      "powerRoll": {
-        "rollStats": [
-          "might",
-          "dexterity"
-        ],
-        "tier1Dmg": 0,
-        "tier1Wpn": true,
-        "tier2Dmg": 1,
-        "tier2Wpn": true,
-        "tier2Effect": {
-          "type": "Condition",
-          "effect": "hemorrhage",
-          "duration": "none"
-        },
-        "tier3Dmg": 2,
-        "tier3Wpn": true,
-        "tier3Effect": {
-          "type": "Condition",
-          "effect": "hemorrhage",
-          "duration": "none"
-        }
-      },
-      "tags": [
-        "Melee",
-        "Weapon"
-      ],
-      "source": "equipment"
-    },
-    "generic/raise_shield": {
-      "name": "Raise Shield",
-      "type": "action",
-      "description": "Raise your shield",
-      "apCost": 1,
-      "tags": [],
-      "source": "equipment"
-    },
     "equipment/raiseShield": {
       "name": "Raise Shield",
       "type": "action",
@@ -9318,8 +9899,9 @@
         "tier3Dmg": 2,
         "tier3Wpn": true,
         "tier3Effect": {
-          "type": "Special",
-          "effect": "bleeding [turn end]"
+          "type": "Condition",
+          "effect": "bleeding",
+          "duration": "turnEnd"
         }
       }
     },
@@ -9389,7 +9971,7 @@
       "description": "Shoot a solid bullet",
       "apCost": 2,
       "focusCost": 0,
-      "mpCost": 0,
+      "mpCost": 3,
       "range": "Wpn",
       "tags": [
         "Ranged",
@@ -9432,15 +10014,16 @@
         "tier3Dmg": 2,
         "tier3Wpn": true,
         "tier3Effect": {
-          "type": "Special",
-          "effect": "bleeding [turn end]"
+          "type": "Condition",
+          "effect": "bleeding",
+          "duration": "turnEnd"
         }
       }
     },
     "feat/bite": {
       "name": "Bite",
       "type": "action",
-      "description": "Your animal companion bites the target to deal piercing (piercing) damage",
+      "description": "Your animal companion bites the target to deal piercing damage",
       "apCost": 2,
       "focusCost": 0,
       "mpCost": 0,
@@ -9463,7 +10046,7 @@
     "feat/scratch": {
       "name": "Scratch",
       "type": "action",
-      "description": "Your animal companion scratches the target to deal slashing (slashing) damage",
+      "description": "Your animal companion scratches the target to deal slashing damage",
       "apCost": 2,
       "focusCost": 0,
       "mpCost": 0,
@@ -9486,7 +10069,7 @@
     "feat/tackle": {
       "name": "Tackle",
       "type": "action",
-      "description": "Your animal companion tackles the target to deal crushing (crushing) damage.",
+      "description": "Your animal companion tackles the target to deal crushing damage.",
       "apCost": 2,
       "focusCost": 0,
       "mpCost": 0,
@@ -9530,7 +10113,7 @@
     "feat/breathAttack": {
       "name": "Breath Attack",
       "type": "action",
-      "description": "Your animal companion release a breath attack at the target. Choose the damage type when selecting this initially. The damage type does not change afterwards.\n\n- Air (air)\n\n- Water (water)\n\n- Fire (fire)\n\n- Earth (earth)",
+      "description": "Your animal companion release a breath attack at the target. Choose the damage type when selecting this initially. The damage type does not change afterwards.\n\n- Air\n\n- Water\n\n- Fire\n\n- Earth",
       "apCost": 2,
       "focusCost": 1,
       "mpCost": 0,
@@ -9577,7 +10160,7 @@
     "monster/clayFist": {
       "name": "Clay Fist",
       "type": "action",
-      "description": "The golem punches the target to deal crushing (crushing) damage",
+      "description": "The golem punches the target to deal crushing damage",
       "apCost": 2,
       "focusCost": 0,
       "mpCost": 0,
@@ -9599,7 +10182,7 @@
     "monster/strawPeck": {
       "name": "Straw Peck",
       "type": "action",
-      "description": "The bird pecks the target to deal piercing (piercing) damage",
+      "description": "The bird pecks the target to deal piercing damage",
       "apCost": 2,
       "focusCost": 0,
       "mpCost": 0,
@@ -9632,7 +10215,7 @@
     "monster/snowballToss": {
       "name": "Snowball Toss",
       "type": "action",
-      "description": "The golem throws a snowball to deal 1 water (water) damage",
+      "description": "The golem throws a snowball to deal 1 water damage",
       "apCost": 2,
       "focusCost": 0,
       "mpCost": 0,
@@ -9645,7 +10228,7 @@
     "monster/woodFist": {
       "name": "Wood Fist",
       "type": "action",
-      "description": "The golem punches the target to deal crushing (crushing) damage",
+      "description": "The golem punches the target to deal crushing damage",
       "apCost": 2,
       "focusCost": 0,
       "mpCost": 0,
@@ -9676,7 +10259,7 @@
     "monster/claySword": {
       "name": "Clay Sword",
       "type": "action",
-      "description": "The golem swings its sword to deal slashing (slashing) damage",
+      "description": "The golem swings its sword to deal slashing damage",
       "apCost": 2,
       "focusCost": 0,
       "mpCost": 0,
@@ -9699,7 +10282,7 @@
     "monster/strawFist": {
       "name": "Straw Fist",
       "type": "action",
-      "description": "The golem punches the target to deal 2 crushing (crushing) damage",
+      "description": "The golem punches the target to deal 2 crushing damage",
       "apCost": 2,
       "focusCost": 0,
       "mpCost": 0,
@@ -9724,7 +10307,7 @@
     "monster/rottenCrossbow": {
       "name": "Rotten Crossbow",
       "type": "action",
-      "description": "The skeleton shoots the target to deal piercing (piercing) damage",
+      "description": "The skeleton shoots the target to deal piercing damage",
       "apCost": 2,
       "focusCost": 0,
       "mpCost": 0,
@@ -9796,7 +10379,7 @@
     "monster/rottenPunch": {
       "name": "Rotten Punch",
       "type": "action",
-      "description": "The zombie punches the target to deal 2 crushing (crushing) damage",
+      "description": "The zombie punches the target to deal 2 crushing damage",
       "apCost": 2,
       "focusCost": 0,
       "mpCost": 0,
@@ -9809,7 +10392,7 @@
     "monster/filthyMace": {
       "name": "Filthy Mace",
       "type": "action",
-      "description": "The wight swings its mace to deal crushing (crushing) damage",
+      "description": "The wight swings its mace to deal crushing damage",
       "apCost": 2,
       "focusCost": 0,
       "mpCost": 0,
@@ -9842,7 +10425,7 @@
     "monster/spectralClaws": {
       "name": "Spectral Claws",
       "type": "action",
-      "description": "The wraith swings its claws to deal magical slashing (slashing) damage",
+      "description": "The wraith swings its claws to deal magical slashing damage",
       "apCost": 2,
       "focusCost": 0,
       "mpCost": 0,
@@ -9932,7 +10515,7 @@
     "fairy/shockingGrasp": {
       "name": "Shocking Grasp",
       "type": "action",
-      "description": "Will o wisp charges one of your melee attacks with electricity to deal Volt (volt) damage. If used on the surface of a body of water the attack becomes an area attack instead, targeting all creatures within 5 tiles of you, but loses the damage bonus from your weapon.",
+      "description": "Will o wisp charges one of your melee attacks with electricity to deal Volt damage. If used on the surface of a body of water the attack becomes an area attack instead, targeting all creatures within 5 tiles of you, but loses the damage bonus from your weapon.",
       "apCost": 2,
       "focusCost": 1,
       "mpCost": 8,
@@ -9960,7 +10543,7 @@
     "fairy/earthPillar": {
       "name": "Earth Pillar",
       "type": "action",
-      "description": "Gnome creates a pillar of stone that erupts underneath the target dealing earth (earth) damage. If the target is pushed then the pillar remains as a 2 tile high and 1 tile wide pillar. If not then the pillars crumbles after the attack. You may also target an unoccupied tile to forgo an attack and only create the pillar.\n\nFocus 3: Gain Multi (3) and increase push by 1",
+      "description": "Gnome creates a pillar of stone that erupts underneath the target dealing earth damage. If the target is pushed then the pillar remains as a 2 tile high and 1 tile wide pillar. If not then the pillars crumbles after the attack. You may also target an unoccupied tile to forgo an attack and only create the pillar.\n\nFocus 3: Gain Multi (3) and increase push by 1",
       "apCost": 2,
       "focusCost": 1,
       "mpCost": 5,
@@ -10002,7 +10585,7 @@
     "fairy/hornetNest": {
       "name": "Hornet Nest",
       "type": "action",
-      "description": "Pixie summons hornets to attack your target, dealing nature (nature) damage. This attack ignores cover.",
+      "description": "Pixie summons hornets to attack your target, dealing nature damage. This attack ignores cover.",
       "apCost": 2,
       "focusCost": 1,
       "mpCost": 5,
@@ -10026,7 +10609,7 @@
     "fairy/vineWall": {
       "name": "Vine Wall",
       "type": "action",
-      "description": "Pixie transforms into a thick wall of vines in an unoccupied 7x1 area that blocks vision and movement. It has the durability of wood, but is destroyed instantly by fire (fire) damage.",
+      "description": "Pixie transforms into a thick wall of vines in an unoccupied 7x1 area that blocks vision and movement. It has the durability of wood, but is destroyed instantly by fire damage.",
       "apCost": 2,
       "focusCost": 3,
       "mpCost": 8,
@@ -10043,7 +10626,7 @@
     "fairy/fireWall": {
       "name": "Fire Wall",
       "type": "action",
-      "description": "Salamander transforms into a 5x1 wall of flames. Any creature that passes through the wall or is in the area when it is created take fire (fire) damage.",
+      "description": "Salamander transforms into a 5x1 wall of flames. Any creature that passes through the wall or is in the area when it is created take fire damage.",
       "apCost": 2,
       "focusCost": 3,
       "mpCost": 13,
@@ -10070,7 +10653,7 @@
     "fairy/trailingComet": {
       "name": "Trailing Comet",
       "type": "action",
-      "description": "Salamander creates 3 orbs of fire that orbit around you, dealing fire (fire) damage each time either a hostile creature and you enter within 1 tile of each other, or if there is a hostile creature within 2 tiles of you during the Start Phase. If there are already hostile creatures in range then the damage triggers instantly for each creature and if there are remaining orbs then they still orbit you. One orb disappears on each hit.",
+      "description": "Salamander creates 3 orbs of fire that orbit around you, dealing fire damage each time either a hostile creature and you enter within 1 tile of each other, or if there is a hostile creature within 2 tiles of you during the Start Phase. If there are already hostile creatures in range then the damage triggers instantly for each creature and if there are remaining orbs then they still orbit you. One orb disappears on each hit.",
       "apCost": 2,
       "focusCost": 1,
       "mpCost": 8,
@@ -10145,7 +10728,7 @@
     "fairy/snowflakes": {
       "name": "Snowflakes",
       "type": "action",
-      "description": "Sprite ascends into the sky and transforms, causing it to snow and lowering the temperature. Cannot be used without access to the sky. All attacks that deal fire (fire) damage or have fire infusion have a Bane.",
+      "description": "Sprite ascends into the sky and transforms, causing it to snow and lowering the temperature. Cannot be used without access to the sky. All attacks that deal fire damage or have fire infusion have a Bane.",
       "apCost": 1,
       "focusCost": 3,
       "mpCost": 10,
@@ -10177,7 +10760,7 @@
     "fairy/vacuumSeal": {
       "name": "Vacuum Seal",
       "type": "action",
-      "description": "Flugel temporarily stops the air near a target, ending any magical Maintain effect upheld by the target. This deals air (air) damage.",
+      "description": "Flugel temporarily stops the air near a target, ending any magical Maintain effect upheld by the target. This deals air damage.",
       "apCost": 2,
       "focusCost": 3,
       "mpCost": 8,
@@ -10201,7 +10784,7 @@
     "fairy/thunderstorm": {
       "name": "Thunderstorm",
       "type": "action",
-      "description": "Unicorn ascends into the sky and transforms, creating a thunderstorm. At the start of the round lightning strikes, targeting the creature with the highest elevation and then size in that order. On ties you decide. Volt (volt) damage is dealt in a 3x3 area centered on the target. You must have access to the sky.",
+      "description": "Unicorn ascends into the sky and transforms, creating a thunderstorm. At the start of the round lightning strikes, targeting the creature with the highest elevation and then size in that order. On ties you decide. Volt damage is dealt in a 3x3 area centered on the target. You must have access to the sky.",
       "apCost": 3,
       "focusCost": 7,
       "mpCost": 25,
@@ -10258,7 +10841,7 @@
     "fairy/collapse": {
       "name": "Collapse",
       "type": "action",
-      "description": "Choose up to 5 created pillars of size no more than 3x1. Gargoyle causes each one to collapse in one direction in a 2x1 area adjacent to the pillar, forcing each creature in the area to make a Might Power Roll and take the corresponding crushing (crushing) damage. The pillars are destroyed afterwards, but leave difficult terrain in the collapsed areas.",
+      "description": "Choose up to 5 created pillars of size no more than 3x1. Gargoyle causes each one to collapse in one direction in a 2x1 area adjacent to the pillar, forcing each creature in the area to make a Might Power Roll and take the corresponding crushing damage. The pillars are destroyed afterwards, but leave difficult terrain in the collapsed areas.",
       "apCost": 2,
       "focusCost": 7,
       "mpCost": 13,
@@ -10283,7 +10866,7 @@
     "fairy/leafStorm": {
       "name": "Leaf Storm",
       "type": "action",
-      "description": "Dryad transforms into a cyclone of magical leaves in a 3x3 area, dealing nature (nature) damage.\n\nMaintain: You may spend 1 Focus and 8 Mana at the Start Phase to Maintain this spell and move the area over up to 2 tiles. Any creature that ends its turn in the area takes the same damage again.",
+      "description": "Dryad transforms into a cyclone of magical leaves in a 3x3 area, dealing nature damage.\n\nMaintain: You may spend 1 Focus and 8 Mana at the Start Phase to Maintain this spell and move the area over up to 2 tiles. Any creature that ends its turn in the area takes the same damage again.",
       "apCost": 2,
       "focusCost": 7,
       "mpCost": 13,
@@ -10310,7 +10893,7 @@
     "fairy/gigaDrain": {
       "name": "Giga Drain",
       "type": "action",
-      "description": "Dryad absorbs energy from your target to deal nature (nature) damage, healing you equal to half the damage dealt (round down).",
+      "description": "Dryad absorbs energy from your target to deal nature damage, healing you equal to half the damage dealt (round down).",
       "apCost": 2,
       "focusCost": 3,
       "mpCost": 8,
@@ -10334,7 +10917,7 @@
     "fairy/lavaSpout": {
       "name": "Lava Spout",
       "type": "action",
-      "description": "Carbuncle transforms into a 3x3 pool of lava that expands during the Start Phase of each round until it becomes a 9x9 area. Lava deals 12 fire (fire) damage if you start your turn in it.",
+      "description": "Carbuncle transforms into a 3x3 pool of lava that expands during the Start Phase of each round until it becomes a 9x9 area. Lava deals 12 fire damage if you start your turn in it.",
       "apCost": 2,
       "focusCost": 7,
       "mpCost": 8,
@@ -10350,7 +10933,7 @@
     "fairy/overheat": {
       "name": "Overheat",
       "type": "action",
-      "description": "Carbuncle releases fire at all creatures within 2 tiles of you to deal fire (fire) damage",
+      "description": "Carbuncle releases fire at all creatures within 2 tiles of you to deal fire damage",
       "apCost": 1,
       "focusCost": 5,
       "mpCost": 10,
@@ -10392,7 +10975,7 @@
     "fairy/waterWhip": {
       "name": "Water Whip",
       "type": "action",
-      "description": "Selkie creates a tentacle of water and lashes at a target dealing water (water) damage. You can target an ally instead for no damage.",
+      "description": "Selkie creates a tentacle of water and lashes at a target dealing water damage. You can target an ally instead for no damage.",
       "apCost": 2,
       "focusCost": 3,
       "mpCost": 10,
@@ -10416,7 +10999,7 @@
     "fairy/hail": {
       "name": "Hail",
       "type": "action",
-      "description": "Almiraj ascends into the sky and transforms, summoning baseball size hail. All creatures not underneath a roof take 5 water (water) damage on cast and during the Start Phase.",
+      "description": "Almiraj ascends into the sky and transforms, summoning baseball size hail. All creatures not underneath a roof take 5 water damage on cast and during the Start Phase.",
       "apCost": 2,
       "focusCost": 7,
       "mpCost": 18,
@@ -10432,7 +11015,7 @@
     "fairy/snowCloak": {
       "name": "Snow Cloak",
       "type": "action",
-      "description": "Almiraj shrouds the target with a magical aura that grants them resistance to water (water) damage. When it is snowing or hailing with this cloak attacks against you have a Bane. You may only have one Snow Cloak at a time.\n\nMaintain: During the Start Phase you may spend 1 Focus and 1 Mana to maintain this effect for this round as well.",
+      "description": "Almiraj shrouds the target with a magical aura that grants them resistance to water damage. When it is snowing or hailing with this cloak attacks against you have a Bane. You may only have one Snow Cloak at a time.\n\nMaintain: During the Start Phase you may spend 1 Focus and 1 Mana to maintain this effect for this round as well.",
       "apCost": 1,
       "focusCost": 3,
       "mpCost": 10,
@@ -10562,11 +11145,11 @@
         },
         "frightened": {
           "name": "Frightened",
-          "description": "Gain a bane against all power rolls against the source of the fear. If that source is a creature it also gains a boon against you. You cannot willingly move closer to the source of fear. If you are receive the frightened condition again from a difference source then this new effect replaces the old one."
+          "description": "Gain a bane against all power rolls against the source of the fear. If that source is a creature it also gains a boon against you. You cannot willingly move closer to the source of fear. If you receive the frightened condition again from a different source then this new effect replaces the old one."
         },
         "grabbed": {
           "name": "Grabbed",
-          "description": "Your Speed is 0. If you are the one grabbing you are ever separated by more than 1 tile then this effect ends."
+          "description": "Your Speed is 0. If you are the one grabbing, and you are ever separated by more than 1 tile from the grabbed target, this effect ends."
         },
         "poisoned": {
           "name": "Poisoned",
@@ -10574,7 +11157,7 @@
         },
         "prone": {
           "name": "Prone",
-          "description": "Lying flat on the ground. All their attacks gain a bane and melee attacks against them gain a bane. Ranged attacks against them gain a bane. Movement costs doubled. You can stand up with the Change Posture action."
+          "description": "Lying flat on the ground. The prone creature's own attacks take a bane. Melee attacks against it take a bane. Ranged attacks against it take a bane. Movement costs are doubled. You can stand up with the Change Posture action."
         },
         "restrained": {
           "name": "Restrained",
@@ -10613,6 +11196,10 @@
         "2h": {
           "name": "2H",
           "description": "This can only be done with a two-handed weapon"
+        },
+        "area": {
+          "name": "Area",
+          "description": "This affects an entire area"
         },
         "barrierX": {
           "name": "Barrier X",

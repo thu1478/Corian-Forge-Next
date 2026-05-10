@@ -210,6 +210,7 @@ export default function CharacterCreator() {
                     selectedOptions={classSelections}
                     classes={charData.classes}
                     currentAdventurerLevel={adventurerLevel}
+                    availableXP={charData.xp}
                     attributes={effectiveAttributes}
                     priestDeity={charData.priestDeity ?? null}
                     onPriestDeityChange={(deityId) => {
@@ -276,6 +277,7 @@ export default function CharacterCreator() {
                     cultureUpbringing={cultureUpbringing}
                     selectedSkills={cultureSkills}
                     globalSkillCounts={skillCounts}
+                    attributes={effectiveAttributes}
                     onSelectEnvironment={(id) => {
                         setCultureEnvironment(id);
                         setCharData((prev) => ({ ...prev, cultureEnvironment: id }));
@@ -311,6 +313,7 @@ export default function CharacterCreator() {
                     occupationSkills={occupationSkills}
                     occupationLanguages={occupationLanguages}
                     globalSkillCounts={skillCounts}
+                    attributes={effectiveAttributes}
                     onSelectOccupation={(id) => {
                         setCharData((prev) => ({ ...prev, occupation: id }));
                         setOccupationSkills([]);

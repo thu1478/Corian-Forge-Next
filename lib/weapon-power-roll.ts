@@ -36,6 +36,15 @@ function weaponSatisfiesBrawlingTag(w: WeaponItem, actionTags: string[]): boolea
   return actionTagsIncludeCanonical(w.tags || [], "brawling")
 }
 
+/** Actions tagged Firearm require a Firearm-tagged weapon (and waive the attribute-overlap check). */
+function isFirearmAction(actionTags: string[]): boolean {
+  return actionTagsIncludeCanonical(actionTags, "Firearm")
+}
+
+function weaponIsFirearm(w: WeaponItem): boolean {
+  return actionTagsIncludeCanonical(w.tags || [], "Firearm")
+}
+
 /** At least one hand holds a weapon with the Brawling tag (for brawling-only non-Weapon actions). */
 export function hasBrawlingWeaponInHands(
   activeWeapon: InventoryItem | null | undefined,
@@ -52,6 +61,8 @@ export function hasBrawlingWeaponInHands(
  * True if active or offhand holds a weapon that can legally use this weapon-tagged action:
  * roll stat overlap (when roll stats exist), melee/ranged alignment, and if the action is tagged Brawling,
  * the weapon must be tagged Brawling too.
+ *
+ * Firearm-tagged actions skip the attribute-overlap check but require an equipped Firearm weapon.
  */
 export function hasEquippedWeaponForWeaponAction(
   actionTags: string[] | undefined,
@@ -61,9 +72,14 @@ export function hasEquippedWeaponForWeaponAction(
 ): boolean {
   const tags = actionTags ?? []
   const stats = rollStats ?? []
+  const firearmAction = isFirearmAction(tags)
   for (const w of [activeWeapon, offhandWeapon]) {
     if (!isWeaponItem(w)) continue
-    if (!weaponAttributesCompatible(w, stats)) continue
+    if (firearmAction) {
+      if (!weaponIsFirearm(w)) continue
+    } else {
+      if (!weaponAttributesCompatible(w, stats)) continue
+    }
     if (!weaponMatchesActionKind(w, tags)) continue
     if (!weaponSatisfiesBrawlingTag(w, tags)) continue
     return true
@@ -74,6 +90,8 @@ export function hasEquippedWeaponForWeaponAction(
 /**
  * For +Wpn damage: first equipped weapon (active, then offhand) that matches roll stat overlap, melee/ranged,
  * and Brawling tag when the action has Brawling. Shields are skipped.
+ *
+ * Firearm-tagged actions skip the attribute-overlap check and instead require a Firearm-tagged weapon.
  */
 export function resolveWeaponForActionPowerRoll(
   actionTags: string[] | undefined,
@@ -83,9 +101,14 @@ export function resolveWeaponForActionPowerRoll(
 ): WeaponItem | null {
   const tags = actionTags ?? []
   const stats = rollStats ?? []
+  const firearmAction = isFirearmAction(tags)
   for (const w of [activeWeapon, offhandWeapon]) {
     if (!isWeaponItem(w)) continue
-    if (!weaponAttributesCompatible(w, stats)) continue
+    if (firearmAction) {
+      if (!weaponIsFirearm(w)) continue
+    } else {
+      if (!weaponAttributesCompatible(w, stats)) continue
+    }
     if (!weaponMatchesActionKind(w, tags)) continue
     if (!weaponSatisfiesBrawlingTag(w, tags)) continue
     return w

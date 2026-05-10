@@ -15,6 +15,11 @@ interface ClassSelectionProps {
     selectedOptions: { id: string; source: string }[];
     classes: { id: string; level: number }[];
     currentAdventurerLevel: number;
+    /**
+     * Actual XP available to spend on classes (e.g. from character data after earning XP post-creation).
+     * Falls back to the threshold for `currentAdventurerLevel` when not provided.
+     */
+    availableXP?: number;
     attributes: {
         might: number; dexterity: number; reason: number; willpower: number; presence: number;
     };
@@ -31,6 +36,7 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
                                                            selectedOptions,
                                                            classes,
                                                            currentAdventurerLevel,
+                                                           availableXP,
                                                            attributes,
                                                            priestDeity = null,
                                                            onPriestDeityChange,
@@ -64,7 +70,9 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
         return total;
     };
 
-    const totalBudget = getStartingXP(adventurerLevel);
+    // Use the character's actual XP when provided so an imported character with
+    // earned-after-creation XP can spend the surplus on more class levels/talents.
+    const totalBudget = Math.max(getStartingXP(adventurerLevel), availableXP ?? 0);
     const spentBudget = localClasses.reduce((sum, c) => sum + calculateClassXPCost(c.level), 0);
     const remainingAdventurerXP = totalBudget - spentBudget;
     const hasAtLeastOneClass = localClasses.some((c) => c.level > 0);

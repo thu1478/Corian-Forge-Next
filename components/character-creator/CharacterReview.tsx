@@ -259,6 +259,8 @@ export function CharacterReview({
       return {
         id,
         name: skill?.name ?? id,
+        description: (skill?.description as string | undefined) ?? "",
+        powerRoll: skill?.powerRoll as PowerRoll | undefined,
         expertise: count >= 2
       };
     });
@@ -411,11 +413,31 @@ export function CharacterReview({
           </div>
           <div className="mt-5 border-t border-border pt-4">
             <div className="text-xs uppercase tracking-wider font-bold text-muted-foreground mb-2">Skills</div>
-            <div className="flex flex-wrap gap-2 mb-4">
+            <div className="space-y-2 mb-4 max-h-64 overflow-auto pr-1">
               {resolvedSkills.map((s) => (
-                <span key={s.id} className={`text-xs px-2 py-1 rounded border ${s.expertise ? "bg-purple-100 border-purple-600 text-purple-950 dark:bg-purple-900/40 dark:border-purple-500 dark:text-purple-200" : "bg-muted border-border text-foreground"}`}>
-                  {s.name}{s.expertise ? " (Expertise)" : ""}
-                </span>
+                <div
+                  key={s.id}
+                  className={`rounded-lg border p-2 text-left ${
+                    s.expertise
+                      ? "border-purple-600 bg-purple-100/50 dark:bg-purple-900/30 dark:border-purple-500"
+                      : "border-border bg-background/60"
+                  }`}
+                >
+                  <div className="text-sm font-bold text-foreground">
+                    {s.name}
+                    {s.expertise ? (
+                      <span className="ml-1 text-xs font-semibold text-purple-800 dark:text-purple-200">
+                        (Expertise)
+                      </span>
+                    ) : null}
+                  </div>
+                  {s.description ? (
+                    <div className="text-xs text-muted-foreground whitespace-pre-line mt-1">{s.description}</div>
+                  ) : null}
+                  {s.powerRoll && (
+                    <TraitPowerRollCollapsible roll={s.powerRoll} attributes={finalAttributes} />
+                  )}
+                </div>
               ))}
             </div>
             <div className="text-xs uppercase tracking-wider font-bold text-muted-foreground mb-2">Feats</div>

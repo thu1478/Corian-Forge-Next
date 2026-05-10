@@ -1,6 +1,6 @@
 "use client"
 
-import {useEffect, useMemo, useState} from "react" // Added useState
+import {useEffect, useLayoutEffect, useMemo, useState} from "react" // Added useState
 import {cn} from "@/lib/utils"
 import {ChevronDown, Clock, Crosshair, Droplets, Swords, Target, Wrench, Zap} from "lucide-react" // Added ChevronDown
 import {InventoryItem} from "@/lib/equipment-data";
@@ -44,6 +44,10 @@ interface ActionCardProps {
     actionCostBudget?: ActionCostBudget
     /** Default `simple`: final damage & potency DC. `formula`: show sums (e.g. 2 + 1 DMG, 4 + (−1) potency). */
     powerRollDisplayMode?: PowerRollDisplayMode
+    /** When false, power roll tier rows start collapsed (e.g. rules library). Default true for character sheet. */
+    defaultPowerRollExpanded?: boolean
+    /** Increment (e.g. library "Collapse all") to collapse card body and power-roll tiers. */
+    collapseAllSignal?: number
 }
 
 function ActionCardGlossaryTag({ tag }: { tag: string }) {
@@ -118,10 +122,17 @@ export function ActionCardComponent({
                                         onSpendActionCost,
                                         actionCostBudget,
                                         powerRollDisplayMode = "simple",
+                                        defaultPowerRollExpanded = true,
+                                        collapseAllSignal,
                                     }: ActionCardProps) {
     // Each card maintains its own independent state
     const [isExpanded, setIsExpanded] = useState(true);
-    const [isPowerRollExpanded, setIsPowerRollExpanded] = useState(true);
+    const [isPowerRollExpanded, setIsPowerRollExpanded] = useState(defaultPowerRollExpanded);
+
+    /** Keep tier visibility aligned with props (new action / reused instance / delayed prop). */
+    useLayoutEffect(() => {
+        setIsPowerRollExpanded(defaultPowerRollExpanded)
+    }, [action.id, defaultPowerRollExpanded])
 
     const weaponForPowerRollDamage = useMemo(
         () =>
@@ -138,6 +149,12 @@ export function ActionCardComponent({
     useEffect(() => {
         setIsExpanded(!forceCollapsed);
     }, [forceCollapsed]);
+
+    useEffect(() => {
+        if (collapseAllSignal == null || collapseAllSignal < 1) return
+        setIsExpanded(false)
+        setIsPowerRollExpanded(false)
+    }, [collapseAllSignal])
 
     const config = typeConfig[action.type] || typeConfig.action
     const TypeIcon = config.icon
