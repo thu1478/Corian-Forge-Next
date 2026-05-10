@@ -1,0 +1,626 @@
+import type { ReactionRef, TraitRef } from "@/lib/baseRefs"
+import type { TraitEffect } from "@/lib/rules"
+
+export const MAX_DEPLOYED_SUMMONS = 1
+
+/** Roster / rules role: assistants & minions share deploy caps; summons use template action list in full. */
+export type CreatureRole = "assistant" | "minion" | "summon"
+export type CreatureKind = CreatureRole
+
+export interface CreatureVulnerability {
+    stat: string
+    value?: string
+}
+
+export interface CreatureDefinition {
+    name: string
+    description?: string
+    role: CreatureRole
+    /** Optional flavor types from glossary.creatureTypes keys */
+    creatureTypes?: string[]
+    /** Optional catalog / unlock tier (e.g. 1 vs 3) for rules library ordering. */
+    catalogLevel?: number
+    /** e.g. geomancy / necromancy for Conjurer catalog filtering */
+    tags?: string[]
+    attributes?: Partial<Record<"might" | "dexterity" | "reason" | "willpower" | "presence", number>>
+    actionIDs?: string[]
+    /** Summon defaults when role is summon */
+    defaultMaxHp?: number
+    defaultMaxMp?: number
+    stability?: number
+    speed?: number
+    size?: string
+    resistances?: string[]
+    /** Damage or tag keys the creature is immune to (bestiary; display / future resolution). */
+    immunities?: string[]
+    vulnerabilities?: CreatureVulnerability[]
+    /** Ids into `rules.bestiary.traits`. */
+    traitRefs?: string[]
+    /** Defense rating (summons / creatures). */
+    defense?: number
+    /** Opportunity-attack damage; omit or 0 = none. */
+    opportunityAttack?: number
+    /**
+     * Conjurer catalog tier: 2 = Summon Mastery 1 pool, 4 = Mastery 2 pool.
+     * If omitted, derived from `catalogLevel`: 1 or 2 → tier 2 pool; 3 or 4 → tier 4 pool (matches rules `level` field).
+     */
+    summonTier?: 2 | 4
+}
+
+export interface BestiaryTraitDefinition {
+    name?: string
+    description?: string
+    effects?: TraitEffect[]
+}
+
+export interface CreatureRosterEntry {
+    /** Stable id for this roster row (persisted). */
+    id: string
+    templateId: string
+    kind: CreatureKind
+    deployed: boolean
+    /** When this row exists because of a feat unlock (e.g. trustyCompanion). */
+    unlockFeatId?: string
+    /** Feat vs Conjurer manual roster row. */
+    rosterSource?: "feat" | "conjurer"
+    customName?: string
+    notes?: string
+    currentHp?: number
+    maxHp?: number
+    currentMp?: number
+    maxMp?: number
+}
+
+/** Raw catalog row (allows `role` or legacy `kind`, plus extra JSON fields). */
+export type CreaturesJson = Record<string, Partial<CreatureDefinition> & { kind?: CreatureRole; traits?: string[] }>
+
+function normalizeCreatureRole(raw: CreaturesJson[string]): CreatureRole | undefined {
+    const r = raw.role ?? raw.kind
+    if (r === "assistant" || r === "minion" || r === "summon") return r
+    return undefined
+}
+
+export type RulesWithBestiary = {
+    bestiary?: {
+        creatures?: CreaturesJson
+        traits?: Record<string, BestiaryTraitDefinition>
+    }
+    creatures?: CreaturesJson
+    system?: Record<string, unknown>
+    classes?: Record<
+        string,
+        {
+            passives?: Record<
+                string,
+                { effects?: TraitEffect[]; selectAmount?: number; minLevel?: number }
+            >
+        }
+    >
+}
+
+function getRawCreatureRows(rules: RulesWithBestiary): CreaturesJson {
+    const fromBestiary = rules.bestiary?.creatures
+    if (fromBestiary && typeof fromBestiary === "object" && Object.keys(fromBestiary).length > 0) {
+        return fromBestiary
+    }
+    const legacy = rules.creatures
+    return legacy && typeof legacy === "object" ? legacy : {}
+}
+
+/** Bestiary / legacy `creatures` catalog. */
+export function getCreatureTemplates(rules: RulesWithBestiary): Record<string, CreatureDefinition> {
+    const raw = getRawCreatureRows(rules)
+    const out: Record<string, CreatureDefinition> = {}
+    for (const [id, row] of Object.entries(raw)) {
+        if (!row || typeof row !== "object") continue
+        const role = normalizeCreatureRole(row)
+        if (!role) continue
+        const name = typeof row.name === "string" ? row.name : id
+        const rowTraits = (row as { traits?: unknown }).traits
+        const traitRefs = Array.isArray(rowTraits)
+            ? rowTraits.map((x) => String(x).trim()).filter(Boolean)
+            : undefined
+        const vulnRaw = (row as { vulnerabilities?: unknown }).vulnerabilities
+        const vulnerabilities = Array.isArray(vulnRaw)
+            ? vulnRaw
+                  .map((v): CreatureVulnerability | null => {
+                      if (!v || typeof v !== "object") return null
+                      const o = v as Record<string, unknown>
+                      const stat = String(o.stat ?? "").trim()
+                      if (!stat) return null
+                      return {
+                          stat,
+                          value: o.value != null ? String(o.value) : undefined,
+                      }
+                  })
+                  .filter((x): x is CreatureVulnerability => x != null)
+            : undefined
+        const levelRaw = (row as { level?: unknown }).level
+        const catalogLevel =
+            typeof levelRaw === "number" && Number.isFinite(levelRaw) ? Math.floor(levelRaw) : undefined
+        const tagsRaw = (row as { tags?: unknown }).tags
+        const tags = Array.isArray(tagsRaw)
+            ? tagsRaw.map((x) => String(x).trim()).filter(Boolean)
+            : undefined
+        const resRaw = (row as { resistances?: unknown }).resistances
+        const resistances = Array.isArray(resRaw)
+            ? resRaw.map((x) => String(x).trim()).filter(Boolean)
+            : undefined
+        const immRaw = (row as { immunities?: unknown }).immunities
+        const immunities = Array.isArray(immRaw)
+            ? immRaw.map((x) => String(x).trim()).filter(Boolean)
+            : undefined
+        const defenseRaw = (row as { defense?: unknown }).defense
+        const defense = typeof defenseRaw === "number" && Number.isFinite(defenseRaw) ? defenseRaw : undefined
+        const rowRec = row as Record<string, unknown>
+        const oaRaw = rowRec.opportunityAttack ?? rowRec.opportuniyAttack
+        const opportunityAttack =
+            typeof oaRaw === "number" && Number.isFinite(oaRaw) ? Math.floor(oaRaw) : undefined
+        const stRaw = (row as { summonTier?: unknown }).summonTier
+        let summonTier: 2 | 4 | undefined
+        if (stRaw === 2 || stRaw === 4) summonTier = stRaw
+        else if (catalogLevel === 4) summonTier = 4
+        else if (catalogLevel === 2) summonTier = 2
+        else if (catalogLevel === 3) summonTier = 4
+        else if (catalogLevel === 1) summonTier = 2
+
+        out[id] = {
+            name,
+            description: typeof row.description === "string" ? row.description : undefined,
+            role,
+            catalogLevel,
+            summonTier,
+            creatureTypes: Array.isArray(row.creatureTypes) ? row.creatureTypes : undefined,
+            tags,
+            attributes: row.attributes,
+            actionIDs: Array.isArray(row.actionIDs) ? row.actionIDs : undefined,
+            defaultMaxHp: typeof row.defaultMaxHp === "number" ? row.defaultMaxHp : undefined,
+            defaultMaxMp: typeof row.defaultMaxMp === "number" ? row.defaultMaxMp : undefined,
+            stability: typeof row.stability === "number" ? row.stability : undefined,
+            speed: typeof row.speed === "number" ? row.speed : undefined,
+            size: typeof row.size === "string" ? row.size : undefined,
+            resistances,
+            immunities,
+            vulnerabilities,
+            traitRefs,
+            defense,
+            opportunityAttack,
+        }
+    }
+    return out
+}
+
+function normalizeSummonPools(
+    entry: CreatureRosterEntry,
+    templates: Record<string, CreatureDefinition>
+): CreatureRosterEntry {
+    if (entry.kind !== "summon") return entry
+    const def = templates[entry.templateId]
+    const maxHp = entry.maxHp ?? def?.defaultMaxHp ?? 10
+    const maxMp = entry.maxMp ?? def?.defaultMaxMp ?? 0
+    const currentHp = entry.currentHp ?? maxHp
+    const currentMp = entry.currentMp ?? maxMp
+    if (
+        entry.maxHp === maxHp &&
+        entry.maxMp === maxMp &&
+        entry.currentHp === currentHp &&
+        entry.currentMp === currentMp
+    ) {
+        return entry
+    }
+    return { ...entry, maxHp, maxMp, currentHp, currentMp }
+}
+
+export function getBestiaryTraitMap(rules: RulesWithBestiary): Record<string, BestiaryTraitDefinition> {
+    const t = rules.bestiary?.traits
+    return t && typeof t === "object" ? t : {}
+}
+
+export function resolveCreatureTraitEntries(
+    rules: RulesWithBestiary,
+    traitIds: string[] | undefined
+): Array<{ id: string } & BestiaryTraitDefinition> {
+    if (!traitIds?.length) return []
+    const map = getBestiaryTraitMap(rules)
+    return traitIds
+        .map((id) => {
+            const def = map[id]
+            if (!def) return { id, name: id, description: undefined }
+            return { id, ...def }
+        })
+        .filter(Boolean)
+}
+
+/** Conjurer Summoner passive: school tag `geomancy` or `necromancy` from chosen effect. */
+export function getConjurerSummonSchoolTag(traits: TraitRef[], rules: RulesWithBestiary): string | null {
+    const ref = traits.find((t) => t.id === "summoner" && String(t.source).toLowerCase() === "class")
+    if (!ref?.selectedEffectIndices?.length) return null
+    const passive = rules.classes?.conjurer?.passives?.summoner
+    const effects = passive?.effects
+    if (!Array.isArray(effects)) return null
+    const idx = ref.selectedEffectIndices[0]
+    if (!Number.isInteger(idx) || idx < 0 || idx >= effects.length) return null
+    const eff = effects[idx] as TraitEffect | undefined
+    if (eff?.type !== "SummonSchool") return null
+    const v = String(eff.value ?? "").trim().toLowerCase()
+    return v || null
+}
+
+export function characterHasSummonerPassive(traits: TraitRef[], classes: { id: string; level: number }[]): boolean {
+    const conj = classes.find((c) => c.id === "conjurer" && c.level >= 3)
+    if (!conj) return false
+    return traits.some((t) => t.id === "summoner" && String(t.source).toLowerCase() === "class")
+}
+
+/** Trait refs for conjurer passives used when resolving school/mastery from creator class picks. */
+export function conjurerClassTraitRefsFromPicks(
+    picks: { id: string; source: string; selectedEffectIndices?: number[] }[]
+): TraitRef[] {
+    return picks
+        .filter((p) => p.source === "conjurer" && (p.id === "summoner" || p.id === "greatSummoner"))
+        .map((p) => ({
+            id: p.id,
+            source: "class" as const,
+            ...(p.selectedEffectIndices?.length ? { selectedEffectIndices: p.selectedEffectIndices } : {}),
+        }))
+}
+
+/** Summon Mastery rank: 1 with Summoner only, 2 with Great Summoner once class level meets that passive's minLevel. */
+export function getSummonMastery(
+    traits: TraitRef[],
+    classes: { id: string; level: number }[],
+    rules: RulesWithBestiary
+): number {
+    if (!characterHasSummonerPassive(traits, classes)) return 0
+    const conj = classes.find((c) => c.id === "conjurer")
+    const hasGreat = traits.some((t) => t.id === "greatSummoner" && String(t.source).toLowerCase() === "class")
+    if (!hasGreat) return 1
+    const passive = rules.classes?.conjurer?.passives?.greatSummoner
+    const minLv = typeof passive?.minLevel === "number" && Number.isFinite(passive.minLevel) ? passive.minLevel : 5
+    if (conj && conj.level >= minLv) return 2
+    return 1
+}
+
+/** Catalog tier for conjurer summon/minion pools (2 vs 4). */
+export function getCreatureSummonTier(def: CreatureDefinition): 2 | 4 | undefined {
+    if (def.summonTier === 2 || def.summonTier === 4) return def.summonTier
+    const L = def.catalogLevel
+    if (L === 4 || L === 3) return 4
+    if (L === 2 || L === 1) return 2
+    return undefined
+}
+
+/**
+ * Roster slots granted by Summoner: one at Conjurer 3+, plus one per additional Conjurer level.
+ * (Slots = conjurerLevel - 2 when level ≥ 3.)
+ */
+export function getConjurerSummonSlotCount(
+    classes: { id: string; level: number }[],
+    hasSummonerPassive: boolean
+): number {
+    if (!hasSummonerPassive) return 0
+    const conj = classes.find((c) => c.id === "conjurer")
+    if (!conj || conj.level < 3) return 0
+    return Math.max(0, conj.level - 2)
+}
+
+/**
+ * Third conjurer slot (0-based index 2): only this slot may pick tier-4 creatures when Summon Mastery is 2
+ * (Great Summoner at class level). Slots 0–1 are tier-2 (rank-1) only.
+ */
+export const CONJURER_TIER4_SUMMON_SLOT_INDEX = 2
+
+function listConjurerCatalogTemplateIdsWithTier4Gate(
+    rules: RulesWithBestiary,
+    schoolTag: string,
+    summonMastery: number,
+    includeTier4Creatures: boolean
+): string[] {
+    const defs = getCreatureTemplates(rules)
+    const tag = schoolTag.trim().toLowerCase()
+    if (!tag || summonMastery < 1) return []
+    return Object.entries(defs)
+        .filter(([, def]) => {
+            if (def.role !== "summon" && def.role !== "minion") return false
+            const tags = def.tags?.map((x) => x.toLowerCase()) ?? []
+            if (!tags.includes(tag)) return false
+            const tier = getCreatureSummonTier(def)
+            if (tier === 2) return true
+            if (tier === 4) return summonMastery >= 2 && includeTier4Creatures
+            return false
+        })
+        .map(([id]) => id)
+        .sort()
+}
+
+/** Per-slot catalog: slots 1–2 tier 2 only; slot 3 adds tier 4 when Summon Mastery is 2. */
+export function listConjurerCatalogTemplateIdsForSlot(
+    rules: RulesWithBestiary,
+    schoolTag: string,
+    summonMastery: number,
+    slotIndex: number
+): string[] {
+    const includeTier4 =
+        summonMastery >= 2 && slotIndex === CONJURER_TIER4_SUMMON_SLOT_INDEX
+    return listConjurerCatalogTemplateIdsWithTier4Gate(rules, schoolTag, summonMastery, includeTier4)
+}
+
+/** Union of template ids usable in any slot at this mastery (tier 4 only if mastery ≥ 2). */
+export function listConjurerCatalogTemplateIds(
+    rules: RulesWithBestiary,
+    schoolTag: string,
+    summonMastery: number
+): string[] {
+    return listConjurerCatalogTemplateIdsWithTier4Gate(rules, schoolTag, summonMastery, summonMastery >= 2)
+}
+
+export function defaultRosterRowFromTemplate(
+    templateId: string,
+    def: CreatureDefinition,
+    rosterSource: "conjurer"
+): CreatureRosterEntry {
+    const id =
+        typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+            ? crypto.randomUUID()
+            : `conjurer-${templateId}-${Date.now()}`
+    const base: CreatureRosterEntry = {
+        id,
+        templateId,
+        kind: def.role,
+        deployed: false,
+        rosterSource,
+    }
+    if (def.role === "summon") {
+        const mh = typeof def.defaultMaxHp === "number" ? def.defaultMaxHp : 10
+        const mm = typeof def.defaultMaxMp === "number" ? def.defaultMaxMp : 0
+        base.maxHp = mh
+        base.currentHp = mh
+        base.maxMp = mm
+        base.currentMp = mm
+    }
+    return base
+}
+
+/** Deterministic roster id for Conjurer slot `i` (matches creator `conjurerSummonTemplateIds[i]`). */
+export function conjurerSlotRowFromTemplate(
+    slotIndex: number,
+    templateId: string,
+    def: CreatureDefinition
+): CreatureRosterEntry {
+    const base = defaultRosterRowFromTemplate(templateId, def, "conjurer")
+    return { ...base, id: `conjurer-slot-${slotIndex}` }
+}
+
+export interface FeatCreatureUnlock {
+    featId: string
+    templateId: string
+}
+
+type FeatDefForCreature = { grantsCreature?: string; grantsCreatureTemplate?: string }
+
+/** Read creature grant from feats for traits with source "feat". */
+export function getFeatCreatureUnlocks(
+    traits: TraitRef[],
+    rules: { system?: Record<string, unknown> }
+): FeatCreatureUnlock[] {
+    const feats = rules.system?.feats as Record<string, FeatDefForCreature> | undefined
+    if (!feats) return []
+    const out: FeatCreatureUnlock[] = []
+    for (const t of traits) {
+        if (t.source !== "feat") continue
+        const raw = feats[t.id]
+        const templateId = raw?.grantsCreature ?? raw?.grantsCreatureTemplate
+        if (typeof templateId === "string" && templateId.length > 0) {
+            out.push({ featId: t.id, templateId })
+        }
+    }
+    return out
+}
+
+function defaultEntryFromUnlock(unlock: FeatCreatureUnlock, def: CreatureDefinition): CreatureRosterEntry {
+    const id = `feat-${unlock.featId}-${unlock.templateId}`
+    const base: CreatureRosterEntry = {
+        id,
+        templateId: unlock.templateId,
+        kind: def.role,
+        deployed: false,
+        unlockFeatId: unlock.featId,
+        rosterSource: "feat",
+    }
+    if (def.role === "summon") {
+        const mh = typeof def.defaultMaxHp === "number" ? def.defaultMaxHp : 10
+        const mm = typeof def.defaultMaxMp === "number" ? def.defaultMaxMp : 0
+        base.maxHp = mh
+        base.currentHp = mh
+        base.maxMp = mm
+        base.currentMp = mm
+    }
+    return base
+}
+
+export type ReconcileCreatureRosterOpts = {
+    classes?: { id: string; level: number }[]
+    /** Per-slot template ids from character creator (`""` = unchosen). */
+    conjurerSummonTemplateIds?: string[]
+}
+
+/**
+ * Merge saved roster with feat unlocks: add default rows for missing unlocks.
+ * Rows are matched by deterministic `id` from feat + template.
+ * Conjurer slots use ids `conjurer-slot-0` … from `conjurerSummonTemplateIds` + class/traits.
+ */
+export function reconcileCreatureRoster(
+    saved: CreatureRosterEntry[] | undefined,
+    traits: TraitRef[],
+    rules: RulesWithBestiary,
+    opts?: ReconcileCreatureRosterOpts
+): CreatureRosterEntry[] {
+    const templates = getCreatureTemplates(rules)
+    const unlocks = getFeatCreatureUnlocks(traits, rules)
+    const classes = opts?.classes ?? []
+    const prevById = new Map((Array.isArray(saved) ? saved : []).map((c) => [c.id, c]))
+    const savedList = (Array.isArray(saved) ? [...saved] : []).filter(
+        (c) => c.rosterSource !== "conjurer" && !c.id.startsWith("conjurer-slot-")
+    )
+    const byId = new Map(savedList.map((c) => [c.id, c]))
+
+    for (const u of unlocks) {
+        const def = templates[u.templateId]
+        if (!def) continue
+        const id = `feat-${u.featId}-${u.templateId}`
+        if (!byId.has(id)) {
+            const row = defaultEntryFromUnlock(u, def)
+            byId.set(id, row)
+            savedList.push(row)
+        } else {
+            const existing = byId.get(id)!
+            if (existing.templateId !== u.templateId) existing.templateId = u.templateId
+            if (existing.kind !== def.role) existing.kind = def.role
+            if (!existing.unlockFeatId) existing.unlockFeatId = u.featId
+            if (!existing.rosterSource) existing.rosterSource = "feat"
+        }
+    }
+
+    const hasSummoner = characterHasSummonerPassive(traits, classes)
+    const school = getConjurerSummonSchoolTag(traits, rules)
+    const slots = getConjurerSummonSlotCount(classes, hasSummoner)
+    const mastery = getSummonMastery(traits, classes, rules)
+    if (school && slots > 0 && mastery >= 1) {
+        const picks = opts?.conjurerSummonTemplateIds ?? []
+        const usedConjurerTemplates = new Set<string>()
+        for (let i = 0; i < slots; i++) {
+            const catalog = new Set(listConjurerCatalogTemplateIdsForSlot(rules, school, mastery, i))
+            const tid = String(picks[i] ?? "").trim()
+            if (!tid || !catalog.has(tid)) continue
+            if (usedConjurerTemplates.has(tid)) continue
+            usedConjurerTemplates.add(tid)
+            const def = templates[tid]
+            if (!def) continue
+            const id = `conjurer-slot-${i}`
+            const fresh = conjurerSlotRowFromTemplate(i, tid, def)
+            const prev = prevById.get(id)
+            if (prev && prev.templateId === tid) {
+                fresh.currentHp = prev.currentHp ?? fresh.currentHp
+                fresh.currentMp = prev.currentMp ?? fresh.currentMp
+                fresh.maxHp = prev.maxHp ?? fresh.maxHp
+                fresh.maxMp = prev.maxMp ?? fresh.maxMp
+                fresh.customName = prev.customName
+                fresh.notes = prev.notes
+                fresh.deployed = prev.deployed
+            }
+            const existingIdx = savedList.findIndex((c) => c.id === id)
+            if (existingIdx >= 0) {
+                savedList[existingIdx] = fresh
+            } else {
+                savedList.push(fresh)
+            }
+        }
+    }
+
+    return savedList.map((e) => normalizeSummonPools(e, templates))
+}
+
+export const MAX_DEPLOYED_ASSISTANTS = 2
+
+/** Deploy cap: assistants and minions share this pool. */
+export function countDeployedAssistants(entries: CreatureRosterEntry[]): number {
+    return entries.filter((c) => (c.kind === "assistant" || c.kind === "minion") && c.deployed).length
+}
+
+export function countDeployedSummons(entries: CreatureRosterEntry[]): number {
+    return entries.filter((c) => c.kind === "summon" && c.deployed).length
+}
+
+export function isAssistantOrMinionKind(kind: CreatureKind): boolean {
+    return kind === "assistant" || kind === "minion"
+}
+
+/**
+ * Action card ids for a roster entry.
+ * - Summons: always all `actionIDs` from the creature definition (feat picks ignored).
+ * - Assistants / minions: feat `GrantActionCard` selections when present; else template `actionIDs`.
+ */
+export function getActionCardIdsForCreatureEntry(
+    entry: CreatureRosterEntry,
+    traits: TraitRef[],
+    rules: RulesWithBestiary
+): string[] {
+    const templates = getCreatureTemplates(rules)
+    const tmpl = templates[entry.templateId]
+    const fromTemplate = [...(tmpl?.actionIDs ?? [])]
+
+    if (tmpl?.role === "summon") {
+        return [...new Set(fromTemplate)]
+    }
+
+    if (entry.unlockFeatId) {
+        const t = traits.find((tr) => tr.id === entry.unlockFeatId && tr.source === "feat")
+        const feats = rules.system?.feats as
+            | Record<string, { effects?: Array<{ type?: string; value?: string }>; selectAmount?: number }>
+            | undefined
+        const featDef = feats?.[entry.unlockFeatId]
+        if (t && featDef?.effects && Array.isArray(featDef.effects) && Array.isArray(t.selectedEffectIndices)) {
+            const picked = t.selectedEffectIndices
+                .filter((i) => Number.isInteger(i) && i >= 0 && i < featDef.effects!.length)
+                .map((i) => {
+                    const eff = featDef.effects![i]
+                    return eff?.type === "GrantActionCard" ? String(eff.value ?? "").trim() : ""
+                })
+                .filter(Boolean)
+            if (picked.length > 0) return [...new Set(picked)]
+        }
+    }
+
+    return [...new Set(fromTemplate)]
+}
+
+type RulesWithCards = RulesWithBestiary & { actionCards?: Record<string, { type?: string }> }
+
+/** Action-card refs for the Actions panel only (excludes reactions / freeReactions such as Protect). */
+export function getDeployedCreatureActionRefs(
+    raw: { creatures?: CreatureRosterEntry[]; traits?: TraitRef[] } | null | undefined,
+    rules: RulesWithCards
+): { id: string }[] {
+    const cards = rules.actionCards ?? {}
+    const creatures = raw?.creatures ?? []
+    const traits = raw?.traits ?? []
+    const ids: string[] = []
+    for (const c of creatures) {
+        if (!c.deployed) continue
+        for (const aid of getActionCardIdsForCreatureEntry(c, traits, rules)) {
+            if ((cards[aid]?.type ?? "action") !== "action") continue
+            ids.push(aid)
+        }
+    }
+    return [...new Set(ids)].map((id) => ({ id }))
+}
+
+/**
+ * When a deployed creature grants a reaction (or freeReaction), inject a reaction ref so it appears in the Reactions UI.
+ * Skips ids already present on the character save.
+ */
+export function getInjectedCompanionReactionRefs(
+    raw: { creatures?: CreatureRosterEntry[]; traits?: TraitRef[]; reactions?: ReactionRef[] } | null | undefined,
+    rules: RulesWithCards & { actionCards?: Record<string, { type?: string; fixedMaxCharges?: number }> }
+): ReactionRef[] {
+    const cards = rules.actionCards ?? {}
+    const existing = new Set((raw?.reactions ?? []).map((r) => r.id))
+    const out: ReactionRef[] = []
+    const creatures = raw?.creatures ?? []
+    const traits = raw?.traits ?? []
+
+    for (const c of creatures) {
+        if (!c.deployed) continue
+        for (const aid of getActionCardIdsForCreatureEntry(c, traits, rules)) {
+            const t = cards[aid]?.type
+            if (t !== "reaction" && t !== "freeReaction") continue
+            if (existing.has(aid)) continue
+            existing.add(aid)
+            const fixed = cards[aid]?.fixedMaxCharges
+            const charges =
+                typeof fixed === "number" && Number.isFinite(fixed) ? Math.max(0, Math.floor(fixed)) : -1
+            out.push({ id: aid, slotIndex: -1, charges })
+        }
+    }
+    return out
+}

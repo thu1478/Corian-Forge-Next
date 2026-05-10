@@ -20,6 +20,8 @@ export interface Reaction extends ReactionRef {
     description: string
     trigger: string
     chargeStat ?: string
+    /** When set, max charges are fixed (not derived from an attribute). */
+    fixedMaxCharges?: number
     actionCard ?: ActionCard
 }
 
@@ -29,7 +31,7 @@ export interface CharacterClass {
 }
 
 export interface TraitEffect {
-    type: "StatChange" | "Resistance" | "Vulnerability" | "Immunity" | "GrantSight" | "AttributeChange" | "GrantActionCard" | "Language"
+    type: "StatChange" | "Resistance" | "Vulnerability" | "Immunity" | "GrantSight" | "AttributeChange" | "GrantActionCard" | "Language" | "SummonSchool"
     stat?: string
     /** Omitted on some rows (e.g. `Immunity`, `GrantSight` with only `stat`). */
     value?: string

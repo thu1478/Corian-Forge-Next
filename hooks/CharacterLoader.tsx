@@ -12,6 +12,7 @@ function prepareCharacterFromImportedJson(json: Record<string, unknown>): Charac
     const loaded = {...json};
     delete loaded.bonds;
     loaded.bondTargets = sanitizeBondTargetsFromCharacterJson(loaded, rulesData.system);
+    if (!Array.isArray(loaded.creatures)) loaded.creatures = [];
     return loaded as unknown as CharacterSaveData;
 }
 

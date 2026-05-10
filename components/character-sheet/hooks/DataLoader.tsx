@@ -7,6 +7,7 @@ import {Reaction} from "@/lib/rules";
 import {ReactionRef} from "@/lib/baseRefs";
 import {HydratedCharacter} from "@/lib/HydratedChar";
 import {buildReactionLibrary} from "@/lib/rest-helpers";
+import {getDeployedCreatureActionRefs, getInjectedCompanionReactionRefs} from "@/lib/creature-roster";
 
 export function useDataLoader(rulesDataParam: any) {
     // 1. Core Data IO (The source of truth)
@@ -76,19 +77,49 @@ export function useDataLoader(rulesDataParam: any) {
         }).filter(Boolean);
     }, [traitRefs, rulesDataParam]);
 
+    const creatureActionRefs = useMemo(
+        () => getDeployedCreatureActionRefs(rawCharacter, rulesDataParam),
+        [rawCharacter?.creatures, rawCharacter?.traits, rulesDataParam]
+    )
+
+    const creatureGrantedActionIds = useMemo(
+        () => creatureActionRefs.map((r) => r.id),
+        [creatureActionRefs]
+    )
+
+    const reactionRefsWithCompanion = useMemo(() => {
+        const base = [...(rawCharacter?.reactions || [])] as ReactionRef[]
+        const inject = getInjectedCompanionReactionRefs(rawCharacter, rulesDataParam)
+        const seen = new Set(base.map((r) => r.id))
+        for (const r of inject) {
+            if (seen.has(r.id)) continue
+            seen.add(r.id)
+            base.push(r)
+        }
+        return base
+    }, [rawCharacter?.reactions, rawCharacter?.creatures, rawCharacter?.traits, rulesDataParam])
+
     const hydratedActions = useActions(
         hydratedItemsChar?.inventory || [],
         equippedUids,
         classNames,
-        [...(rawCharacter?.actions || []), ...traitActionIds.map(id => ({ id }))],
+        [
+            ...(rawCharacter?.actions || []),
+            ...traitActionIds.map((id) => ({ id })),
+            ...creatureActionRefs,
+        ],
         handSlotUids,
+        creatureGrantedActionIds,
     );
 
     // 5. Final Object Assembly
     const character = useMemo(() => {
         if (!hydratedItemsChar) return null;
 
-        const fullyHydrated = hydrateCharacter(hydratedItemsChar, rulesDataParam);
+        const fullyHydrated = hydrateCharacter(
+            {...hydratedItemsChar, reactions: reactionRefsWithCompanion},
+            rulesDataParam
+        );
 
         // console.log("Fully hydrated")
         // console.log(fullyHydrated);
@@ -107,7 +138,14 @@ export function useDataLoader(rulesDataParam: any) {
             offhandUid: rawCharacter?.equipment?.offhand,
             activeArmorUid: rawCharacter?.equipment?.armor
         };
-    }, [hydratedItemsChar, hydratedActions, traitRefs, rawCharacter?.equipment, rulesDataParam]);
+    }, [
+        hydratedItemsChar,
+        hydratedActions,
+        traitRefs,
+        rawCharacter?.equipment,
+        rulesDataParam,
+        reactionRefsWithCompanion,
+    ]);
 
     // 6. Stat Calculations (Triggered by the assembled character)
     const derived = useDerivedStats(character, rulesDataParam);

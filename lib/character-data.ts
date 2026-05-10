@@ -1,6 +1,7 @@
 import {Equipment, InventoryContainer, InventoryEntry,} from "@/lib/equipment-data";
 import {BondTarget, CharacterClass, FocusFeature, Skill} from "@/lib/rules";
 import {ActionRef, ReactionRef, TraitRef} from "@/lib/baseRefs";
+import type {CreatureRosterEntry} from "@/lib/creature-roster";
 
 export interface CharacterSaveData {
     // Character Info
@@ -86,6 +87,15 @@ export interface CharacterSaveData {
 
     /** Priest: chosen deity id from `rules.classes.priest.deities` (filters deity-specific class talents in the creator). */
     priestDeity?: string | null
+
+    /** Assistants and summons; feat unlocks may add rows via reconciliation on the sheet. */
+    creatures?: CreatureRosterEntry[]
+
+    /**
+     * Conjurer Summoner: one template id per roster slot (character creator).
+     * Reconciled to `creatures` as `conjurer-slot-0`, … alongside class traits.
+     */
+    conjurerSummonTemplateIds?: string[]
 }
 
 export const defaultCharacter: CharacterSaveData = {
@@ -172,6 +182,9 @@ export const defaultCharacter: CharacterSaveData = {
     cultureOrganization: null,
     cultureUpbringing: null,
     occupation: null,
+
+    creatures: [],
+    conjurerSummonTemplateIds: [],
 }
 
 export function getAttributeModifier(score: number): number {

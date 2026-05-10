@@ -1,17 +1,26 @@
-import React from "react";
+import React, { useMemo } from "react";
 import rulesData from "@/lib/rules.json";
 import { CharacterClass } from "@/lib/rules";
-import { FeatLevelPick } from "@/lib/baseRefs";
+import { FeatLevelPick, TraitRef } from "@/lib/baseRefs";
 import { formatTraitEffectChoiceLabel } from "@/lib/trait-selection";
 import { TraitPowerRollCollapsible } from "@/components/power-roll/trait-power-roll-collapsible";
+import {
+  evaluateFeatPrerequisitesForCreator,
+  describeFeatPrerequisitesForCreator,
+  type CreatorFeatPrereqContext,
+} from "@/lib/feat-prereqs";
 import { ChevronRightIcon, ChevronLeftIcon, LockIcon } from "lucide-react";
 
 const FEAT_LEVELS = [1, 3, 5, 7, 9, 10];
+
+type ClassSelection = { id: string; source: string; selectedEffectIndices?: number[] };
 
 interface FeatsStepProps {
   selectedFeats: Partial<Record<number, FeatLevelPick>>;
   adventurerLevel: number;
   classes: CharacterClass[];
+  classSelections: ClassSelection[];
+  characterTraits: TraitRef[];
   attributes: {
     might: number;
     dexterity: number;
@@ -24,54 +33,74 @@ interface FeatsStepProps {
   onBack: () => void;
 }
 
+function needsEffectChoice(feat: any) {
+  return (
+    typeof feat.selectAmount === "number" &&
+    feat.selectAmount > 0 &&
+    Array.isArray(feat.effects) &&
+    feat.effects.length > feat.selectAmount
+  );
+}
+
+function toggleEffectIndex(current: number[] | undefined, idx: number, selectAmount: number): number[] {
+  const cur = [...(current ?? [])];
+  const pos = cur.indexOf(idx);
+  if (pos >= 0) {
+    cur.splice(pos, 1);
+    return cur;
+  }
+  if (selectAmount <= 0) return cur;
+  if (selectAmount === 1) return [idx];
+  if (cur.length < selectAmount) {
+    cur.push(idx);
+    return cur;
+  }
+  return cur;
+}
+
+function featPickComplete(
+  level: number,
+  selectedFeats: Partial<Record<number, FeatLevelPick>>,
+  featsRegistry: Record<string, any>
+): boolean {
+  const p = selectedFeats[level];
+  if (!p?.id) return false;
+  const feat = featsRegistry[p.id];
+  if (!feat) return false;
+  if (needsEffectChoice(feat)) {
+    const n = feat.selectAmount ?? 0;
+    const idx = p.selectedEffectIndices;
+    return Array.isArray(idx) && idx.length === n && new Set(idx).size === n;
+  }
+  return true;
+}
+
 export function FeatsStep({
   selectedFeats,
   adventurerLevel,
   classes,
+  classSelections,
+  characterTraits,
   attributes,
   onSelectFeat,
   onNext,
   onBack,
 }: FeatsStepProps) {
+  const featsRegistry = rulesData.system.feats as Record<string, any>;
+  const prereqCtx: CreatorFeatPrereqContext = useMemo(
+    () => ({
+      adventurerLevel,
+      classes,
+      classSelections,
+      traits: characterTraits,
+    }),
+    [adventurerLevel, classes, classSelections, characterTraits]
+  );
+
   const availableFeatLevels = FEAT_LEVELS.filter((l) => l <= adventurerLevel);
-  const allFeatsAssigned = availableFeatLevels.every((l) => selectedFeats[l]?.id);
-
-  const checkPrereqs = (feat: any) => {
-    if (feat.minLevel > adventurerLevel) {
-      return {
-        met: false,
-        reason: `Requires Adventurer Level ${feat.minLevel}`,
-      };
-    }
-    if (feat.prereqs) {
-      if (feat.prereqs.classes && feat.prereqs.level) {
-        const hasClassLevel = classes.some(
-          (c) =>
-            feat.prereqs.classes.includes(c.id) &&
-            c.level >= feat.prereqs.level
-        );
-        if (!hasClassLevel) {
-          const classNames = feat.prereqs.classes
-            .map((cId: string) => (rulesData.classes as Record<string, any>)[cId]?.name || cId)
-            .join(" or ");
-          return {
-            met: false,
-            reason: `Requires Level ${feat.prereqs.level} in ${classNames}`,
-          };
-        }
-      }
-    }
-    return {
-      met: true,
-      reason: "",
-    };
-  };
-
-  const needsEffectChoice = (feat: any) =>
-    typeof feat.selectAmount === "number" &&
-    feat.selectAmount > 0 &&
-    Array.isArray(feat.effects) &&
-    feat.effects.length > feat.selectAmount;
+  const allFeatsAssigned =
+    availableFeatLevels.length === 0 ||
+    availableFeatLevels.every((l) => featPickComplete(l, selectedFeats, featsRegistry));
 
   const cardClass = (isSelected: boolean, canSelect: boolean) =>
     `flex flex-col text-left p-4 rounded-xl border-2 transition-all ${
@@ -106,7 +135,7 @@ export function FeatsStep({
             const selectedPick = selectedFeats[level];
             const selectedFeatId = selectedPick?.id;
             const selectedIndices = selectedPick?.selectedEffectIndices;
-            const featsForLevel = Object.entries(rulesData.system.feats).filter(
+            const featsForLevel = Object.entries(featsRegistry).filter(
               ([_, feat]: [string, any]) => feat.minLevel <= level
             );
             return (
@@ -115,7 +144,7 @@ export function FeatsStep({
                   <h3 className="text-lg font-bold text-purple-800 uppercase tracking-wider dark:text-purple-400">
                     Level {level} Feat
                   </h3>
-                  {selectedFeatId ? (
+                  {featPickComplete(level, selectedFeats, featsRegistry) ? (
                     <span className="text-xs font-bold bg-green-100 text-green-900 px-2 py-1 rounded border border-green-300 dark:bg-green-900/25 dark:text-green-400 dark:border-green-600/40">
                       Selected
                     </span>
@@ -128,13 +157,14 @@ export function FeatsStep({
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {featsForLevel.map(([id, feat]: [string, any]) => {
-                    const prereqCheck = checkPrereqs(feat);
+                    const prereqCheck = evaluateFeatPrerequisitesForCreator(feat, prereqCtx, rulesData as any);
                     const isSelected = selectedFeatId === id;
                     const isSelectedElsewhere = Object.entries(selectedFeats).some(
                       ([l, p]) => Number(l) !== level && p?.id === id
                     );
                     const canSelect = prereqCheck.met && !isSelectedElsewhere;
                     const requiresChoice = needsEffectChoice(feat);
+                    const prereqLines = describeFeatPrerequisitesForCreator(feat, prereqCtx, rulesData as any);
 
                     const header = (
                       <>
@@ -150,6 +180,20 @@ export function FeatsStep({
                             <LockIcon className="w-4 h-4 text-muted-foreground shrink-0" />
                           )}
                         </div>
+                        <ul className="text-[10px] space-y-0.5 mb-2">
+                          {prereqLines.map((line, i) => (
+                            <li
+                              key={i}
+                              className={
+                                line.met
+                                  ? "text-green-800 dark:text-green-400 font-medium"
+                                  : "text-muted-foreground"
+                              }
+                            >
+                              {line.met ? "✓" : "○"} {line.text}
+                            </li>
+                          ))}
+                        </ul>
                         <p
                           className={`text-sm mb-3 flex-grow leading-snug whitespace-pre-line ${
                             isSelected ? "text-purple-950/85 dark:text-gray-300" : "text-muted-foreground"
@@ -181,11 +225,11 @@ export function FeatsStep({
                     );
 
                     if (requiresChoice) {
+                      const nPick = feat.selectAmount ?? 1;
+                      const pickedHere =
+                        isSelected && Array.isArray(selectedIndices) ? selectedIndices : [];
                       return (
-                        <div
-                          key={id}
-                          className={cardClass(isSelected, canSelect || isSelected)}
-                        >
+                        <div key={id} className={cardClass(isSelected, canSelect || isSelected)}>
                           {header}
                           {feat.powerRoll && (
                             <div className="mb-2">
@@ -195,49 +239,57 @@ export function FeatsStep({
                           {prereqCheck.met && !isSelectedElsewhere && Array.isArray(feat.effects) && (
                             <div className="flex flex-wrap gap-2 mt-auto pt-2 border-t border-border/60">
                               <span className="text-[10px] font-bold uppercase text-muted-foreground w-full mb-1">
-                                Choose {feat.selectAmount === 1 ? "one" : feat.selectAmount}:
+                                Choose {nPick}:
                               </span>
                               {feat.effects.map((eff: any, idx: number) => {
-                                const pickedHere =
-                                  isSelected &&
-                                  selectedIndices?.length === feat.selectAmount &&
-                                  selectedIndices?.[0] === idx;
+                                const on = pickedHere.includes(idx);
                                 return (
                                   <button
                                     key={idx}
                                     type="button"
                                     disabled={(!canSelect && !isSelected) || isSelectedElsewhere}
-                                    onClick={() =>
+                                    onClick={() => {
+                                      if (!isSelected) {
+                                        onSelectFeat(level, {
+                                          id,
+                                          selectedEffectIndices: toggleEffectIndex([], idx, nPick),
+                                        });
+                                        return;
+                                      }
+                                      if (selectedFeatId !== id) return;
                                       onSelectFeat(level, {
                                         id,
-                                        selectedEffectIndices: [idx],
-                                      })
-                                    }
+                                        selectedEffectIndices: toggleEffectIndex(selectedIndices, idx, nPick),
+                                      });
+                                    }}
                                     className={`text-xs font-bold px-3 py-2 rounded-lg border transition-colors ${
-                                      pickedHere
+                                      on
                                         ? "bg-purple-600 text-white border-purple-500 dark:bg-purple-600"
                                         : "bg-muted border-border text-foreground hover:bg-muted/80 disabled:opacity-50"
                                     }`}
                                   >
-                                    {formatTraitEffectChoiceLabel(eff)}
+                                    {formatTraitEffectChoiceLabel(eff, rulesData as any)}
                                   </button>
                                 );
                               })}
                             </div>
                           )}
-                          {isSelected &&
-                            (() => {
-                              const i0 = selectedIndices?.[0];
-                              if (i0 === undefined || !feat.effects[i0]) return null;
-                              return (
-                                <p className="text-[11px] text-muted-foreground mt-2">
-                                  Active:{" "}
-                                  <span className="font-semibold text-foreground">
-                                    {formatTraitEffectChoiceLabel(feat.effects[i0])}
-                                  </span>
-                                </p>
-                              );
-                            })()}
+                          {isSelected && pickedHere.length > 0 && (
+                            <p className="text-[11px] text-muted-foreground mt-2">
+                              Active:{" "}
+                              <span className="font-semibold text-foreground">
+                                {pickedHere
+                                  .filter((i) => feat.effects[i])
+                                  .map((i) => formatTraitEffectChoiceLabel(feat.effects[i], rulesData as any))
+                                  .join(", ")}
+                              </span>
+                              {pickedHere.length < nPick ? (
+                                <span className="block text-amber-700 dark:text-amber-400 mt-1">
+                                  Pick {nPick - pickedHere.length} more.
+                                </span>
+                              ) : null}
+                            </p>
+                          )}
                           {isSelected && (
                             <button
                               type="button"

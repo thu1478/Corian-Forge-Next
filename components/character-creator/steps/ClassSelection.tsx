@@ -1,18 +1,58 @@
 "use client"
 
-import React, { useEffect, useState } from 'react';
-import { ArrowLeftIcon, PlusIcon, MinusIcon, CheckCircleIcon } from 'lucide-react';
-import { cn } from "@/lib/utils";
-import rulesData from "@/lib/rules.json";
-import { ActionCardComponent } from "@/components/character-sheet/combatPage/action-card-manager";
-import { TraitPowerRollCollapsible } from "@/components/power-roll/trait-power-roll-collapsible";
-import { unwrapEmbeddedActionCard } from "@/lib/embedded-action-card";
-import { getDeityPassiveEntries, resolveDeityBoonDisplay } from "@/lib/priest-deities";
+import React, { useEffect, useMemo, useState } from "react"
+import { ArrowLeftIcon, PlusIcon, MinusIcon, CheckCircleIcon } from "lucide-react"
+import { cn } from "@/lib/utils"
+import rulesData from "@/lib/rules.json"
+import { ActionCardComponent } from "@/components/character-sheet/combatPage/action-card-manager"
+import { TraitPowerRollCollapsible } from "@/components/power-roll/trait-power-roll-collapsible"
+import { unwrapEmbeddedActionCard } from "@/lib/embedded-action-card"
+import { getDeityPassiveEntries, resolveDeityBoonDisplay } from "@/lib/priest-deities"
+import { formatTraitEffectChoiceLabel } from "@/lib/trait-selection"
+import {
+    conjurerClassTraitRefsFromPicks,
+    getConjurerSummonSchoolTag,
+    getConjurerSummonSlotCount,
+    getCreatureTemplates,
+    getSummonMastery,
+    listConjurerCatalogTemplateIdsForSlot,
+} from "@/lib/creature-roster"
+import { Label } from "@/components/ui/label"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 
 type LevelKey = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10";
 
+export type ClassOptionPick = { id: string; source: string; selectedEffectIndices?: number[] };
+
+function passiveNeedsEffectChoice(passiveDef: { selectAmount?: number; effects?: unknown[] } | null | undefined) {
+    const n = passiveDef?.selectAmount
+    return (
+        typeof n === "number" &&
+        n > 0 &&
+        Array.isArray(passiveDef?.effects) &&
+        passiveDef!.effects!.length > n
+    )
+}
+
+/** True if `templateId` is chosen on a conjurer slot other than `slotIndex`. */
+function isConjurerSummonTakenOnOtherSlot(
+    picks: string[] | undefined,
+    slotIndex: number,
+    templateId: string
+): boolean {
+    const tid = templateId.trim()
+    if (!tid) return false
+    return (picks ?? []).some((raw, j) => j !== slotIndex && String(raw ?? "").trim() === tid)
+}
+
 interface ClassSelectionProps {
-    selectedOptions: { id: string; source: string }[];
+    selectedOptions: ClassOptionPick[];
     classes: { id: string; level: number }[];
     currentAdventurerLevel: number;
     /**
@@ -27,7 +67,10 @@ interface ClassSelectionProps {
     priestDeity?: string | null;
     onPriestDeityChange?: (deityId: string | null) => void;
     onUpdateLevel: (lvl: number) => void;
-    onUpdateClassData: (classes: { id: string; level: number }[], traits: { id: string; source: string }[]) => void;
+    onUpdateClassData: (classes: { id: string; level: number }[], traits: ClassOptionPick[]) => void;
+    /** Conjurer Summoner: template id per slot (same length as slots when Summoner is active). */
+    conjurerSummonTemplateIds?: string[];
+    onConjurerSummonsChange?: (templateIds: string[]) => void;
     onBack: () => void;
     onNext: () => void;
 }
@@ -42,6 +85,8 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
                                                            onPriestDeityChange,
                                                            onUpdateLevel,
                                                            onUpdateClassData,
+                                                           conjurerSummonTemplateIds = [],
+                                                           onConjurerSummonsChange,
                                                            onBack,
                                                            onNext
                                                        }) => {
@@ -81,6 +126,39 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
         return spentInClass === getMaxClassXP(c.level);
     });
 
+    const conjurerSummonerTaken = selectedOptions.some((o) => o.id === "summoner" && o.source === "conjurer");
+    const conjurerSlots = getConjurerSummonSlotCount(localClasses, conjurerSummonerTaken);
+    const conjurerTraitSketch = useMemo(() => conjurerClassTraitRefsFromPicks(selectedOptions), [selectedOptions]);
+    const conjurerSchoolTag = useMemo(
+        () => getConjurerSummonSchoolTag(conjurerTraitSketch, rulesData as any),
+        [conjurerTraitSketch]
+    );
+    const conjurerMastery = useMemo(
+        () => getSummonMastery(conjurerTraitSketch, localClasses, rulesData as any),
+        [conjurerTraitSketch, localClasses]
+    );
+    const conjurerCatalogIdsBySlot = useMemo(() => {
+        if (!conjurerSchoolTag || conjurerMastery < 1 || conjurerSlots <= 0) return [] as string[][];
+        return Array.from({ length: conjurerSlots }, (_, i) =>
+            listConjurerCatalogTemplateIdsForSlot(rulesData as any, conjurerSchoolTag, conjurerMastery, i)
+        );
+    }, [conjurerSchoolTag, conjurerMastery, conjurerSlots]);
+    const creatureTemplates = useMemo(() => getCreatureTemplates(rulesData as any), []);
+
+    const conjurerSummonPicksComplete = useMemo(() => {
+        if (conjurerSlots === 0) return true;
+        if (!conjurerSchoolTag) return false;
+        const filled: string[] = [];
+        for (let i = 0; i < conjurerSlots; i++) {
+            const cat = new Set(conjurerCatalogIdsBySlot[i] ?? []);
+            const tid = String(conjurerSummonTemplateIds[i] ?? "").trim();
+            if (!tid || !cat.has(tid)) return false;
+            filled.push(tid);
+        }
+        if (new Set(filled).size !== filled.length) return false;
+        return true;
+    }, [conjurerSlots, conjurerSchoolTag, conjurerCatalogIdsBySlot, conjurerSummonTemplateIds]);
+
     // --- SELECTION LOGIC ---
     const handleToggleTalent = (optionId: string, sourceClassId: string) => {
         const isSelected = selectedOptions.some(s => s.id === optionId);
@@ -91,6 +169,8 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
 
         const currentClassLevel = localClasses.find(c => c.id === sourceClassId)?.level || 0;
         const classData = (rulesData.classes as any)[sourceClassId];
+        const passiveDef = classData?.passives?.[optionId];
+        const needsPassiveChoice = passiveNeedsEffectChoice(passiveDef);
         const actionDef = classData?.actions?.[optionId] as { deityId?: string } | undefined;
         if (sourceClassId === "priest" && actionDef?.deityId) {
             if (!priestDeity || actionDef.deityId !== priestDeity) return;
@@ -118,7 +198,21 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
             if (sortedTalentLevels[i] > availablePackets[i]) return;
         }
 
-        onUpdateClassData(localClasses, [...selectedOptions, { id: optionId, source: sourceClassId }]);
+        const nextPick: ClassOptionPick = needsPassiveChoice
+            ? { id: optionId, source: sourceClassId, selectedEffectIndices: [0] }
+            : { id: optionId, source: sourceClassId };
+        onUpdateClassData(localClasses, [...selectedOptions, nextPick]);
+    };
+
+    const setPassiveEffectIndex = (classId: string, passiveId: string, effectIdx: number) => {
+        onUpdateClassData(
+            localClasses,
+            selectedOptions.map((s) =>
+                s.id === passiveId && s.source === classId
+                    ? { ...s, selectedEffectIndices: [effectIdx] }
+                    : s
+            )
+        );
     };
 
     const handleClassLevelChange = (id: string, delta: number) => {
@@ -169,6 +263,10 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
                     {talents.map((talent) => {
                         const id = talent.id;
                         const isSelected = selectedOptions.some(s => s.id === id);
+                        const selectionRef = selectedOptions.find((s) => s.id === id && s.source === classId);
+                        const pickedPassiveIdx = selectionRef?.selectedEffectIndices?.[0];
+                        const showPassiveChoices =
+                            type === "passives" && passiveNeedsEffectChoice(talent) && isSelected;
                         const isLocked = (localClasses.find(c => c.id === classId)?.level || 0) < lvl;
 
                         let cardData: Record<string, unknown> & { id: string; tags: string[] } | null = null
@@ -227,6 +325,38 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
                                             {talent.powerRoll && (
                                                 <TraitPowerRollCollapsible roll={talent.powerRoll} attributes={attributes} />
                                             )}
+                                            {showPassiveChoices && Array.isArray(talent.effects) ? (
+                                                <div
+                                                    className="flex flex-wrap gap-2 pt-3 mt-2 border-t border-border/70"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    onKeyDown={(e) => e.stopPropagation()}
+                                                >
+                                                    <span className="text-[10px] font-bold uppercase text-muted-foreground w-full">
+                                                        Choose one
+                                                    </span>
+                                                    {talent.effects.map((eff: Record<string, unknown>, idx: number) => {
+                                                        const on = pickedPassiveIdx === idx;
+                                                        return (
+                                                            <button
+                                                                key={idx}
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setPassiveEffectIndex(classId, id, idx);
+                                                                }}
+                                                                className={cn(
+                                                                    "text-xs font-semibold px-3 py-2 rounded-lg border transition-colors",
+                                                                    on
+                                                                        ? "bg-primary text-primary-foreground border-primary"
+                                                                        : "bg-muted/50 border-border hover:bg-muted"
+                                                                )}
+                                                            >
+                                                                {formatTraitEffectChoiceLabel(eff as any, rulesData as any)}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            ) : null}
                                         </div>
                                     ) : (
                                         <div className="pointer-events-none">
@@ -374,6 +504,72 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
                         );
                     })}
                 </div>
+
+                {expandedClassId === "conjurer" && conjurerSummonerTaken && conjurerSlots > 0 ? (
+                    <section className="mt-16 rounded-2xl border border-border bg-card/80 p-6 space-y-4">
+                        <h2 className="text-xl font-black uppercase italic tracking-tight text-foreground">
+                            Conjurer summons
+                        </h2>
+                        <p className="text-sm text-muted-foreground leading-relaxed">
+                            Choose one summon or minion per slot here (not on the character sheet). Slots 1–2 use rank-1
+                            (level 2) creatures only; each creature can fill only one slot. Summon Mastery{" "}
+                            <span className="font-mono font-semibold text-foreground">{conjurerMastery}</span>
+                            {conjurerMastery >= 2
+                                ? " — slot 3 also lists level 4 creatures (Great Summoner at Conjurer 5+)."
+                                : " — tier 4 unlocks on slot 3 with Great Summoner once class level meets that passive."}
+                        </p>
+                        {!conjurerSchoolTag ? (
+                            <p className="text-sm text-amber-700 dark:text-amber-400">
+                                Select <strong>Golemancy</strong> or <strong>Necromancy</strong> on the Summoner passive
+                                above, then assign your creatures.
+                            </p>
+                        ) : (
+                            <div className="space-y-4">
+                                {Array.from({ length: conjurerSlots }, (_, i) => (
+                                    <div key={i} className="space-y-1.5 max-w-md">
+                                        <Label className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                                            Slot {i + 1} ({conjurerSchoolTag === "geomancy" ? "Geomancy" : "Necromancy"})
+                                        </Label>
+                                        <Select
+                                            value={conjurerSummonTemplateIds[i]?.trim() || undefined}
+                                            onValueChange={(v) => {
+                                                if (!onConjurerSummonsChange) return;
+                                                const next = [...conjurerSummonTemplateIds];
+                                                while (next.length < conjurerSlots) next.push("");
+                                                for (let j = 0; j < conjurerSlots; j++) {
+                                                    if (j !== i && String(next[j] ?? "").trim() === v) next[j] = "";
+                                                }
+                                                next[i] = v;
+                                                onConjurerSummonsChange(next);
+                                            }}
+                                        >
+                                            <SelectTrigger className="h-10 text-sm">
+                                                <SelectValue placeholder="Select creature…" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {(conjurerCatalogIdsBySlot[i] ?? [])
+                                                    .filter(
+                                                        (tid) =>
+                                                            !isConjurerSummonTakenOnOtherSlot(
+                                                                conjurerSummonTemplateIds,
+                                                                i,
+                                                                tid
+                                                            ) ||
+                                                            String(conjurerSummonTemplateIds[i] ?? "").trim() === tid
+                                                    )
+                                                    .map((tid) => (
+                                                        <SelectItem key={tid} value={tid}>
+                                                            {creatureTemplates[tid]?.name ?? tid}
+                                                        </SelectItem>
+                                                    ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </section>
+                ) : null}
             </div>
         );
     }
@@ -431,18 +627,32 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
                             <button onClick={() => setExpandedClassId(id)} disabled={currentLevel === 0} className={cn("w-full py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all", currentLevel > 0 ? "bg-primary text-white shadow-xl shadow-primary/20" : "bg-muted text-muted-foreground")}>
                                 Build {currentLevel > 0 && !isComplete && "(!)"}
                             </button>
+                            {id === "conjurer" && conjurerSummonerTaken && conjurerSlots > 0 ? (
+                                <p className="text-xs text-muted-foreground text-center mt-3">
+                                    Set summons inside Build.
+                                </p>
+                            ) : null}
                         </div>
                     );
                 })}
             </div>
+
             <footer className="mt-20 flex justify-between items-center border-t border-border pt-10">
                 <button onClick={onBack} className="font-black uppercase text-[10px] text-muted-foreground hover:text-foreground tracking-widest">Back</button>
                 <button
                     onClick={onNext}
-                    disabled={!hasAtLeastOneClass || remainingAdventurerXP < 0 || !allClassXPAssigned}
+                    disabled={
+                        !hasAtLeastOneClass ||
+                        remainingAdventurerXP < 0 ||
+                        !allClassXPAssigned ||
+                        !conjurerSummonPicksComplete
+                    }
                     className={cn(
                         "px-12 py-4 rounded-2xl font-black uppercase text-xs tracking-widest",
-                        hasAtLeastOneClass && remainingAdventurerXP >= 0 && allClassXPAssigned
+                        hasAtLeastOneClass &&
+                            remainingAdventurerXP >= 0 &&
+                            allClassXPAssigned &&
+                            conjurerSummonPicksComplete
                             ? "bg-primary text-white shadow-xl shadow-primary/20 hover:scale-105"
                             : "bg-muted text-muted-foreground cursor-not-allowed"
                     )}

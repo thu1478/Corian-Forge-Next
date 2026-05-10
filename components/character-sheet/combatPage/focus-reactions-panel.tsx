@@ -13,6 +13,7 @@ import {
     type ActionSpendResourceKind,
 } from "@/components/character-sheet/combatPage/action-card-manager";
 import { unwrapEmbeddedActionCard } from "@/lib/embedded-action-card";
+import { hydrateActionCardById } from "@/lib/action-hydrate";
 
 function pickPositiveCost(v: unknown): number {
     const n = Math.floor(Number(v));
@@ -337,22 +338,37 @@ export function FocusReactionsPanel({
                     {[0, 1].map((slotIndex) => {
                         const currentReaction = knownReactions.find(f => f.slotIndex === slotIndex);
 
-                        // 1. Calculate the "Live" Max based on current Attributes
                         const statKey = currentReaction?.chargeStat;
-                        const hasStatCharges = statKey && statKey.trim() !== "";
+                        const hasStatCharges = Boolean(statKey && statKey.trim() !== "");
+                        const fixedRaw = (currentReaction as { fixedMaxCharges?: number })?.fixedMaxCharges;
+                        const fixedMax =
+                            typeof fixedRaw === "number" && Number.isFinite(fixedRaw)
+                                ? Math.max(0, Math.floor(fixedRaw))
+                                : null;
 
-                        // 2. Determine how many pips to show and fill
-                        const maxCharges = hasStatCharges
-                            ? Math.max(0, getAttributeModifier(attributes[statKey] || 10))
-                            : 0;
-                        const currentCharges = Math.min(currentReaction?.charges ?? maxCharges, maxCharges);
+                        const maxCharges =
+                            fixedMax != null && fixedMax > 0
+                                ? fixedMax
+                                : hasStatCharges
+                                  ? Math.max(0, getAttributeModifier(attributes[statKey!] || 10))
+                                  : 0;
+                        const rawCh = currentReaction?.charges
+                        const resolvedCh =
+                            rawCh == null || rawCh < 0 ? maxCharges : rawCh
+                        const currentCharges = Math.min(Math.max(0, resolvedCh), maxCharges);
+                        const showChargePips = maxCharges > 0;
 
-                        // 3. Extract action card data
+                        // 3. Extract action card data (embedded class wrapper, or global card by id e.g. feat/protect)
                         const actionCardData = currentReaction?.actionCard
                             ? (unwrapEmbeddedActionCard(
                                   currentReaction.actionCard as Record<string, unknown>
                               ) as Record<string, unknown> | null)
-                            : null;
+                            : currentReaction?.id
+                              ? (hydrateActionCardById(currentReaction.id, rules as any) as Record<
+                                    string,
+                                    unknown
+                                > | null)
+                              : null;
 
                         const resourceCostsInline = currentReaction
                             ? getReactionResourceCostsForInlineRow(currentReaction, actionCardData)
@@ -391,11 +407,11 @@ export function FocusReactionsPanel({
                                 {currentReaction && (
                                     <div className="space-y-2 border-t border-orange-200 dark:border-orange-800 pt-2">
                                         {/* CHARGE PIPS */}
-                                        {hasStatCharges && (
+                                        {showChargePips && (
                                             <div
                                                 className="flex items-center justify-between bg-white/40 dark:bg-black/20 p-2 rounded border border-orange-200 dark:border-orange-800">
                             <span className="text-[10px] font-bold uppercase text-orange-800 dark:text-orange-400">
-                                {statKey} Charges
+                                {fixedMax != null ? "Charges" : `${statKey} Charges`}
                             </span>
                                                 <div className="flex gap-1.5">
                                                     {Array.from({length: maxCharges}).map((_, i) => {

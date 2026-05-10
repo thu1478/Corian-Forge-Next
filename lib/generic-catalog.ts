@@ -17,13 +17,16 @@ export function listCatalogActionCardIds(rules: {
         .sort()
 }
 
-/** Global `actionCards` with `type === "reaction"` except monster entries (e.g. fairy/sonicShield, feat/protect). */
+/** Global `actionCards` with `type === "reaction"` or `freeReaction` except monster entries. */
 export function listCatalogReactionCardIds(rules: {
     actionCards?: Record<string, ActionCard | Record<string, unknown>>
 }): string[] {
     const cards = rules.actionCards || {}
     return Object.entries(cards)
-        .filter(([id, c]) => (c as ActionCard)?.type === "reaction" && !isMonsterCatalogEntry(id, c as ActionCard))
+        .filter(([id, c]) => {
+            const t = (c as ActionCard)?.type
+            return (t === "reaction" || t === "freeReaction") && !isMonsterCatalogEntry(id, c as ActionCard)
+        })
         .map(([id]) => id)
         .sort()
 }

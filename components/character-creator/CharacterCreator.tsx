@@ -4,6 +4,13 @@ import { CharacterSaveData } from "@/lib/character-data";
 import { FeatLevelPick } from "@/lib/baseRefs";
 import { createEmptyCreatorCharacter, parseCreatorImportJson } from "@/lib/creator-import";
 import {
+    conjurerClassTraitRefsFromPicks,
+    getConjurerSummonSchoolTag,
+    getConjurerSummonSlotCount,
+    getSummonMastery,
+    listConjurerCatalogTemplateIdsForSlot,
+} from "@/lib/creature-roster";
+import {
     getOccupationDefinition,
     type OccupationRule,
     resolveOccupationLanguagePicks,
@@ -21,7 +28,7 @@ import { StepProgress } from "@/components/character-creator/steps/StepProgress"
 
 type AttributeKey = "might" | "dexterity" | "reason" | "willpower" | "presence";
 
-type ClassOptionSelection = { id: string; source: string };
+type ClassOptionSelection = { id: string; source: string; selectedEffectIndices?: number[] };
 
 const STARTING_XP = rulesData.system.startingXPPerLvl as Record<string, number>;
 const OCCUPATION_RULES = (rulesData.system as { occupation?: Record<string, OccupationRule> }).occupation;
@@ -232,13 +239,56 @@ export default function CharacterCreator() {
                     }}
                     onUpdateClassData={(classes, options) => {
                         const hasPriest = classes.some((c) => c.id === "priest" && c.level > 0);
-                        setCharData((prev) => ({
-                            ...prev,
-                            classes,
-                            ...(!hasPriest ? { priestDeity: null } : {}),
-                        }));
+                        setCharData((prev) => {
+                            const next: CharacterSaveData = {
+                                ...prev,
+                                classes,
+                                ...(!hasPriest ? { priestDeity: null } : {}),
+                            }
+                            const hasSummoner = options.some((o) => o.id === "summoner" && o.source === "conjurer")
+                            const slots = getConjurerSummonSlotCount(classes, hasSummoner)
+                            const sketch = conjurerClassTraitRefsFromPicks(options)
+                            const school = getConjurerSummonSchoolTag(sketch, rulesData as any)
+                            const mastery = getSummonMastery(sketch, classes, rulesData as any)
+                            let ids = [...(next.conjurerSummonTemplateIds ?? [])]
+                            if (slots === 0) {
+                                ids = []
+                            } else {
+                                while (ids.length < slots) ids.push("")
+                                if (ids.length > slots) ids = ids.slice(0, slots)
+                                if (school && mastery >= 1) {
+                                    ids = ids.map((tid, slotIdx) => {
+                                        const t = String(tid ?? "").trim()
+                                        const cat = new Set(
+                                            listConjurerCatalogTemplateIdsForSlot(
+                                                rulesData as any,
+                                                school,
+                                                mastery,
+                                                slotIdx
+                                            )
+                                        )
+                                        return t && cat.has(t) ? t : ""
+                                    })
+                                    const seenSummon = new Set<string>()
+                                    ids = ids.map((tid) => {
+                                        const t = String(tid ?? "").trim()
+                                        if (!t) return ""
+                                        if (seenSummon.has(t)) return ""
+                                        seenSummon.add(t)
+                                        return t
+                                    })
+                                } else {
+                                    ids = Array.from({ length: slots }, () => "")
+                                }
+                            }
+                            return { ...next, conjurerSummonTemplateIds: ids }
+                        })
                         setClassSelections(options);
                     }}
+                    conjurerSummonTemplateIds={charData.conjurerSummonTemplateIds ?? []}
+                    onConjurerSummonsChange={(ids) =>
+                        setCharData((prev) => ({ ...prev, conjurerSummonTemplateIds: ids }))
+                    }
                     onBack={handleBack}
                     onNext={handleNext}
                 />
@@ -353,6 +403,8 @@ export default function CharacterCreator() {
                     selectedFeats={selectedFeats}
                     adventurerLevel={adventurerLevel}
                     classes={charData.classes}
+                    classSelections={classSelections}
+                    characterTraits={charData.traits}
                     attributes={effectiveAttributes}
                     onSelectFeat={(level, pick) =>
                         setSelectedFeats((prev) => {

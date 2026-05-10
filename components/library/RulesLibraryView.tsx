@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useMemo, useState, memo } from "react"
 import rulesData from "@/lib/rules.json"
 import type { ActionCard, PowerRoll } from "@/lib/rules"
 import { ActionCardComponent } from "@/components/character-sheet/combatPage/action-card-manager"
@@ -8,6 +8,12 @@ import { TraitPowerRollCollapsible } from "@/components/power-roll/trait-power-r
 import { unwrapEmbeddedActionCard } from "@/lib/embedded-action-card"
 import { hydrateActionCardById } from "@/lib/action-hydrate"
 import type { InventoryItem } from "@/lib/equipment-data"
+import { formatModifier, getAttributeModifier } from "@/lib/character-data"
+import {
+    type CreatureDefinition,
+    getCreatureTemplates,
+    resolveCreatureTraitEntries,
+} from "@/lib/creature-roster"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Input } from "@/components/ui/input"
@@ -16,6 +22,8 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { cn } from "@/lib/utils"
+import { formatFeatPrerequisiteLines } from "@/lib/feat-prereqs"
+import { formatTraitEffectChoiceLabel } from "@/lib/trait-selection"
 import {
     Select,
     SelectContent,
@@ -30,6 +38,7 @@ import {
     ChevronsUp,
     GraduationCap,
     Package,
+    PawPrint,
     PanelLeftClose,
     PanelLeftOpen,
     Swords,
@@ -120,6 +129,20 @@ function reactionEmbeddedToActionCard(reactionId: string, raw: Record<string, un
     } as ActionCard
 }
 
+/** Ids referenced by `GrantActionCard` feat/trait effects (e.g. Trusty Companion). */
+function collectGrantActionCardIds(effects: unknown): string[] {
+    if (!Array.isArray(effects)) return []
+    const ids: string[] = []
+    for (const e of effects) {
+        if (!e || typeof e !== "object") continue
+        const rec = e as Record<string, unknown>
+        if (rec.type !== "GrantActionCard") continue
+        const v = String(rec.value ?? "").trim()
+        if (v) ids.push(v)
+    }
+    return [...new Set(ids)]
+}
+
 function matchesQuery(text: string, q: string): boolean {
     if (!q) return true
     return text.toLowerCase().includes(q)
@@ -137,12 +160,245 @@ function tocSlug(s: string): string {
     )
 }
 
+function formatCreatureVuln(v: { stat: string; value?: string }): string {
+    const vu = v.value != null && v.value !== "" ? ` (+${v.value} VU)` : ""
+    return `${v.stat}${vu}`
+}
+
+const LibraryCreatureCard = memo(function LibraryCreatureCard({
+    id,
+    def,
+    rules,
+    previewWeapon,
+    collapseAllSignal,
+}: {
+    id: string
+    def: CreatureDefinition
+    rules: Record<string, any>
+    previewWeapon: InventoryItem | null
+    collapseAllSignal: number
+}) {
+    const traitEntries = resolveCreatureTraitEntries(rules, def.traitRefs)
+    const actionIds = [...(def.actionIDs ?? [])]
+    const attrKeys = ["might", "dexterity", "reason", "willpower", "presence"] as const
+    const oa = def.opportunityAttack
+
+    return (
+        <div className="min-w-0 space-y-3 rounded-lg border border-border bg-card/40 p-4">
+            <div className="flex flex-wrap items-start gap-2">
+                <div className="min-w-0 flex-1 space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-lg font-semibold leading-tight">{def.name}</span>
+                        <Badge variant="outline" className="font-mono text-[10px] shrink-0">
+                            {id}
+                        </Badge>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                        <Badge variant="secondary" className="text-[10px] capitalize">
+                            {def.role}
+                        </Badge>
+                        {typeof def.catalogLevel === "number" ? (
+                            <Badge variant="outline" className="text-[10px]">
+                                Lv {def.catalogLevel}
+                            </Badge>
+                        ) : null}
+                        {(def.tags ?? []).map((t) => (
+                            <Badge key={t} variant="outline" className="text-[10px] capitalize">
+                                {t}
+                            </Badge>
+                        ))}
+                        {def.creatureTypes?.map((t) => (
+                            <Badge key={t} variant="secondary" className="text-[10px] capitalize">
+                                {t}
+                            </Badge>
+                        ))}
+                    </div>
+                </div>
+            </div>
+            {def.description ? (
+                <p className="text-sm text-muted-foreground whitespace-pre-line">{def.description}</p>
+            ) : null}
+
+            {def.attributes && Object.keys(def.attributes).length > 0 ? (
+                <div>
+                    <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        Attributes
+                    </p>
+                    <div className="grid grid-cols-5 gap-1 text-xs">
+                        {attrKeys.map((k) => {
+                            const raw = def.attributes?.[k]
+                            const score =
+                                typeof raw === "number" && Number.isFinite(raw) ? raw : null
+                            return (
+                                <div key={k} className="rounded-md bg-muted/40 px-1.5 py-1 text-center">
+                                    <div className="text-[9px] text-muted-foreground uppercase">{k.slice(0, 3)}</div>
+                                    <div className="font-mono font-semibold tabular-nums">{score ?? "—"}</div>
+                                    <div className="text-[9px] font-mono text-muted-foreground tabular-nums">
+                                        {score != null ? formatModifier(getAttributeModifier(score)) : "—"}
+                                    </div>
+                                </div>
+                            )
+                        })}
+                    </div>
+                </div>
+            ) : null}
+
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-2 text-xs text-muted-foreground">
+                {def.size ? (
+                    <span>
+                        <span className="font-medium text-foreground">Size</span> {def.size}
+                    </span>
+                ) : null}
+                {def.speed != null ? (
+                    <span>
+                        <span className="font-medium text-foreground">Speed</span> {def.speed}
+                    </span>
+                ) : null}
+                {def.stability != null ? (
+                    <span>
+                        <span className="font-medium text-foreground">Stability</span> {def.stability}
+                    </span>
+                ) : null}
+                {def.defense != null && Number.isFinite(def.defense) ? (
+                    <span>
+                        <span className="font-medium text-foreground">Def</span> {def.defense}
+                    </span>
+                ) : null}
+                {def.role === "summon" && (def.defaultMaxHp != null || def.defaultMaxMp != null) ? (
+                    <span className="inline-flex flex-wrap items-baseline gap-x-3 rounded-md border border-border/80 bg-muted/40 px-2.5 py-1 text-muted-foreground">
+                        {def.defaultMaxHp != null ? (
+                            <span className="tabular-nums">
+                                <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                    HP{" "}
+                                </span>
+                                <span className="font-mono text-sm font-semibold text-foreground">{def.defaultMaxHp}</span>
+                            </span>
+                        ) : null}
+                        {def.defaultMaxMp != null ? (
+                            <span className="tabular-nums">
+                                <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                    MP{" "}
+                                </span>
+                                <span className="font-mono text-sm font-semibold text-foreground">{def.defaultMaxMp}</span>
+                            </span>
+                        ) : null}
+                    </span>
+                ) : null}
+            </div>
+
+            {def.resistances && def.resistances.length > 0 ? (
+                <div>
+                    <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        Resistances
+                    </p>
+                    <div className="flex flex-wrap gap-1">
+                        {def.resistances.map((r) => (
+                            <Badge key={r} variant="secondary" className="text-[10px] capitalize">
+                                {r}
+                            </Badge>
+                        ))}
+                    </div>
+                </div>
+            ) : null}
+            {def.immunities && def.immunities.length > 0 ? (
+                <div>
+                    <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        Immunities
+                    </p>
+                    <div className="flex flex-wrap gap-1">
+                        {def.immunities.map((r) => (
+                            <Badge key={r} variant="outline" className="text-[10px] capitalize">
+                                {r}
+                            </Badge>
+                        ))}
+                    </div>
+                </div>
+            ) : null}
+            {def.vulnerabilities && def.vulnerabilities.length > 0 ? (
+                <div>
+                    <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        Vulnerabilities
+                    </p>
+                    <ul className="list-disc pl-4 text-xs text-muted-foreground capitalize">
+                        {def.vulnerabilities.map((v, i) => (
+                            <li key={`${v.stat}-${i}`}>{formatCreatureVuln(v)}</li>
+                        ))}
+                    </ul>
+                </div>
+            ) : null}
+
+            {oa != null && Number.isFinite(oa) && oa > 0 ? (
+                <p className="text-[11px] text-muted-foreground">
+                    Opportunity attack:{" "}
+                    <span className="font-mono font-semibold text-foreground">{oa}</span> damage.
+                </p>
+            ) : null}
+
+            {traitEntries.length > 0 ? (
+                <div className="space-y-2 border-t border-border/60 pt-2">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Passives</p>
+                    {traitEntries.map((t) => (
+                        <div key={t.id} className="rounded-md border border-border/60 bg-muted/15 px-2 py-1.5">
+                            <div className="text-xs font-semibold">{t.name ?? t.id}</div>
+                            {t.description ? (
+                                <p className="mt-0.5 text-[11px] text-muted-foreground whitespace-pre-line">
+                                    {t.description}
+                                </p>
+                            ) : null}
+                        </div>
+                    ))}
+                </div>
+            ) : null}
+
+            {actionIds.length > 0 ? (
+                <div className="space-y-3 border-t border-border/60 pt-2">
+                    <span className="text-sm font-semibold">Actions</span>
+                    <div className="space-y-4">
+                        {actionIds.map((aid) => {
+                            const ac = hydrateActionCardById(aid, rules)
+                            if (!ac) {
+                                return (
+                                    <p key={aid} className="text-sm text-destructive">
+                                        Missing action: {aid}
+                                    </p>
+                                )
+                            }
+                            return (
+                                <div key={aid} className="space-y-2">
+                                    <Badge variant="outline" className="font-mono text-[10px]">
+                                        {aid}
+                                    </Badge>
+                                    <ActionCardComponent
+                                        action={ac}
+                                        attributes={DEMO_ATTRIBUTES}
+                                        currentWeapon={previewWeapon}
+                                        offhandWeapon={null}
+                                        forceCollapsed={false}
+                                        powerRollDisplayMode="simple"
+                                        defaultPowerRollExpanded={false}
+                                        collapseAllSignal={collapseAllSignal}
+                                    />
+                                </div>
+                            )
+                        })}
+                    </div>
+                </div>
+            ) : (
+                <p className="text-xs text-muted-foreground border-t border-border/60 pt-2">
+                    No action cards linked yet (<span className="font-mono">actionIDs</span> empty).
+                </p>
+            )}
+        </div>
+    )
+})
+
 export function RulesLibraryView() {
     const [mainTab, setMainTab] = useState("classes")
     const [classSearch, setClassSearch] = useState("")
     const [featSearch, setFeatSearch] = useState("")
     const [skillSearch, setSkillSearch] = useState("")
     const [equipmentSearch, setEquipmentSearch] = useState("")
+    const [creatureSearch, setCreatureSearch] = useState("")
     const [selectedClassId, setSelectedClassId] = useState<string>("")
     const [weaponPreview, setWeaponPreview] = useState<string>("__none__")
     const [collapseAllSignal, setCollapseAllSignal] = useState(0)
@@ -254,6 +510,61 @@ export function RulesLibraryView() {
         return keys.map((levelKey) => ({ levelKey, label: levelKey === "other" ? "Other" : `Level ${levelKey}`, feats: buckets.get(levelKey)! }))
     }, [filteredFeats])
 
+    const creatureEntries = useMemo(() => {
+        const defs = getCreatureTemplates(RULES)
+        return Object.entries(defs)
+            .map(([id, def]) => ({ id, def }))
+            .sort((a, b) => {
+                const la = a.def.catalogLevel
+                const lb = b.def.catalogLevel
+                const ha = la != null && Number.isFinite(la)
+                const hb = lb != null && Number.isFinite(lb)
+                if (ha && hb && la !== lb) return la - lb
+                if (ha !== hb) return ha ? -1 : 1
+                return String(a.def.name ?? a.id).localeCompare(String(b.def.name ?? b.id))
+            })
+    }, [])
+
+    const filteredCreatureEntries = useMemo(() => {
+        const q = creatureSearch.trim().toLowerCase()
+        if (!q) return creatureEntries
+        return creatureEntries.filter(({ id, def }) => {
+            const blob = [id, def.name, def.description, ...(def.tags ?? []), def.role, ...(def.creatureTypes ?? [])]
+                .filter(Boolean)
+                .join(" ")
+            return matchesQuery(blob, q)
+        })
+    }, [creatureEntries, creatureSearch])
+
+    const creaturesByLevel = useMemo(() => {
+        const buckets = new Map<string, typeof filteredCreatureEntries>()
+        for (const row of filteredCreatureEntries) {
+            const key =
+                typeof row.def.catalogLevel === "number" && Number.isFinite(row.def.catalogLevel)
+                    ? String(Math.floor(row.def.catalogLevel))
+                    : "other"
+            if (!buckets.has(key)) buckets.set(key, [])
+            buckets.get(key)!.push(row)
+        }
+        const keys = [...buckets.keys()].sort((a, b) => {
+            if (a === "other") return 1
+            if (b === "other") return -1
+            return Number(a) - Number(b)
+        })
+        return keys
+            .map((levelKey) => {
+                const creatures = [...(buckets.get(levelKey) ?? [])].sort((a, b) =>
+                    String(a.def.name ?? a.id).localeCompare(String(b.def.name ?? b.id))
+                )
+                return {
+                    levelKey,
+                    label: levelKey === "other" ? "Other" : `Level ${levelKey}`,
+                    creatures,
+                }
+            })
+            .filter((x) => x.creatures.length > 0)
+    }, [filteredCreatureEntries])
+
     const skillsByCategory = useMemo(() => {
         const buckets = new Map<string, typeof filteredSkills>()
         for (const s of filteredSkills) {
@@ -283,7 +594,7 @@ export function RulesLibraryView() {
                         <span>Rules library — preview action cards and catalog data from rules.json</span>
                     </div>
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                        <TabsList className="w-full sm:w-auto sm:flex-1 grid grid-cols-2 sm:grid-cols-4 gap-1 h-auto min-h-10 py-1">
+                        <TabsList className="w-full sm:w-auto sm:flex-1 grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-1 h-auto min-h-10 py-1">
                             <TabsTrigger value="classes" className="gap-2">
                                 <Swords className="w-4 h-4" />
                                 Classes
@@ -299,6 +610,10 @@ export function RulesLibraryView() {
                             <TabsTrigger value="equipment" className="gap-2">
                                 <Package className="w-4 h-4" />
                                 Equipment
+                            </TabsTrigger>
+                            <TabsTrigger value="creatures" className="gap-2">
+                                <PawPrint className="w-4 h-4" />
+                                Creatures
                             </TabsTrigger>
                         </TabsList>
                         <Button
@@ -481,6 +796,26 @@ export function RulesLibraryView() {
                                                     >
                                                         <span className="font-medium">{type}</span>
                                                         <span className="text-muted-foreground"> ({rows.length})</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </>
+                                    ) : null}
+                                    {mainTab === "creatures" ? (
+                                        <>
+                                            <p className="px-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                                                By level
+                                            </p>
+                                            <div className="space-y-0.5">
+                                                {creaturesByLevel.map(({ levelKey, label, creatures }) => (
+                                                    <button
+                                                        key={levelKey}
+                                                        type="button"
+                                                        onClick={() => libraryScrollTo(`lib-creature-lvl-${levelKey}`)}
+                                                        className="w-full rounded-md px-2 py-1.5 text-left text-xs hover:bg-muted"
+                                                    >
+                                                        <span className="font-medium">{label}</span>
+                                                        <span className="text-muted-foreground"> ({creatures.length})</span>
                                                     </button>
                                                 ))}
                                             </div>
@@ -767,14 +1102,80 @@ export function RulesLibraryView() {
                                                     collapseAllSignal={collapseAllSignal}
                                                 />
                                             ) : null}
-                                            {f.prereqs && typeof f.prereqs === "object" ? (
+                                            <div className="space-y-1 text-sm">
+                                                <span className="font-medium">Prerequisites</span>
+                                                {(() => {
+                                                    const prereqExtra = formatFeatPrerequisiteLines(f.prereqs, RULES)
+                                                    const hasAdv =
+                                                        typeof f.minLevel === "number" && Number.isFinite(f.minLevel)
+                                                    const any = hasAdv || prereqExtra.length > 0
+                                                    return (
+                                                        <ul className="list-disc pl-4 text-muted-foreground space-y-0.5">
+                                                            {hasAdv ? (
+                                                                <li>Adventurer level {f.minLevel}+</li>
+                                                            ) : null}
+                                                            {prereqExtra.map((line, i) => (
+                                                                <li key={i}>{line}</li>
+                                                            ))}
+                                                            {!any ? <li className="text-xs">None</li> : null}
+                                                        </ul>
+                                                    )
+                                                })()}
+                                            </div>
+                                            {typeof f.selectAmount === "number" &&
+                                            f.selectAmount > 0 &&
+                                            Array.isArray(f.effects) &&
+                                            f.effects.length > f.selectAmount ? (
                                                 <div className="space-y-1 text-sm">
-                                                    <span className="font-medium">Prerequisites</span>
-                                                    <pre className="overflow-x-auto rounded-md bg-muted/50 p-2 text-xs">
-                                                        {JSON.stringify(f.prereqs, null, 2)}
-                                                    </pre>
+                                                    <span className="font-medium">Choose {f.selectAmount}</span>
+                                                    <ul className="list-disc pl-4 text-muted-foreground space-y-0.5">
+                                                        {f.effects.map((eff: Record<string, unknown>, i: number) => (
+                                                            <li key={i}>{formatTraitEffectChoiceLabel(eff as any, RULES)}</li>
+                                                        ))}
+                                                    </ul>
                                                 </div>
                                             ) : null}
+                                            {(() => {
+                                                const grantedIds = collectGrantActionCardIds(f.effects)
+                                                if (grantedIds.length === 0) return null
+                                                return (
+                                                    <div className="space-y-3 pt-2 border-t border-border/60">
+                                                        <span className="text-sm font-semibold">Action cards</span>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            Full cards granted by this feat (e.g. companion picks).
+                                                        </p>
+                                                        <div className="space-y-4">
+                                                            {grantedIds.map((aid) => {
+                                                                const ac = hydrateActionCardById(aid, RULES)
+                                                                if (!ac) {
+                                                                    return (
+                                                                        <p key={aid} className="text-sm text-destructive">
+                                                                            Missing action: {aid}
+                                                                        </p>
+                                                                    )
+                                                                }
+                                                                return (
+                                                                    <div key={aid} className="space-y-2">
+                                                                        <Badge variant="outline" className="font-mono text-[10px]">
+                                                                            {aid}
+                                                                        </Badge>
+                                                                        <ActionCardComponent
+                                                                            action={ac}
+                                                                            attributes={DEMO_ATTRIBUTES}
+                                                                            currentWeapon={previewWeapon}
+                                                                            offhandWeapon={null}
+                                                                            forceCollapsed={false}
+                                                                            powerRollDisplayMode="simple"
+                                                                            defaultPowerRollExpanded={false}
+                                                                            collapseAllSignal={collapseAllSignal}
+                                                                        />
+                                                                    </div>
+                                                                )
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                )
+                                            })()}
                                         </div>
                                     ))}
                                 </div>
@@ -975,6 +1376,45 @@ export function RulesLibraryView() {
                                 </div>
                             </section>
                         ))}
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="creatures" className="mt-0 space-y-6">
+                    <div className="space-y-1.5 max-w-md">
+                        <Label htmlFor="lib-creature-search">Search creatures</Label>
+                        <Input
+                            id="lib-creature-search"
+                            placeholder="Name, id, tag, role, description…"
+                            value={creatureSearch}
+                            onChange={(e) => setCreatureSearch(e.target.value)}
+                        />
+                    </div>
+                    <div className="space-y-10">
+                        {creaturesByLevel.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">No creatures match this search.</p>
+                        ) : (
+                            creaturesByLevel.map(({ levelKey, label, creatures }) => (
+                                <section
+                                    key={levelKey}
+                                    id={`lib-creature-lvl-${levelKey}`}
+                                    className="scroll-mt-36 space-y-3"
+                                >
+                                    <h2 className="border-b border-border pb-1 text-lg font-bold">{label}</h2>
+                                    <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-2 md:gap-4">
+                                        {creatures.map(({ id, def }) => (
+                                            <LibraryCreatureCard
+                                                key={id}
+                                                id={id}
+                                                def={def}
+                                                rules={RULES}
+                                                previewWeapon={previewWeapon}
+                                                collapseAllSignal={collapseAllSignal}
+                                            />
+                                        ))}
+                                    </div>
+                                </section>
+                            ))
+                        )}
                     </div>
                 </TabsContent>
                     </div>

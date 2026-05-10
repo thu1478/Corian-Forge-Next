@@ -70,6 +70,8 @@ export function createEmptyCreatorCharacter(): CharacterSaveData {
         occupation: null,
         attributeLevelBonuses: {},
         priestDeity: null,
+        creatures: [],
+        conjurerSummonTemplateIds: [],
     };
 }
 
@@ -110,7 +112,7 @@ function subtractLevelBonusesFromAttributes(
 export type CreatorImportResult = {
     charData: CharacterSaveData;
     adventurerLevel: number;
-    classSelections: { id: string; source: string }[];
+    classSelections: { id: string; source: string; selectedEffectIndices?: number[] }[];
     levelBonuses: Partial<Record<number, AttributeKey>>;
     cultureSkills: string[];
     occupationSkills: string[];
@@ -204,22 +206,24 @@ function languageIdsFromImport(names: unknown): string[] {
     return [...new Set(withCommon)];
 }
 
-function inferClassSelections(json: any): { id: string; source: string }[] {
+function inferClassSelections(json: any): { id: string; source: string; selectedEffectIndices?: number[] }[] {
     const classes = rulesData.classes as Record<string, any>;
-    const out: { id: string; source: string }[] = [];
+    const out: { id: string; source: string; selectedEffectIndices?: number[] }[] = [];
     const seen = new Set<string>();
 
-    const add = (talentId: string, classId: string) => {
+    const add = (talentId: string, classId: string, indices?: number[]) => {
         const k = `${classId}::${talentId}`;
         if (seen.has(k)) return;
         seen.add(k);
-        out.push({ id: talentId, source: classId });
+        const row: { id: string; source: string; selectedEffectIndices?: number[] } = { id: talentId, source: classId };
+        if (indices?.length) row.selectedEffectIndices = indices;
+        out.push(row);
     };
 
-    const tryAllClasses = (talentId: string) => {
+    const tryAllClasses = (talentId: string, indices?: number[]) => {
         for (const [classId, cdata] of Object.entries(classes)) {
             const cd = cdata as any;
-            if (cd.passives?.[talentId]) add(talentId, classId);
+            if (cd.passives?.[talentId]) add(talentId, classId, indices);
             if (cd.actions?.[talentId]) add(talentId, classId);
             if ((cd.reactions || []).some((r: any) => r.id === talentId)) add(talentId, classId);
         }
@@ -228,7 +232,10 @@ function inferClassSelections(json: any): { id: string; source: string }[] {
     for (const t of json.traits || []) {
         if (typeof t !== "object" || !t?.id) continue;
         if (normalizeSource(t.source) !== "class") continue;
-        tryAllClasses(String(t.id));
+        const indices = Array.isArray(t.selectedEffectIndices)
+            ? t.selectedEffectIndices.map((n: unknown) => Math.floor(Number(n))).filter((n: number) => Number.isInteger(n))
+            : undefined;
+        tryAllClasses(String(t.id), indices?.length ? indices : undefined);
     }
 
     for (const a of json.actions || []) {
@@ -389,6 +396,26 @@ function mergeImportedCharData(json: any, empty: CharacterSaveData): CharacterSa
             json.priestDeity != null && String(json.priestDeity).trim() !== ""
                 ? String(json.priestDeity).trim().toLowerCase()
                 : empty.priestDeity ?? null,
+        creatures: Array.isArray(json.creatures)
+            ? (json.creatures as any[])
+                  .filter((c) => c && typeof c.id === "string" && typeof c.templateId === "string")
+                  .map((c) => ({
+                      id: String(c.id),
+                      templateId: String(c.templateId),
+                      kind: c.kind === "summon" ? ("summon" as const) : ("assistant" as const),
+                      deployed: Boolean(c.deployed),
+                      unlockFeatId: typeof c.unlockFeatId === "string" ? c.unlockFeatId : undefined,
+                      customName: typeof c.customName === "string" ? c.customName : undefined,
+                      notes: typeof c.notes === "string" ? c.notes : undefined,
+                      currentHp: typeof c.currentHp === "number" ? c.currentHp : undefined,
+                      maxHp: typeof c.maxHp === "number" ? c.maxHp : undefined,
+                      currentMp: typeof c.currentMp === "number" ? c.currentMp : undefined,
+                      maxMp: typeof c.maxMp === "number" ? c.maxMp : undefined,
+                  }))
+            : empty.creatures ?? [],
+        conjurerSummonTemplateIds: Array.isArray(json.conjurerSummonTemplateIds)
+            ? (json.conjurerSummonTemplateIds as unknown[]).map((x) => String(x ?? "").trim())
+            : empty.conjurerSummonTemplateIds ?? [],
     };
 }
 

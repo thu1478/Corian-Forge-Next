@@ -885,11 +885,31 @@
       "trustyCompanion": {
         "name": "Trusty Companion",
         "minLevel": 3,
-        "description": "You gain one small Beast or Plant companion as an Assistant. Their attacks have a range centered on you, but are usually treated as Melee.",
+        "description": "You gain one small Beast or Plant companion as an Assistant. Their attacks have a range centered on you, but are usually treated as Melee. Choose two companion abilities from Bite, Scratch, Tackle, and Protect.",
+        "grantsCreatureTemplate": "trustyCompanion",
+        "selectAmount": 2,
+        "effects": [
+          {
+            "type": "GrantActionCard",
+            "value": "feat/bite"
+          },
+          {
+            "type": "GrantActionCard",
+            "value": "feat/scratch"
+          },
+          {
+            "type": "GrantActionCard",
+            "value": "feat/tackle"
+          },
+          {
+            "type": "GrantActionCard",
+            "value": "feat/protect"
+          }
+        ],
         "prereqs": {
           "classes": [
             "conjurer",
-            "fairy tamer",
+            "fairytamer",
             "scout",
             "tactician"
           ],
@@ -1010,7 +1030,7 @@
         "prereqs": {
           "classes": [
             "conjurer",
-            "fairy tamer",
+            "fairytamer",
             "scout",
             "tactician"
           ],
@@ -1037,7 +1057,7 @@
             "bard",
             "cleric",
             "conjurer",
-            "fairy tamer",
+            "fairytamer",
             "sorcerer",
             "wizard"
           ],
@@ -1051,7 +1071,7 @@
         "prereqs": {
           "classes": [
             "conjurer",
-            "fairy tamer",
+            "fairytamer",
             "sorcerer",
             "wizard"
           ],
@@ -1065,7 +1085,7 @@
         "prereqs": {
           "classes": [
             "conjurer",
-            "fairy tamer",
+            "fairytamer",
             "sorcerer",
             "wizard"
           ],
@@ -1478,7 +1498,7 @@
           "actionCard": {
             "name": "Shotgun Blast",
             "type": "action",
-            "description": "Create and fire a bullet that spreads into a 3x3 area whose edge is adjacent to you, dealing magical piercing damage to all creatures in the area. If there is only one creature in the area the damage is doubled. Afterwards you shift 2 backwards. This action does not gain a Bane from being within 1 tile of a hostile creature.",
+            "description": "Create and fire a bullet that spreads into a 3x3 area whose edge is adjacent to you, dealing magical piercing damage to all creatures in the area. If there is only one creature in the area it deals +3 damage. Afterwards you shift 2 backwards. This action does not gain a Bane from being within 1 tile of a hostile creature.",
             "apCost": 2,
             "focusCost": 5,
             "mpCost": 8,
@@ -2735,7 +2755,18 @@
         "summoner": {
           "name": "Summoner",
           "minLevel": 3,
-          "description": "You can use Golemancy or Necromancy to create a summon or minions to fight for you. You can spend 1 AP on your turn to give it a command for this turn or it won't be able to act. You may only have one summon or group of minions active at a time. Refer to Summon Guidelines.\n\nRules:\n- When you select this passive you must choose Golemancy or Necromancy. You cannot have both.\n- You may obtain one available Summoning spell for free when you first take this passive. You gain one additional Summon each time you gain another level of Conjurer.\n- Summons can last until the beginning of your next Long Rest.\n- The strength of your Summon and amount of minions you can have at one time is determined by your Summon Mastery which starts at rank 1. This also determines what Summoning spell you can learn.\n- Rank 1: Rank 1 Summon or 2 minions at once.\n- Rank 2: Rank 2 Summon or 3 minions at once."
+          "description": "You can use Golemancy or Necromancy to create a summon or minions to fight for you. You can spend 1 AP on your turn to give it a command for this turn or it won't be able to act. You may only have one summon or group of minions active at a time. Refer to Summon Guidelines.\n\nRules:\n- When you select this passive you must choose Golemancy or Necromancy. You cannot have both.\n- You may obtain one available Summoning spell for free when you first take this passive. You gain one additional Summon each time you gain another level of Conjurer.\n- Summons can last until the beginning of your next Long Rest.\n- The strength of your Summon and amount of minions you can have at one time is determined by your Summon Mastery which starts at rank 1. This also determines what Summoning spell you can learn.\n- Rank 1: Rank 1 Summon or 2 minions at once.\n- Rank 2: Rank 2 Summon or 3 minions at once.",
+          "selectAmount": 1,
+          "effects": [
+            {
+              "type": "SummonSchool",
+              "value": "geomancy"
+            },
+            {
+              "type": "SummonSchool",
+              "value": "necromancy"
+            }
+          ]
         },
         "greatSummoner": {
           "name": "Great Summoner",
@@ -2809,12 +2840,12 @@
             }
           }
         },
-        "summonerSInfusion": {
+        "summonersInfusion": {
           "minLevel": 1,
           "actionCard": {
             "name": "Summoner's Infusion",
             "type": "action",
-            "description": "Give Infusion ( Earth ) or Infusion ( Dark ) depending on whether you chose Geomancy or Necromancy to your weapon or an ally's weapon. That weapon's damage type changes to earth. You may only have one of these active at a time. You cannot use this if you don't have the Summoner passive.",
+            "description": "Give Infusion (Earth) or Infusion (Dark) depending on whether you chose Geomancy or Necromancy to your weapon or an ally's weapon. That weapon's damage type changes to earth. You may only have one of these active at a time. You cannot use this if you don't have the Summoner passive.",
             "apCost": 1,
             "focusCost": 0,
             "mpCost": 2,
@@ -10020,6 +10051,53 @@
         }
       }
     },
+    "feat/breathAttack": {
+      "name": "Breath Attack",
+      "type": "action",
+      "description": "Your animal companion release a breath attack at the target. Choose the damage type when selecting this initially. The damage type does not change afterwards.\n\n- Air\n\n- Water\n\n- Fire\n\n- Earth",
+      "apCost": 2,
+      "focusCost": 1,
+      "mpCost": 0,
+      "range": "5",
+      "tags": [
+        "Ranged"
+      ],
+      "source": "feat",
+      "powerRoll": {
+        "rollStats": [
+          "presence"
+        ],
+        "tier1Dmg": 3,
+        "tier2Dmg": 4,
+        "tier3Dmg": 6
+      }
+    },
+    "feat/waveSwing": {
+      "name": "Wave Swing",
+      "type": "action",
+      "description": "Requires a melee weapon. Swing your weapon to release a wave at the target. Deals magical damage of the same type as the weapon",
+      "apCost": 2,
+      "focusCost": 0,
+      "mpCost": 8,
+      "range": "5",
+      "tags": [
+        "Ranged",
+        "Weapon"
+      ],
+      "source": "feat",
+      "powerRoll": {
+        "rollStats": [
+          "might",
+          "dexterity"
+        ],
+        "tier1Dmg": 0,
+        "tier1Wpn": true,
+        "tier2Dmg": 1,
+        "tier2Wpn": true,
+        "tier3Dmg": 2,
+        "tier3Wpn": true
+      }
+    },
     "feat/bite": {
       "name": "Bite",
       "type": "action",
@@ -10084,17 +10162,22 @@
           "presence"
         ],
         "tier1Dmg": 3,
+        "tier1Effect": {
+          "type": "ForcedMovement",
+          "effect": "push",
+          "distance": 1
+        },
         "tier2Dmg": 4,
         "tier2Effect": {
           "type": "ForcedMovement",
           "effect": "push",
-          "distance": 1
+          "distance": 2
         },
         "tier3Dmg": 6,
         "tier3Effect": {
           "type": "ForcedMovement",
           "effect": "push",
-          "distance": 2
+          "distance": 3
         }
       }
     },
@@ -10109,53 +10192,6 @@
       "tags": [],
       "source": "feat",
       "trigger": "You are attacked"
-    },
-    "feat/breathAttack": {
-      "name": "Breath Attack",
-      "type": "action",
-      "description": "Your animal companion release a breath attack at the target. Choose the damage type when selecting this initially. The damage type does not change afterwards.\n\n- Air\n\n- Water\n\n- Fire\n\n- Earth",
-      "apCost": 2,
-      "focusCost": 1,
-      "mpCost": 0,
-      "range": "5",
-      "tags": [
-        "Ranged"
-      ],
-      "source": "feat",
-      "powerRoll": {
-        "rollStats": [
-          "presence"
-        ],
-        "tier1Dmg": 3,
-        "tier2Dmg": 4,
-        "tier3Dmg": 6
-      }
-    },
-    "feat/waveSwing": {
-      "name": "Wave Swing",
-      "type": "action",
-      "description": "Requires a melee weapon. Swing your weapon to release a wave at the target. Deals magical damage of the same type as the weapon",
-      "apCost": 2,
-      "focusCost": 0,
-      "mpCost": 8,
-      "range": "5",
-      "tags": [
-        "Ranged",
-        "Weapon"
-      ],
-      "source": "feat",
-      "powerRoll": {
-        "rollStats": [
-          "might",
-          "dexterity"
-        ],
-        "tier1Dmg": 0,
-        "tier1Wpn": true,
-        "tier2Dmg": 1,
-        "tier2Wpn": true,
-        "tier3Dmg": 2,
-        "tier3Wpn": true
-      }
     },
     "monster/clayFist": {
       "name": "Clay Fist",
@@ -10243,16 +10279,26 @@
           "might"
         ],
         "tier1Dmg": 4,
-        "tier2Dmg": 5,
-        "tier2Effect": {
+        "tier1Effect": {
           "type": "ForcedMovement",
           "effect": "push",
           "distance": 1
         },
+        "tier2Dmg": 5,
+        "tier2Effect": {
+          "type": "ForcedMovement",
+          "effect": "push",
+          "distance": 2
+        },
         "tier3Dmg": 7,
         "tier3Effect": {
-          "type": "Special",
-          "effect": "M < 2 slowed [turn end]"
+          "type": "Condition",
+          "fixedSrcVal": 2,
+          "targetStats": [
+            "might"
+          ],
+          "effect": "slowed",
+            "duration": "turnEnd"
         }
       }
     },
@@ -10408,17 +10454,22 @@
           "might"
         ],
         "tier1Dmg": 7,
+        "tier1Effect": {
+          "type": "ForcedMovement",
+          "effect": "push",
+          "distance": 1
+        },
         "tier2Dmg": 8,
         "tier2Effect": {
           "type": "ForcedMovement",
           "effect": "push",
-          "distance": 1
+          "distance": 2
         },
         "tier3Dmg": 10,
         "tier3Effect": {
           "type": "ForcedMovement",
           "effect": "push",
-          "distance": 2
+          "distance": 4
         }
       }
     },
@@ -11090,6 +11141,560 @@
           "value": "1"
         }
       ]
+    }
+  },
+  "bestiary": {
+    "traits": {
+        "unliving": {
+            "name": "Unliving",
+            "description": "Immune to Bleeding, Charmed, Frightened, and Poisoned conditions. Also unaffected by Bard's Emanation songs",
+          "effects": [
+            {
+              "type": "Immunity",
+              "stat": "bleeding"
+            },
+            {
+              "type": "Immunity",
+              "stat": "charmed"
+            },
+            {
+              "type": "Immunity",
+              "stat": "frightened"
+            },
+            {
+              "type": "Immunity",
+              "stat": "poisoned"
+            }
+          ]
+        },
+        "flammable": {
+            "name": "Flammable",
+            "description": "After taking fire damage you are set alight, taking 3 fire damage at the start of your turn."
+        },
+        "crafty": {
+            "name": "Crafty",
+            "description": "You do not provoke opportunity attacks."
+        },
+        "flying": {
+            "name": "Flying",
+            "description": "You have a flying speed equal to your speed."
+        },
+        "extremeHeatSensitivity": {
+            "name": "Extreme heat sensitivity",
+            "description": "If any fire damage is dealt to a target within 1 tile of this creature, this creature dies."
+        },
+        "explosiveTendencies": {
+            "name": "Explosive tendencies",
+            "description": "When this creature dies it deals 2 fire damage to all creatures within 1 tile of it."
+        },
+        "weakling": {
+            "name": "Weakling",
+            "description": "Opportunity attacks deal 0 damage and this creature cannot attack with them."
+        },
+        "largeFrame": {
+            "name": "Large frame",
+            "description": "Counts as cover against ranged attacks for allies behind it."
+        },
+        "undeadConstitution": {
+            "name": "Undead constitution",
+            "description": "Damaged by most healing spells. Cannot be healed by most healing spells."
+        },
+        "metaphysical": {
+            "name": "Metaphysical",
+            "description": "Does not always exist on the physical plane, but may manifest or affect the physical world magically. Invisible to those unable to see metaphysical beings."
+        },
+        "extraGrabby": {
+            "name": "Extra grabby",
+            "description": "Terrain this creature occupies is difficult terrain for hostile creatures as it tries to grab them."
+        }
+    },
+    "creatures": {
+      "trustyCompanion": {
+        "name": "Trusty companion",
+        "description": "A small Beast or Plant assistant. Attacks use range centered on you, usually treated as Melee. Choose companion abilities when you take the Trusty Companion feat.",
+        "role": "assistant",
+        "creatureTypes": [
+          "beast",
+          "plant"
+        ],
+        "actionIDs": [
+        ]
+      },
+      "clayGolem": {
+        "name": "Clay Golem",
+        "description": "Striker. Max 3 AP",
+        "role": "summon",
+        "level": 2,
+        "creatureTypes": [
+          "construct"
+        ],
+        "tags": [
+          "geomancy"
+        ],
+        "attributes": {
+          "might": 12,
+          "dexterity": 10,
+          "reason": 6,
+          "willpower": 6,
+          "presence": 6
+        },
+        "actionIDs": [
+          "monster/clayFist"
+        ],
+        "defaultMaxHp": 16,
+        "defaultMaxMp": 20,
+        "stability": 1,
+        "speed": 5,
+        "size": "1M",
+        "resistances": [
+          "slashing",
+          "piercing"
+        ],
+        "vulnerabilities": [
+          {
+            "stat": "crushing",
+            "value": "3"
+          },
+          {
+            "stat": "water",
+            "value": "3"
+          }
+        ],
+        "defense": 1,
+        "traits": ["unliving"],
+        "opportunityAttack": 1
+      },
+      "strawBird": {
+        "name": "Straw bird",
+        "description": "Geomancy utility. Little to no damage; provides support. Assign actions when ready.",
+        "role": "summon",
+        "level": 2,
+        "creatureTypes": ["construct"],
+        "tags": ["geomancy"],
+        "attributes": {
+          "might": 9,
+          "dexterity": 11,
+          "reason": 7,
+          "willpower": 7,
+          "presence": 7
+        },
+        "actionIDs": ["monster/strawPeck"],
+        "defaultMaxHp": 10,
+        "defaultMaxMp": 14,
+        "defense": 0,
+        "stability": 0,
+        "speed": 5,
+        "size": "1T",
+        "resistances": ["crushing", "earth"],
+        "vulnerabilities": [
+          { "stat": "slashing", "value": "3" },
+          { "stat": "fire", "value": "3" }
+        ],
+        "traits": ["unliving", "flammable", "crafty", "flying"]
+      },
+      "waxGolem": {
+        "name": "Wax golem",
+        "description": "Geomancy minion. Dies in one hit and fails all potencies; group minions share a turn in the slow phase. Typical mana cost 3 (rebalance as needed). Assign actions when ready.",
+        "role": "minion",
+        "level": 2,
+        "creatureTypes": ["construct"],
+        "tags": ["geomancy"],
+        "attributes": {
+          "might": 11,
+          "dexterity": 9,
+          "reason": 6,
+          "willpower": 6,
+          "presence": 6
+        },
+        "actionIDs": ["monster/sayonara"],
+        "defaultMaxHp": 12,
+        "defaultMaxMp": 12,
+        "defense": 0,
+        "stability": 0,
+        "speed": 4,
+        "size": "1T",
+        "resistances": ["water", "dark"],
+        "vulnerabilities": [
+          { "stat": "air", "value": "3" },
+          { "stat": "fire", "value": "3" }
+        ],
+        "traits": ["unliving", "extremeHeatSensitivity", "explosiveTendencies", "weakling"]
+      },
+      "snowGolem": {
+        "name": "Snow golem",
+        "description": "Geomancy minion. Dies in one hit and fails all potencies; group minions share a turn. Typical mana cost 3. Assign actions when ready.",
+        "role": "minion",
+        "level": 2,
+        "creatureTypes": ["construct"],
+        "tags": ["geomancy"],
+        "attributes": {
+          "might": 11,
+          "dexterity": 9,
+          "reason": 6,
+          "willpower": 6,
+          "presence": 6
+        },
+        "actionIDs": ["monster/snowballToss"],
+        "defaultMaxHp": 12,
+        "defaultMaxMp": 12,
+        "defense": 10,
+        "stability": 0,
+        "speed": 1,
+        "size": "1S",
+        "resistances": ["water", "earth"],
+        "vulnerabilities": [
+          { "stat": "fire", "value": "3" },
+          { "stat": "light", "value": "3" }
+        ],
+        "traits": ["unliving", "extremeHeatSensitivity"]
+      },
+      "woodGolem": {
+        "name": "Wood golem",
+        "description": "Geomancy defender (rank 2). Tougher; cannot disengage; max 2 AP; attacks can slow or push. Assign actions when ready.",
+        "role": "summon",
+        "level": 4,
+        "creatureTypes": ["construct"],
+        "tags": ["geomancy"],
+        "attributes": {
+          "might": 14,
+          "dexterity": 9,
+          "reason": 6,
+          "willpower": 10,
+          "presence": 6
+        },
+        "actionIDs": ["monster/woodFist"],
+        "defaultMaxHp": 32,
+        "defaultMaxMp": 20,
+        "defense": 3,
+        "stability": 2,
+        "speed": 3,
+        "size": "1L",
+        "resistances": ["water", "earth"],
+        "vulnerabilities": [
+          { "stat": "slashing", "value": "3" },
+          { "stat": "fire", "value": "3" }
+        ],
+        "traits": ["unliving", "largeFrame"],
+        "opportunityAttack": 2
+      },
+      "clayGolemChampion": {
+        "name": "Clay golem champion",
+        "description": "Geomancy striker (rank 2). Mobile striker; max 3 AP. Assign actions when ready.",
+        "role": "summon",
+        "level": 4,
+        "creatureTypes": ["construct"],
+        "tags": ["geomancy"],
+        "attributes": {
+          "might": 12,
+          "dexterity": 11,
+          "reason": 6,
+          "willpower": 10,
+          "presence": 6
+        },
+        "actionIDs": ["monster/claySword"],
+        "defaultMaxHp": 27,
+        "defaultMaxMp": 20,
+        "defense": 2,
+        "stability": 1,
+        "speed": 5,
+        "size": "1M",
+        "resistances": ["slashing", "piercing"],
+        "vulnerabilities": [
+          { "stat": "crushing", "value": "3" },
+          { "stat": "water", "value": "3" }
+        ],
+
+        "traits": ["unliving"],
+        "opportunityAttack": 4
+      },
+      "strawGolem": {
+        "name": "Straw golem",
+        "description": "Geomancy minion (rank 2). Typical mana cost 5. Assign actions when ready.",
+        "role": "minion",
+        "level": 4,
+        "creatureTypes": ["construct"],
+        "tags": ["geomancy"],
+        "attributes": {
+          "might": 11,
+          "dexterity": 9,
+          "reason": 6,
+          "willpower": 6,
+          "presence": 6
+        },
+        "actionIDs": ["monster/strawFist"],
+        "defaultMaxHp": 14,
+        "defaultMaxMp": 12,
+        "defense": 1,
+        "stability": 0,
+        "speed": 4,
+        "size": "1M",
+        "resistances": ["crushing", "earth"],
+        "vulnerabilities": [
+          { "stat": "slashing", "value": "3" },
+          { "stat": "fire", "value": "3" }
+        ],
+        "traits": ["unliving", "flammable"],
+        "opportunityAttack": 1
+      },
+      "shielding": {
+        "name": "Shielding",
+        "description": "Geomancy minion (rank 2). Typical mana cost 5. Assign actions when ready.",
+        "role": "minion",
+        "level": 4,
+        "creatureTypes": ["construct"],
+        "tags": ["geomancy"],
+        "attributes": {
+          "might": 11,
+          "dexterity": 9,
+          "reason": 6,
+          "willpower": 6,
+          "presence": 6
+        },
+        "actionIDs": ["monster/interception"],
+        "defaultMaxHp": 14,
+        "defaultMaxMp": 12,
+        "defense": 1,
+        "stability": 0,
+        "speed": 4,
+        "size": "1S",
+        "resistances": ["piercing", "earth"],
+        "vulnerabilities": [
+          { "stat": "crushing", "value": "3" },
+          { "stat": "water", "value": "3" }
+        ],
+        "traits": ["unliving", "weakling"]
+      },
+      "skeletonMarksman": {
+        "name": "Skeleton marksman",
+        "description": "Necromancy marksman (rank 1). Ranged physical damage; max 2 AP. Assign actions when ready.",
+        "role": "summon",
+        "level": 2,
+        "creatureTypes": ["undead"],
+        "tags": ["necromancy"],
+        "attributes": {
+          "might": 9,
+          "dexterity": 12,
+          "reason": 6,
+          "willpower": 8,
+          "presence": 6
+        },
+        "actionIDs": ["monster/rottenCrossbow"],
+        "defaultMaxHp": 10,
+        "defaultMaxMp": 16,
+        "defense": 1,
+        "stability": 0,
+        "speed": 4,
+        "size": "1M",
+        "resistances": ["piercing"],
+        "vulnerabilities": [
+          { "stat": "crushing", "value": "3" },
+          { "stat": "light", "value": "5" }
+        ],
+        "immunities": ["dark"],
+        "traits": ["unliving", "undeadConstitution"]
+      },
+      "shade": {
+        "name": "Shade",
+        "description": "Necromancy utility (rank 1). Little to no damage; support-focused. Assign actions when ready.",
+        "role": "summon",
+        "level": 2,
+        "creatureTypes": ["undead"],
+        "tags": ["necromancy"],
+        "attributes": {
+          "might": 9,
+          "dexterity": 9,
+          "reason": 7,
+          "willpower": 12,
+          "presence": 7
+        },
+        "actionIDs": ["monster/possess"],
+        "defaultMaxHp": 10,
+        "defaultMaxMp": 24,
+        "defense": 0,
+        "stability": 0,
+        "speed": 4,
+        "size": "1M",
+        "resistances": ["slashing"],
+        "vulnerabilities": [
+          { "stat": "earth", "value": "3" },
+          { "stat": "light", "value": "5" }
+        ],
+        "immunities": ["dark"],
+        "traits": ["unliving", "undeadConstitution", "metaphysical"]
+      },
+      "zombie": {
+        "name": "Zombie",
+        "description": "Necromancy minion (rank 1). Typical mana cost 3. Assign actions when ready.",
+        "role": "minion",
+        "level": 2,
+        "creatureTypes": ["undead"],
+        "tags": ["necromancy"],
+        "attributes": {
+          "might": 11,
+          "dexterity": 9,
+          "reason": 6,
+          "willpower": 6,
+          "presence": 6
+        },
+        "actionIDs": ["monster/rottenPunch"],
+        "defaultMaxHp": 12,
+        "defaultMaxMp": 12,
+        "defense": 1,
+        "stability": 0,
+        "speed": 4,
+        "size": "1M",
+        "resistances": ["volt"],
+        "vulnerabilities": [
+          { "stat": "fire", "value": "3" },
+          { "stat": "light", "value": "5" }
+        ],
+        "immunities": ["dark"],
+        "traits": ["unliving", "undeadConstitution"],
+        "opportunityAttack": 1
+      },
+      "crawlingHands": {
+        "name": "Crawling hands",
+        "description": "Necromancy minion (rank 1). Typical mana cost 3. Assign actions when ready.",
+        "role": "minion",
+        "level": 2,
+        "creatureTypes": ["undead"],
+        "tags": ["necromancy"],
+        "attributes": {
+          "might": 11,
+          "dexterity": 9,
+          "reason": 6,
+          "willpower": 6,
+          "presence": 6
+        },
+        "actionIDs": ["monster/sayonara"],
+        "defaultMaxHp": 16,
+        "defaultMaxMp": 12,
+        "defense": 1,
+        "stability": 0,
+        "speed": 4,
+        "size": "1T",
+        "resistances": ["volt"],
+        "vulnerabilities": [
+          { "stat": "fire", "value": "3" },
+          { "stat": "light", "value": "5" }
+        ],
+        "immunities": ["dark"],
+        "traits": ["unliving", "undeadConstitution", "extraGrabby", "weakling"]
+      },
+      "wight": {
+        "name": "Wight",
+        "description": "Necromancy defender (rank 2). Cannot disengage; max 2 AP; attacks can slow or push. Assign actions when ready.",
+        "role": "summon",
+        "level": 4,
+        "creatureTypes": ["undead"],
+        "tags": ["necromancy"],
+        "attributes": {
+          "might": 14,
+          "dexterity": 9,
+          "reason": 6,
+          "willpower": 8,
+          "presence": 6
+        },
+        "actionIDs": ["monster/filthyMace"],
+        "defaultMaxHp": 32,
+        "defaultMaxMp": 12,
+        "defense": 2,
+        "stability": 2,
+        "speed": 3,
+        "size": "1M",
+        "resistances": ["fire","dark"],
+        "vulnerabilities": [
+          { "stat": "water", "value": "3" },
+          { "stat": "light", "value": "5" }
+        ],
+        "immunities": ["dark"],
+        "traits": ["unliving", "undeadConstitution"],
+        "opportunityAttack": 4
+      },
+      "wraith": {
+        "name": "Wraith",
+        "description": "Necromancy striker (rank 2). Mobile; max 3 AP. Assign actions when ready.",
+        "role": "summon",
+        "level": 4,
+        "creatureTypes": ["undead"],
+        "tags": ["necromancy"],
+        "attributes": {
+          "might": 10,
+          "dexterity": 13,
+          "reason": 6,
+          "willpower": 8,
+          "presence": 6
+        },
+        "actionIDs": ["monster/spectralClaws"],
+        "defaultMaxHp": 22,
+        "defaultMaxMp": 12,
+        "defense": 0,
+        "stability": 0,
+        "speed": 5,
+        "size": "1M",
+        "resistances": ["fire"],
+        "vulnerabilities": [
+          { "stat": "earth", "value": "3" },
+          { "stat": "light", "value": "5" }
+        ],
+        "immunities": ["dark"],
+        "traits": ["unliving", "undeadConstitution", "metaphysical"],
+        "opportunityAttack": 2
+      },
+      "ghost": {
+        "name": "Ghost",
+        "description": "Necromancy minion (rank 2). Typical mana cost 5. Assign actions when ready.",
+        "role": "minion",
+        "level": 4,
+        "creatureTypes": ["undead"],
+        "tags": ["necromancy"],
+        "attributes": {
+          "might": 9,
+          "dexterity": 9,
+          "reason": 6,
+          "willpower": 11,
+          "presence": 6
+        },
+        "actionIDs": ["monster/magicInterception"],
+        "defaultMaxHp": 12,
+        "defaultMaxMp": 22,
+        "defense": 1,
+        "stability": 0,
+        "speed": 4,
+        "size": "1M",
+        "resistances": ["fire"],
+        "vulnerabilities": [
+          { "stat": "earth", "value": "3" },
+          { "stat": "light", "value": "5" }
+        ],
+        "immunities": ["dark"],
+        "traits": ["unliving", "undeadConstitution", "metaphysical", "weakling"]
+      },
+      "poltergeist": {
+        "name": "Poltergeist",
+        "description": "Necromancy minion (rank 2). Typical mana cost 5. Assign actions when ready.",
+        "role": "minion",
+        "level": 4,
+        "creatureTypes": ["undead"],
+        "tags": ["necromancy"],
+        "attributes": {
+          "might": 11,
+          "dexterity": 9,
+          "reason": 6,
+          "willpower": 6,
+          "presence": 6
+        },
+        "actionIDs": ["monster/shoePossession"],
+        "defaultMaxHp": 14,
+        "defaultMaxMp": 12,
+        "defense": 1,
+        "stability": 0,
+        "speed": 4,
+        "size": "1M",
+        "vulnerabilities": [{ "stat": "light", "value": "5" }],
+        "immunities": ["dark"],
+        "traits": ["unliving", "undeadConstitution", "metaphysical", "weakling"]
+      }
     }
   },
   "glossary": {

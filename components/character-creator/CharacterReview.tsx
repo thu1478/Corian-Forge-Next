@@ -10,6 +10,11 @@ import {
   sumGearStatBonus,
   sumTraitStatChangeEffects,
 } from "@/lib/character-data";
+import {
+  reconcileCreatureRoster,
+  getCreatureTemplates,
+  getActionCardIdsForCreatureEntry,
+} from "@/lib/creature-roster";
 import { FeatLevelPick } from "@/lib/baseRefs";
 import { discoverAllTraitRefs } from "@/components/character-sheet/hooks/DataLoader";
 import { hydrateTraitRefs } from "@/components/character-sheet/hooks/statCalculator";
@@ -23,7 +28,7 @@ interface CharacterReviewProps {
   charData: CharacterSaveData;
   adventurerLevel: number;
   levelBonuses: Partial<Record<number, AttributeKey>>;
-  classSelections: { id: string; source: string }[];
+  classSelections: { id: string; source: string; selectedEffectIndices?: number[] }[];
   selectedFeats: Partial<Record<number, FeatLevelPick>>;
   selectedSkillIds: string[];
   occupationLanguages: string[];
@@ -69,11 +74,18 @@ export function CharacterReview({
             .filter(([, passive]: [string, any]) => passive.type === "innate")
             .map(([id]) => ({ id, source: "racial" as const }))
         : [];
-    const classTraits: { id: string; source: string }[] = [];
+    const classTraits: { id: string; source: string; selectedEffectIndices?: number[] }[] = [];
     classSelections.forEach((sel) => {
       const classData = (rulesData.classes as Record<string, any>)[sel.source];
       if (classData?.passives?.[sel.id]) {
-        classTraits.push({ id: sel.id, source: "class" });
+        const row: { id: string; source: "class"; selectedEffectIndices?: number[] } = {
+          id: sel.id,
+          source: "class",
+        };
+        if (sel.selectedEffectIndices?.length) {
+          row.selectedEffectIndices = sel.selectedEffectIndices;
+        }
+        classTraits.push(row);
       }
     });
     const featTraits = Object.entries(selectedFeats)
@@ -93,6 +105,20 @@ export function CharacterReview({
     [charData, traitsAlignedWithExport]
   );
 
+  const creaturesPreview = useMemo(
+    () =>
+      reconcileCreatureRoster(charData.creatures ?? [], traitsAlignedWithExport, rulesData as any, {
+        classes: charData.classes,
+        conjurerSummonTemplateIds: charData.conjurerSummonTemplateIds,
+      }),
+    [charData.creatures, charData.classes, charData.conjurerSummonTemplateIds, traitsAlignedWithExport]
+  );
+
+  const creatureTemplates = useMemo(
+    () => getCreatureTemplates(rulesData as any),
+    []
+  );
+
   const exportCharacter = () => {
     const raceData = (rulesData.races as Record<string, any>)[charData.race];
     const raceKey = charData.race?.toLowerCase?.();
@@ -102,12 +128,19 @@ export function CharacterReview({
             .filter(([, passive]: [string, any]) => passive.type === "innate")
             .map(([id]) => ({ id, source: "racial" as const }))
         : [];
-    const classTraits: { id: string; source: string }[] = [];
+    const classTraits: { id: string; source: string; selectedEffectIndices?: number[] }[] = [];
     const actions: { id: string }[] = [];
     const reactions: { id: string; slotIndex: number; charges: number }[] = [];
     classSelections.forEach((sel) => {
       const classData = (rulesData.classes as Record<string, any>)[sel.source];
-      if (classData?.passives?.[sel.id]) classTraits.push({ id: sel.id, source: "class" });
+      if (classData?.passives?.[sel.id]) {
+        const row: { id: string; source: "class"; selectedEffectIndices?: number[] } = {
+          id: sel.id,
+          source: "class",
+        };
+        if (sel.selectedEffectIndices?.length) row.selectedEffectIndices = sel.selectedEffectIndices;
+        classTraits.push(row);
+      }
       if (classData?.actions?.[sel.id]) actions.push({ id: sel.id });
       if ((classData?.reactions || []).some((r: any) => r.id === sel.id)) {
         reactions.push({ id: sel.id, slotIndex: -1, charges: 0 });
@@ -141,6 +174,7 @@ export function CharacterReview({
       .map((id) => (rulesData.system.languages as Record<string, any>)[id]?.name ?? id)
       .filter(Boolean);
 
+    const allExportTraits = [...innateTraitRefs, ...charData.traits, ...classTraits, ...featTraits];
     const output = {
       ...charData,
       occupation: charData.occupation ?? null,
@@ -151,7 +185,12 @@ export function CharacterReview({
       xp: (rulesData.system.startingXPPerLvl as Record<string, number>)[String(adventurerLevel)] ?? charData.xp,
       actions,
       reactions,
-      traits: [...innateTraitRefs, ...charData.traits, ...classTraits, ...featTraits],
+      traits: allExportTraits,
+      conjurerSummonTemplateIds: charData.conjurerSummonTemplateIds ?? [],
+      creatures: reconcileCreatureRoster(charData.creatures ?? [], allExportTraits, rulesData as any, {
+        classes: charData.classes,
+        conjurerSummonTemplateIds: charData.conjurerSummonTemplateIds,
+      }),
       focusFeatures: charData.classes.map((c) => ({ classSrc: c.id, slotIndex: -1 })),
       skills,
       languages: Array.from(new Set(languageNames.map((name) => String(name))))
@@ -453,6 +492,54 @@ export function CharacterReview({
                     {f.name}
                   </span>
                 ))
+              )}
+            </div>
+            <div className="text-xs uppercase tracking-wider font-bold text-muted-foreground mb-2">Creatures</div>
+            <div className="mb-4 space-y-1.5">
+              {creaturesPreview.length === 0 ? (
+                <span className="text-xs text-muted-foreground">None (e.g. Trusty Companion adds an assistant on export)</span>
+              ) : (
+                creaturesPreview.map((c) => {
+                  const tmpl = creatureTemplates[c.templateId];
+                  const label = c.customName?.trim() || tmpl?.name || c.templateId;
+                  const allIds = getActionCardIdsForCreatureEntry(c, traitsAlignedWithExport, rulesData as any);
+                  const ac = rulesData.actionCards as Record<string, { name?: string; type?: string }> | undefined;
+                  const actionLabels = allIds
+                    .filter((id) => (ac?.[id]?.type ?? "action") === "action")
+                    .map((id) => ac?.[id]?.name ?? id);
+                  const reactionLabels = allIds
+                    .filter((id) => {
+                      const t = ac?.[id]?.type;
+                      return t === "reaction" || t === "freeReaction";
+                    })
+                    .map((id) => ac?.[id]?.name ?? id);
+                  return (
+                    <div
+                      key={c.id}
+                      className="text-xs rounded-md border border-border bg-background/60 px-2 py-1.5 space-y-1"
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-semibold">{label}</span>
+                        <span className="text-muted-foreground capitalize">{c.kind}</span>
+                        {c.deployed ? (
+                          <span className="text-[10px] uppercase font-bold text-primary">Deployed</span>
+                        ) : null}
+                      </div>
+                      {actionLabels.length > 0 ? (
+                        <div className="text-muted-foreground">
+                          <span className="font-medium text-foreground">Actions: </span>
+                          {actionLabels.join(", ")}
+                        </div>
+                      ) : null}
+                      {reactionLabels.length > 0 ? (
+                        <div className="text-muted-foreground">
+                          <span className="font-medium text-foreground">Reactions: </span>
+                          {reactionLabels.join(", ")}
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })
               )}
             </div>
             <div className="text-xs uppercase tracking-wider font-bold text-muted-foreground mb-2">Traits</div>

@@ -27,7 +27,10 @@ export function resolveTraitEffectsAfterSelection(
     return effects.slice(0, n);
 }
 
-export function formatTraitEffectChoiceLabel(effect: TraitEffect): string {
+export function formatTraitEffectChoiceLabel(
+    effect: TraitEffect,
+    rules?: { actionCards?: Record<string, { name?: string }> }
+): string {
     switch (effect.type) {
         case "StatChange":
             return effect.stat
@@ -46,8 +49,17 @@ export function formatTraitEffectChoiceLabel(effect: TraitEffect): string {
             return effect.stat ? `Sight: ${effect.stat}` : "Grant sight";
         case "Language":
             return String(effect.value ?? "");
-        case "GrantActionCard":
-            return String(effect.value ?? "");
+        case "GrantActionCard": {
+            const id = String(effect.value ?? "");
+            if (rules?.actionCards?.[id]?.name) return rules.actionCards[id].name!
+            return id;
+        }
+        case "SummonSchool": {
+            const v = String(effect.value ?? "").toLowerCase();
+            if (v === "geomancy") return "Golemancy (Geomancy)";
+            if (v === "necromancy") return "Necromancy";
+            return v || "Summon school";
+        }
         default:
             return effect.type;
     }

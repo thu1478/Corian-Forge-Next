@@ -1,6 +1,6 @@
 "use client"
 
-import {useEffect, useMemo, useState} from "react"
+import {useCallback, useEffect, useMemo, useState} from "react"
 import {
     ActionCardComponent,
     type ActionCostBudget,
@@ -71,6 +71,13 @@ import {restoreReactionCharges} from "@/lib/rest-helpers";
 import {listCatalogActionCardIds, listCatalogReactionCardIds} from "@/lib/generic-catalog";
 import {collectClassProficiencies, martialProficiencyDeficitMessage} from "@/lib/equipment-proficiency";
 import {ProficienciesPanel} from "@/components/character-sheet/characterPage/proficiencies-panel";
+import {CreaturesPanel} from "@/components/character-sheet/characterPage/creatures-panel";
+import {
+    getCreatureTemplates,
+    getDeployedCreatureActionRefs,
+    reconcileCreatureRoster,
+    type CreatureRosterEntry,
+} from "@/lib/creature-roster";
 
 type ActionFilter = string;
 type ViewMode = "grid" | "list"
@@ -112,18 +119,83 @@ export function CharacterSheetView() {
         setCharacter((prev: any) => ({...prev, respite: max}))
     }, [character, character?.respite, derived.maxRespite, setCharacter])
 
+    const rosterReconcileOpts = useMemo(
+        () => ({
+            classes: character?.classes ?? [],
+            conjurerSummonTemplateIds: character?.conjurerSummonTemplateIds,
+        }),
+        [character?.classes, character?.conjurerSummonTemplateIds]
+    )
+
+    const creaturesResolved = useMemo(
+        () =>
+            reconcileCreatureRoster(character?.creatures, character?.traits ?? [], rulesData as any, rosterReconcileOpts),
+        [character?.creatures, character?.traits, rosterReconcileOpts]
+    )
+
+    useEffect(() => {
+        if (!character) return
+        const r = reconcileCreatureRoster(
+            character.creatures,
+            character.traits ?? [],
+            rulesData as any,
+            rosterReconcileOpts
+        )
+        const s = character.creatures ?? []
+        const sSet = new Set(s.map((x: { id: string }) => x.id))
+        if (r.some((x) => !sSet.has(x.id))) {
+            setCharacter((prev: any) => ({
+                ...prev,
+                creatures: reconcileCreatureRoster(prev.creatures, prev.traits ?? [], rulesData as any, {
+                    classes: prev.classes ?? [],
+                    conjurerSummonTemplateIds: prev.conjurerSummonTemplateIds,
+                }),
+            }))
+        }
+    }, [character?.traits, character?.creatures, character?.classes, character?.conjurerSummonTemplateIds, rosterReconcileOpts, setCharacter])
+
+    const patchCreatureEntry = useCallback(
+        (id: string, patch: Partial<CreatureRosterEntry>) => {
+            setCharacter((prev: any) => {
+                const base = reconcileCreatureRoster(prev.creatures, prev.traits ?? [], rulesData as any, {
+                    classes: prev.classes ?? [],
+                    conjurerSummonTemplateIds: prev.conjurerSummonTemplateIds,
+                })
+                const idx = base.findIndex((c) => c.id === id)
+                if (idx < 0) return prev
+                const next = [...base]
+                next[idx] = {...next[idx], ...patch}
+                return {...prev, creatures: next}
+            })
+        },
+        [setCharacter]
+    )
+
+    const creatureGrantedActionIds = useMemo(() => {
+        if (!character) return new Set<string>()
+        const refs = getDeployedCreatureActionRefs(
+            {creatures: character.creatures, traits: character.traits ?? []},
+            rulesData as any
+        )
+        return new Set(refs.map((r) => r.id))
+    }, [character?.creatures, character?.traits])
+
     const filteredActions = useMemo(() => {
         if (!character) return [];
         const filtered = (character.actions || []).filter((action: any) => {
             if (actionFilter !== "all") {
                 const filterLower = actionFilter.toLowerCase();
-                const source = (action.source || "").toLowerCase();
-                const sourceMatch = source === filterLower;
-                const tagMatch =
-                    action.tags &&
-                    Array.isArray(action.tags) &&
-                    action.tags.some((tag: string) => actionTagMatchesFilterChip(tag, filterLower));
-                if (!sourceMatch && !tagMatch) return false;
+                if (filterLower === "creatures") {
+                    if (!creatureGrantedActionIds.has(action.id)) return false;
+                } else {
+                    const source = (action.source || "").toLowerCase();
+                    const sourceMatch = source === filterLower;
+                    const tagMatch =
+                        action.tags &&
+                        Array.isArray(action.tags) &&
+                        action.tags.some((tag: string) => actionTagMatchesFilterChip(tag, filterLower));
+                    if (!sourceMatch && !tagMatch) return false;
+                }
             }
             const q = actionSearch.trim().toLowerCase();
             if (q) {
@@ -144,7 +216,7 @@ export function CharacterSheetView() {
             const ab = b.apCost ?? 0;
             return aa - ab;
         });
-    }, [character, actionFilter, actionSearch]);
+    }, [character, actionFilter, actionSearch, creatureGrantedActionIds]);
 
     const catalogActionIds = useMemo(() => listCatalogActionCardIds(rulesData as any), []);
 
@@ -315,6 +387,7 @@ export function CharacterSheetView() {
     const filterOptions = [
         {value: "all", label: "All"},
         {value: "equipment", label: "Equipment"},
+        {value: "creatures", label: "Creatures"},
         ...(character.classes || []).map((c: CharacterClass) => ({
             value: c.id.toLowerCase(),
             label: capitalizeFirstLetter(c.id)
@@ -428,19 +501,47 @@ export function CharacterSheetView() {
         });
     };
     const handleSelectReaction = (index: number, newID: string) => {
-        setCharacter(prev => {
-            const oldReaction = (prev.reactions || []).find(f => f.slotIndex === index);
-            const oldID = oldReaction?.id;
-            return {
-                ...prev,
-                reactions: (prev.reactions || []).map(reaction => {
-                    if (reaction.id === newID && newID !== "") return {...reaction, slotIndex: index};
-                    if (reaction.id === oldID && reaction.id !== newID) return {...reaction, slotIndex: -1};
-                    return reaction;
-                })
-            };
-        });
-    };
+        setCharacter((prev: any) => {
+            let next = [...(prev.reactions || [])]
+            const oldID = next.find((f: { slotIndex: number }) => f.slotIndex === index)?.id as
+                | string
+                | undefined
+
+            if (newID === "") {
+                if (oldID) {
+                    next = next.map((r: { id: string; slotIndex: number }) =>
+                        r.id === oldID ? {...r, slotIndex: -1} : r
+                    )
+                }
+                return {...prev, reactions: next}
+            }
+
+            const existingIdx = next.findIndex((r: { id: string }) => r.id === newID)
+            if (existingIdx < 0) {
+                const card = (rulesData as any).actionCards?.[newID]
+                const fixed = card?.fixedMaxCharges
+                const charges =
+                    typeof fixed === "number" && Number.isFinite(fixed)
+                        ? Math.max(0, Math.floor(fixed))
+                        : -1
+                next.push({id: newID, slotIndex: index, charges})
+            } else {
+                next[existingIdx] = {...next[existingIdx], slotIndex: index}
+            }
+
+            if (oldID && oldID !== newID) {
+                next = next.map((r: { id: string; slotIndex: number }) =>
+                    r.id === oldID ? {...r, slotIndex: -1} : r
+                )
+            }
+
+            next = next.map((r: { id: string; slotIndex: number }) =>
+                r.id === newID ? {...r, slotIndex: index} : r
+            )
+
+            return {...prev, reactions: next}
+        })
+    }
     const handleAddCatalogAction = (id: string) => {
         setCharacter((prev: any) => {
             const actions = prev.actions || [];
@@ -939,6 +1040,16 @@ export function CharacterSheetView() {
                                     classes={character.classes}
                                     rules={rulesData.classes}
                                     priestDeity={character.priestDeity ?? null}
+                                />
+                                <CreaturesPanel
+                                    creatures={creaturesResolved}
+                                    traits={character.traits ?? []}
+                                    classes={character.classes ?? []}
+                                    rules={rulesData as any}
+                                    attributes={derived.attributes}
+                                    currentWeapon={currentWeapon}
+                                    offhandWeapon={offhandWeapon}
+                                    onPatchCreature={patchCreatureEntry}
                                 />
                                 <CultureBackgroundOccupationPanel
                                     theme={character.background ?? ""}

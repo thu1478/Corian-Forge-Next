@@ -14,6 +14,7 @@ import {
  * @param equippedUids - Array of UIDs currently in equipment slots
  * @param classNames - Array of strings representing the character's classes
  * @param actionRefs - Array of strings for actions the character has
+ * @param creatureGrantedActionIds - Action card ids granted by deployed creatures; skip PC weapon checks (their attacks use their own stats).
  */
 export function useActions(
     inventory: any[],
@@ -22,8 +23,12 @@ export function useActions(
     actionRefs: any[] = [],
     /** Main hand and offhand equipment UIDs (in order) for weapon-action eligibility; omit for legacy attribute-only check. */
     handSlotUids?: [string | null, string | null] | null,
+    creatureGrantedActionIds?: readonly string[] | null,
 ): ActionCard[] {
     return useMemo(() => {
+        const creatureGranted = new Set(
+            (creatureGrantedActionIds ?? []).filter((id): id is string => typeof id === "string" && id.length > 0)
+        )
 
         const activeWeaponAttributes = inventory
             .filter((item: any) =>
@@ -56,6 +61,8 @@ export function useActions(
 
         // 3. APPLY THE WEAPON ATTRIBUTE FILTER
         return hydratedActions.filter(action => {
+            if (creatureGranted.has(action.id)) return true
+
             const tags = action.tags || [];
             const isWeaponAction = actionTagsIncludeCanonical(tags, "Weapon");
             const wantsBrawling = actionTagsIncludeCanonical(tags, "brawling");
@@ -85,5 +92,5 @@ export function useActions(
             return rollStats.some((stat) => activeWeaponAttributes.includes(stat));
         });
 
-    }, [inventory, equippedUids, classNames, actionRefs, handSlotUids]);
+    }, [inventory, equippedUids, classNames, actionRefs, handSlotUids, creatureGrantedActionIds]);
 }

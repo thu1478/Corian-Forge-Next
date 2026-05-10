@@ -2,13 +2,16 @@ import { getAttributeModifier } from "@/lib/character-data"
 import type { Reaction } from "@/lib/rules"
 
 /**
- * Class reactions plus global `actionCards` with `type === "reaction"`, each global card
+ * Class reactions plus global `actionCards` with `type === "reaction"` or `freeReaction`, each global card
  * merged with its rule key as `id` (required for saves and lookups).
  */
 export function buildReactionLibrary(rules: { classes?: Record<string, unknown>; actionCards?: Record<string, unknown> }) {
     const classReactions = Object.values(rules?.classes || {}).flatMap((c: any) => c.reactions || [])
     const globalReactions = Object.entries(rules?.actionCards || {})
-        .filter(([, a]) => (a as { type?: string })?.type === "reaction")
+        .filter(([, a]) => {
+            const t = (a as { type?: string })?.type
+            return t === "reaction" || t === "freeReaction"
+        })
         .map(([id, a]) => ({ ...(a as object), id }))
     return [...classReactions, ...globalReactions]
 }
@@ -27,7 +30,17 @@ export function restoreReactionCharges<T extends Reaction>(
     return reactions.map((rx) => {
         if (rx.charges === -1) return rx
 
-        const rule = library.find((r: any) => r?.id === rx.id) as { chargeStat?: string | null } | undefined
+        const rule = library.find((r: any) => r?.id === rx.id) as
+            | { chargeStat?: string | null; fixedMaxCharges?: number }
+            | undefined
+        const fixed =
+            typeof rule?.fixedMaxCharges === "number" && Number.isFinite(rule.fixedMaxCharges)
+                ? Math.max(0, Math.floor(rule.fixedMaxCharges))
+                : null
+        if (fixed != null) {
+            return { ...rx, charges: fixed }
+        }
+
         const statFromRule =
             typeof rule?.chargeStat === "string" ? rule.chargeStat.trim() : ""
         const statFromRx =
