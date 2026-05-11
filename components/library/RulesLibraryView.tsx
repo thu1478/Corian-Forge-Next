@@ -14,6 +14,7 @@ import {
     getCreatureTemplates,
     resolveCreatureTraitEntries,
 } from "@/lib/creature-roster"
+import { FAIRY_ACTIONS_BY_TEMPLATE } from "@/lib/fairy-tamer"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Input } from "@/components/ui/input"
@@ -165,6 +166,25 @@ function formatCreatureVuln(v: { stat: string; value?: string }): string {
     return `${v.stat}${vu}`
 }
 
+/**
+ * Rules library only: show Fairy Tamer contract spell cards for fairy bestiary ids even when `actionIDs` is empty.
+ * Character sheet still uses {@link getActionCardIdsForCreatureEntry} and creator picks — unchanged.
+ */
+function getLibraryCreatureActionDisplayIds(id: string, def: Pick<CreatureDefinition, "actionIDs">): string[] {
+    const base = [...(def.actionIDs ?? [])].map((s) => String(s).trim()).filter(Boolean)
+    const pair = FAIRY_ACTIONS_BY_TEMPLATE[id]
+    if (!pair) return [...new Set(base)]
+    const seen = new Set(base)
+    const out = [...base]
+    for (const raw of pair) {
+        const aid = String(raw).trim()
+        if (!aid || seen.has(aid)) continue
+        seen.add(aid)
+        out.push(aid)
+    }
+    return out
+}
+
 const LibraryCreatureCard = memo(function LibraryCreatureCard({
     id,
     def,
@@ -179,7 +199,7 @@ const LibraryCreatureCard = memo(function LibraryCreatureCard({
     collapseAllSignal: number
 }) {
     const traitEntries = resolveCreatureTraitEntries(rules, def.traitRefs)
-    const actionIds = [...(def.actionIDs ?? [])]
+    const actionIds = getLibraryCreatureActionDisplayIds(id, def)
     const attrKeys = ["might", "dexterity", "reason", "willpower", "presence"] as const
     const oa = def.opportunityAttack
 
@@ -385,7 +405,8 @@ const LibraryCreatureCard = memo(function LibraryCreatureCard({
                 </div>
             ) : (
                 <p className="text-xs text-muted-foreground border-t border-border/60 pt-2">
-                    No action cards linked yet (<span className="font-mono">actionIDs</span> empty).
+                    No action cards to preview (<span className="font-mono">actionIDs</span> empty and not a mapped fairy
+                    contract template).
                 </p>
             )}
         </div>

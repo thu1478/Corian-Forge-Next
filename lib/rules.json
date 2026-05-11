@@ -11145,7 +11145,31 @@
   },
   "bestiary": {
     "traits": {
-        "unliving": {
+      "strikerSummon": {
+        "name": "Striker Type",
+        "description": "This summon can have 3 AP max per round and can make opportunity attacks"
+      },
+      "defenderSummon": {
+        "name": "Defender Type",
+        "description": "This summon can have 2 AP max per round and can make opportunity attacks"
+      },
+      "marksmanSummon": {
+        "name": "Marksman Type",
+        "description": "This summon can have 2 AP max per round, but cannot make opportunity attacks"
+      },
+      "casterSummon": {
+        "name": "Caster Type",
+        "description": "This summon can have 2 AP max per round, but cannot make opportunity attacks"
+      },
+      "utilitySummon": {
+        "name": "Utility Type",
+        "description": "This summon can have 3 AP max per round, but cannot make opportunity attacks"
+      },
+      "minionType": {
+        "name": "Minion Type",
+        "description": "This minion can have 2 AP max per round and can make opportunity attacks. They die in one hit and fail every potency"
+      },
+      "unliving": {
             "name": "Unliving",
             "description": "Immune to Bleeding, Charmed, Frightened, and Poisoned conditions. Also unaffected by Bard's Emanation songs",
           "effects": [
@@ -11212,6 +11236,7 @@
       "trustyCompanion": {
         "name": "Trusty companion",
         "description": "A small Beast or Plant assistant. Attacks use range centered on you, usually treated as Melee. Choose companion abilities when you take the Trusty Companion feat.",
+        "level": 3,
         "role": "assistant",
         "creatureTypes": [
           "beast",
@@ -11223,6 +11248,7 @@
       "fairySylph": {
         "name": "Sylph",
         "description": "Lesser fairy: a small blue-ish feather-winged humanoid, usually no taller than the length of your hand. Contract spells are chosen when you take the fairy in the character creator.",
+        "level": 1,
         "role": "assistant",
         "creatureTypes": ["fairy"],
         "tags": ["fairy", "lesser", "air"],
@@ -11232,6 +11258,7 @@
       "fairyWillOWisp": {
         "name": "Will o' Wisp",
         "description": "Lesser fairy: a small blue orb with rounded feathered wings, body roughly the size of an apple; sometimes crackles with sparks.",
+        "level": 1,
         "role": "assistant",
         "creatureTypes": ["fairy", "volt"],
         "tags": ["fairy", "lesser"],
@@ -11241,6 +11268,7 @@
       "fairyGnome": {
         "name": "Gnome",
         "description": "Lesser fairy: tan or brown humanoid wrapped in a robe, only a plain face visible.",
+        "level": 1,
         "role": "assistant",
         "creatureTypes": ["fairy"],
         "tags": ["fairy", "lesser", "earth"],
@@ -11250,6 +11278,7 @@
       "fairyPixie": {
         "name": "Pixie",
         "description": "Lesser fairy: small green winged humanoid with butterfly-like wings, hand-sized.",
+        "level": 1,
         "role": "assistant",
         "creatureTypes": ["fairy"],
         "tags": ["fairy", "lesser", "nature"],
@@ -11259,6 +11288,7 @@
       "fairySalamander": {
         "name": "Salamander",
         "description": "Lesser fairy: small red or orange lizard or amphibian.",
+        "level": 1,
         "role": "assistant",
         "creatureTypes": ["fairy"],
         "tags": ["fairy", "lesser", "fire"],
@@ -11268,6 +11298,7 @@
       "fairyUndine": {
         "name": "Undine",
         "description": "Lesser fairy: humanoid made of water, roughly 5½ ft tall.",
+        "level": 1,
         "role": "assistant",
         "creatureTypes": ["fairy"],
         "tags": ["fairy", "lesser", "water"],
@@ -11277,6 +11308,7 @@
       "fairySprite": {
         "name": "Sprite",
         "description": "Lesser fairy: whitish hand-sized humanoid without wings; floats.",
+        "level": 1,
         "role": "assistant",
         "creatureTypes": ["fairy"],
         "tags": ["fairy", "lesser", "ice"],
@@ -11286,6 +11318,7 @@
       "fairyFlugel": {
         "name": "Flugel",
         "description": "Greater fairy: dog-like creature with wing-like ear appendages.",
+        "level": 5,
         "role": "assistant",
         "creatureTypes": ["fairy"],
         "tags": ["fairy", "greater", "air"],
@@ -11295,6 +11328,7 @@
       "fairyUnicorn": {
         "name": "Unicorn",
         "description": "Greater fairy: horse with a single horn on its forehead.",
+        "level": 5,
         "role": "assistant",
         "creatureTypes": ["fairy"],
         "tags": ["fairy", "greater", "volt"],
@@ -11304,6 +11338,7 @@
       "fairyGargoyle": {
         "name": "Gargoyle",
         "description": "Greater fairy: large bipedal stone creature with stone wings.",
+        "level": 5,
         "role": "assistant",
         "creatureTypes": ["fairy"],
         "tags": ["fairy", "greater", "earth"],
@@ -11313,6 +11348,7 @@
       "fairyDryad": {
         "name": "Dryad",
         "description": "Greater fairy: humanoid of plant matter, ~5½ ft tall.",
+        "level": 5,
         "role": "assistant",
         "creatureTypes": ["fairy"],
         "tags": ["fairy", "greater", "nature"],
@@ -11322,6 +11358,7 @@
       "fairyCarbuncle": {
         "name": "Carbuncle",
         "description": "Greater fairy: fennec-fox-like creature with a gem in its forehead.",
+        "level": 5,
         "role": "assistant",
         "creatureTypes": ["fairy"],
         "tags": ["fairy", "greater", "fire"],
@@ -11331,6 +11368,7 @@
       "fairySelkie": {
         "name": "Selkie",
         "description": "Greater fairy: seal that swims through the air.",
+        "level": 5,
         "role": "assistant",
         "creatureTypes": ["fairy"],
         "tags": ["fairy", "greater", "water"],
@@ -11340,6 +11378,7 @@
       "fairyAlmiraj": {
         "name": "Almiraj",
         "description": "Greater fairy: small horned rabbit.",
+        "level": 5,
         "role": "assistant",
         "creatureTypes": ["fairy"],
         "tags": ["fairy", "greater", "ice"],
@@ -11387,12 +11426,12 @@
           }
         ],
         "defense": 1,
-        "traits": ["unliving"],
+        "traits": ["strikerSummon", "unliving"],
         "opportunityAttack": 1
       },
       "strawBird": {
         "name": "Straw bird",
-        "description": "Geomancy utility. Little to no damage; provides support. Assign actions when ready.",
+        "description": "Geomancy utility Max 3 AP. Little to no damage; provides support. Assign actions when ready.",
         "role": "summon",
         "level": 2,
         "creatureTypes": ["construct"],
@@ -11416,11 +11455,11 @@
           { "stat": "slashing", "value": "3" },
           { "stat": "fire", "value": "3" }
         ],
-        "traits": ["unliving", "flammable", "crafty", "flying"]
+        "traits": ["utilitySummon", "unliving", "flammable", "crafty", "flying"]
       },
       "waxGolem": {
         "name": "Wax golem",
-        "description": "Geomancy minion. Dies in one hit and fails all potencies; group minions share a turn in the slow phase. Typical mana cost 3 (rebalance as needed). Assign actions when ready.",
+        "description": "Geomancy minion Max 2 AP. Dies in one hit and fails all potencies; group minions share a turn in the slow phase. Typical mana cost 3 (rebalance as needed). Assign actions when ready.",
         "role": "minion",
         "level": 2,
         "creatureTypes": ["construct"],
@@ -11444,11 +11483,11 @@
           { "stat": "air", "value": "3" },
           { "stat": "fire", "value": "3" }
         ],
-        "traits": ["unliving", "extremeHeatSensitivity", "explosiveTendencies", "weakling"]
+        "traits": ["minionType", "unliving", "extremeHeatSensitivity", "explosiveTendencies", "weakling"]
       },
       "snowGolem": {
         "name": "Snow golem",
-        "description": "Geomancy minion. Dies in one hit and fails all potencies; group minions share a turn. Typical mana cost 3. Assign actions when ready.",
+        "description": "Geomancy minion Max 2 AP. Dies in one hit and fails all potencies; group minions share a turn. Typical mana cost 3. Assign actions when ready.",
         "role": "minion",
         "level": 2,
         "creatureTypes": ["construct"],
@@ -11472,7 +11511,7 @@
           { "stat": "fire", "value": "3" },
           { "stat": "light", "value": "3" }
         ],
-        "traits": ["unliving", "extremeHeatSensitivity"]
+        "traits": ["minionType", "unliving", "extremeHeatSensitivity"]
       },
       "woodGolem": {
         "name": "Wood golem",
@@ -11500,7 +11539,7 @@
           { "stat": "slashing", "value": "3" },
           { "stat": "fire", "value": "3" }
         ],
-        "traits": ["unliving", "largeFrame"],
+        "traits": ["defenderSummon", "unliving", "largeFrame"],
         "opportunityAttack": 2
       },
       "clayGolemChampion": {
@@ -11530,7 +11569,7 @@
           { "stat": "water", "value": "3" }
         ],
 
-        "traits": ["unliving"],
+        "traits": ["strikerSummon", "unliving"],
         "opportunityAttack": 4
       },
       "strawGolem": {
@@ -11559,7 +11598,7 @@
           { "stat": "slashing", "value": "3" },
           { "stat": "fire", "value": "3" }
         ],
-        "traits": ["unliving", "flammable"],
+        "traits": ["minionType", "unliving", "flammable"],
         "opportunityAttack": 1
       },
       "shielding": {
@@ -11588,7 +11627,7 @@
           { "stat": "crushing", "value": "3" },
           { "stat": "water", "value": "3" }
         ],
-        "traits": ["unliving", "weakling"]
+        "traits": ["minionType", "unliving", "weakling"]
       },
       "skeletonMarksman": {
         "name": "Skeleton marksman",
@@ -11616,7 +11655,7 @@
           { "stat": "crushing", "value": "3" },
           { "stat": "light", "value": "5" }
         ],
-        "traits": ["unliving", "undeadConstitution"]
+        "traits": ["marksmanSummon", "unliving", "undeadConstitution"]
       },
       "shade": {
         "name": "Shade",
@@ -11645,7 +11684,7 @@
           { "stat": "light", "value": "5" }
         ],
         "immunities": ["dark"],
-        "traits": ["unliving", "undeadConstitution", "metaphysical"]
+        "traits": ["utilitySummon", "unliving", "undeadConstitution", "metaphysical"]
       },
       "zombie": {
         "name": "Zombie",
@@ -11673,7 +11712,7 @@
           { "stat": "fire", "value": "3" },
           { "stat": "light", "value": "5" }
         ],
-        "traits": ["unliving", "undeadConstitution"],
+        "traits": ["minionType", "unliving", "undeadConstitution"],
         "opportunityAttack": 1
       },
       "crawlingHands": {
@@ -11702,7 +11741,7 @@
           { "stat": "fire", "value": "3" },
           { "stat": "light", "value": "5" }
         ],
-        "traits": ["unliving", "undeadConstitution", "extraGrabby", "weakling"]
+        "traits": ["minionType", "unliving", "undeadConstitution", "extraGrabby", "weakling"]
       },
       "wight": {
         "name": "Wight",
@@ -11730,7 +11769,7 @@
           { "stat": "water", "value": "3" },
           { "stat": "light", "value": "5" }
         ],
-        "traits": ["unliving", "undeadConstitution"],
+        "traits": ["defenderSummon", "unliving", "undeadConstitution"],
         "opportunityAttack": 4
       },
       "wraith": {
@@ -11760,7 +11799,7 @@
           { "stat": "light", "value": "5" }
         ],
         "immunities": ["dark"],
-        "traits": ["unliving", "undeadConstitution", "metaphysical"],
+        "traits": ["strikerSummon", "unliving", "undeadConstitution", "metaphysical"],
         "opportunityAttack": 2
       },
       "ghost": {
@@ -11790,7 +11829,7 @@
           { "stat": "light", "value": "5" }
         ],
         "immunities": ["dark"],
-        "traits": ["unliving", "undeadConstitution", "metaphysical", "weakling"]
+        "traits": ["minionType", "unliving", "undeadConstitution", "metaphysical", "weakling"]
       },
       "poltergeist": {
         "name": "Poltergeist",
@@ -11815,7 +11854,7 @@
         "size": "1M",
         "vulnerabilities": [{ "stat": "light", "value": "5" }],
         "immunities": ["dark"],
-        "traits": ["unliving", "undeadConstitution", "metaphysical", "weakling"]
+        "traits": ["minionType", "unliving", "undeadConstitution", "metaphysical", "weakling"]
       }
     }
   },
