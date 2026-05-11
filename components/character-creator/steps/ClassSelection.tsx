@@ -17,6 +17,19 @@ import {
     getSummonMastery,
     listConjurerCatalogTemplateIdsForSlot,
 } from "@/lib/creature-roster"
+import {
+    canAssignClassXpPicksSmallestFirst,
+    summarizeClassXpByAdventurerCutoff,
+} from "@/lib/class-xp-display"
+import {
+    canAddFairytamerTalentPick,
+    emptyFairyTamerContracts,
+    getFairySpellPickMinLevel,
+    isFairySpellAllowedForContractSlot,
+    isFairyTamerPicksComplete,
+    type FairyTamerContractsSave,
+} from "@/lib/fairy-tamer"
+import { FairyTamerContractsSection } from "@/components/character-creator/steps/FairyTamerContractsSection"
 import { Label } from "@/components/ui/label"
 import {
     Select,
@@ -28,7 +41,13 @@ import {
 
 type LevelKey = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10";
 
-export type ClassOptionPick = { id: string; source: string; selectedEffectIndices?: number[] };
+export type ClassOptionPick = {
+    id: string
+    source: string
+    selectedEffectIndices?: number[]
+    /** Fairy contract spell: counts as a Fairy Tamer class XP pick (same budget as other class talents). */
+    fairySpellSlot?: 0 | 1 | 2 | 3
+}
 
 function passiveNeedsEffectChoice(passiveDef: { selectAmount?: number; effects?: unknown[] } | null | undefined) {
     const n = passiveDef?.selectAmount
@@ -71,6 +90,8 @@ interface ClassSelectionProps {
     /** Conjurer Summoner: template id per slot (same length as slots when Summoner is active). */
     conjurerSummonTemplateIds?: string[];
     onConjurerSummonsChange?: (templateIds: string[]) => void;
+    fairyTamerContracts?: FairyTamerContractsSave;
+    onFairyTamerContractsChange?: (contracts: FairyTamerContractsSave) => void;
     onBack: () => void;
     onNext: () => void;
 }
@@ -87,9 +108,12 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
                                                            onUpdateClassData,
                                                            conjurerSummonTemplateIds = [],
                                                            onConjurerSummonsChange,
+                                                           fairyTamerContracts: fairyTamerContractsProp,
+                                                           onFairyTamerContractsChange,
                                                            onBack,
                                                            onNext
                                                        }) => {
+    const fairyTamerContracts = fairyTamerContractsProp ?? emptyFairyTamerContracts()
     const [adventurerLevel, setAdventurerLevel] = useState<number>(currentAdventurerLevel);
     const [localClasses, setLocalClasses] = useState<{ id: string; level: number }[]>(classes);
     const [expandedClassId, setExpandedClassId] = useState<string | null>(null);
@@ -159,50 +183,98 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
         return true;
     }, [conjurerSlots, conjurerSchoolTag, conjurerCatalogIdsBySlot, conjurerSummonTemplateIds]);
 
+    const fairyContractTaken = selectedOptions.some(
+        (o) => o.id === "fairyContract" && o.source === "fairytamer"
+    );
+    const fairytamerLevel = localClasses.find((c) => c.id === "fairytamer")?.level ?? 0;
+    const fairyTamerPicksComplete = useMemo(
+        () => isFairyTamerPicksComplete(fairyTamerContracts, fairytamerLevel, fairyContractTaken),
+        [fairyContractTaken, fairytamerLevel, fairyTamerContracts]
+    );
+
+    const getTalentLevelForPick = (pick: ClassOptionPick): number => {
+        if (pick.source === "fairytamer" && pick.fairySpellSlot != null) {
+            return getFairySpellPickMinLevel(pick.fairySpellSlot, fairyTamerContracts, pick.id)
+        }
+        const classData = (rulesData.classes as any)[pick.source]
+        if (classData?.passives?.[pick.id]) return classData.passives[pick.id].minLevel || 1
+        if (classData?.actions?.[pick.id]) return classData.actions[pick.id].minLevel || 1
+        const react = (classData?.reactions || []).find((r: any) => r.id === pick.id)
+        return react ? react.level || react.minLevel || 1 : 1
+    }
+
     // --- SELECTION LOGIC ---
     const handleToggleTalent = (optionId: string, sourceClassId: string) => {
-        const isSelected = selectedOptions.some(s => s.id === optionId);
+        const isSelected = selectedOptions.some(
+            (s) => s.id === optionId && s.source === sourceClassId && s.fairySpellSlot == null
+        )
         if (isSelected) {
-            onUpdateClassData(localClasses, selectedOptions.filter(s => s.id !== optionId));
-            return;
+            onUpdateClassData(
+                localClasses,
+                selectedOptions.filter(
+                    (s) => !(s.id === optionId && s.source === sourceClassId && s.fairySpellSlot == null)
+                )
+            )
+            return
         }
 
-        const currentClassLevel = localClasses.find(c => c.id === sourceClassId)?.level || 0;
-        const classData = (rulesData.classes as any)[sourceClassId];
-        const passiveDef = classData?.passives?.[optionId];
-        const needsPassiveChoice = passiveNeedsEffectChoice(passiveDef);
-        const actionDef = classData?.actions?.[optionId] as { deityId?: string } | undefined;
+        const currentClassLevel = localClasses.find((c) => c.id === sourceClassId)?.level || 0
+        const classData = (rulesData.classes as any)[sourceClassId]
+        const passiveDef = classData?.passives?.[optionId]
+        const needsPassiveChoice = passiveNeedsEffectChoice(passiveDef)
+        const actionDef = classData?.actions?.[optionId] as { deityId?: string } | undefined
         if (sourceClassId === "priest" && actionDef?.deityId) {
-            if (!priestDeity || actionDef.deityId !== priestDeity) return;
+            if (!priestDeity || actionDef.deityId !== priestDeity) return
         }
 
-        const getTalentLevel = (id: string) => {
-            if (classData.passives?.[id]) return classData.passives[id].minLevel || 1;
-            if (classData.actions?.[id]) return classData.actions[id].minLevel || 1;
-            const react = (classData.reactions || []).find((r: any) => r.id === id);
-            return react ? (react.level || react.minLevel || 1) : 1;
-        };
+        const classSelections = selectedOptions.filter((o) => o.source === sourceClassId)
+        if (classSelections.length >= getMaxClassXP(currentClassLevel)) return
 
-        const classSelections = selectedOptions.filter(o => o.source === sourceClassId);
-        if (classSelections.length >= getMaxClassXP(currentClassLevel)) return;
-
-        const sortedTalentLevels = [...classSelections.map(s => getTalentLevel(s.id)), getTalentLevel(optionId)].sort((a, b) => b - a);
-        const availablePackets: number[] = [];
-        for (let l = 1; l <= currentClassLevel; l++) {
-            const count = (l <= 4 ? 2 : 1);
-            for (let j = 0; j < count; j++) availablePackets.push(l);
-        }
-        availablePackets.sort((a, b) => b - a);
-
-        for (let i = 0; i < sortedTalentLevels.length; i++) {
-            if (sortedTalentLevels[i] > availablePackets[i]) return;
-        }
+        const mergedPickLevels = [
+            ...classSelections.map((s) => getTalentLevelForPick(s)),
+            getTalentLevelForPick({ id: optionId, source: sourceClassId }),
+        ]
+        if (!canAssignClassXpPicksSmallestFirst(mergedPickLevels, currentClassLevel)) return
 
         const nextPick: ClassOptionPick = needsPassiveChoice
             ? { id: optionId, source: sourceClassId, selectedEffectIndices: [0] }
-            : { id: optionId, source: sourceClassId };
-        onUpdateClassData(localClasses, [...selectedOptions, nextPick]);
-    };
+            : { id: optionId, source: sourceClassId }
+        onUpdateClassData(localClasses, [...selectedOptions, nextPick])
+    }
+
+    const handleToggleFairySpell = (cardId: string, slot: 0 | 1 | 2 | 3) => {
+        const existingIdx = selectedOptions.findIndex(
+            (s) => s.id === cardId && s.source === "fairytamer" && s.fairySpellSlot === slot
+        )
+        if (existingIdx >= 0) {
+            const next = selectedOptions.filter((_, i) => i !== existingIdx)
+            onUpdateClassData(localClasses, next)
+            return
+        }
+        if (!isFairySpellAllowedForContractSlot(fairyTamerContracts, slot, cardId)) return
+        const ftLvl = localClasses.find((c) => c.id === "fairytamer")?.level ?? 0
+        const newLevel = getFairySpellPickMinLevel(slot, fairyTamerContracts, cardId)
+        const ftPicks = selectedOptions.filter((o) => o.source === "fairytamer")
+        if (
+            !canAddFairytamerTalentPick(ftLvl, ftPicks, newLevel, getTalentLevelForPick, getMaxClassXP)
+        ) {
+            return
+        }
+        const nextPick: ClassOptionPick = { id: cardId, source: "fairytamer", fairySpellSlot: slot }
+        onUpdateClassData(localClasses, [...selectedOptions, nextPick])
+    }
+
+    const isFairySpellSelected = (cardId: string, slot: 0 | 1 | 2 | 3) =>
+        selectedOptions.some((s) => s.id === cardId && s.source === "fairytamer" && s.fairySpellSlot === slot)
+
+    const canSelectFairySpell = (cardId: string, slot: 0 | 1 | 2 | 3) => {
+        if (isFairySpellSelected(cardId, slot)) return true
+        if (!isFairySpellAllowedForContractSlot(fairyTamerContracts, slot, cardId)) return false
+        const ftLvl = localClasses.find((c) => c.id === "fairytamer")?.level ?? 0
+        const newLevel = getFairySpellPickMinLevel(slot, fairyTamerContracts, cardId)
+        const ftPicks = selectedOptions.filter((o) => o.source === "fairytamer")
+        return canAddFairytamerTalentPick(ftLvl, ftPicks, newLevel, getTalentLevelForPick, getMaxClassXP)
+    }
 
     const setPassiveEffectIndex = (classId: string, passiveId: string, effectIdx: number) => {
         onUpdateClassData(
@@ -262,8 +334,12 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {talents.map((talent) => {
                         const id = talent.id;
-                        const isSelected = selectedOptions.some(s => s.id === id);
-                        const selectionRef = selectedOptions.find((s) => s.id === id && s.source === classId);
+                        const isSelected = selectedOptions.some(
+                            (s) => s.id === id && s.source === classId && s.fairySpellSlot == null
+                        );
+                        const selectionRef = selectedOptions.find(
+                            (s) => s.id === id && s.source === classId && s.fairySpellSlot == null
+                        );
                         const pickedPassiveIdx = selectionRef?.selectedEffectIndices?.[0];
                         const showPassiveChoices =
                             type === "passives" && passiveNeedsEffectChoice(talent) && isSelected;
@@ -378,6 +454,10 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
         const currentClassLevel = localClasses.find(c => c.id === expandedClassId)?.level || 0;
         const spentInClass = selectedOptions.filter(o => o.source === expandedClassId).length;
         const maxInClass = getMaxClassXP(currentClassLevel);
+        const classXpByCutoff = summarizeClassXpByAdventurerCutoff(
+            currentClassLevel,
+            selectedOptions.filter((o) => o.source === expandedClassId).map((o) => getTalentLevelForPick(o))
+        );
         const priestDeityL3Passives =
             expandedClassId === "priest" && priestDeity && currentClassLevel >= 3
                 ? getDeityPassiveEntries(rulesData, priestDeity)
@@ -389,9 +469,41 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
                     <button onClick={() => setExpandedClassId(null)} className="flex items-center gap-2 text-muted-foreground hover:text-primary font-black uppercase text-[14px] tracking-widest transition-colors">
                         <ArrowLeftIcon size={20} /> Back
                     </button>
-                    <div className="bg-card border border-border px-6 py-3 rounded-2xl flex items-center gap-4">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Class Talents</span>
-                        <div className="text-2xl font-black">{spentInClass} <span className="text-sm opacity-30">/ {maxInClass}</span></div>
+                    <div className="bg-card border border-border px-6 py-4 rounded-2xl max-w-xl">
+                        <div className="flex items-baseline justify-between gap-4 mb-3">
+                            <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">
+                                Class XP
+                            </span>
+                            <div className="text-2xl font-black tabular-nums">
+                                {spentInClass} <span className="text-base opacity-40 font-semibold">/ {maxInClass}</span>
+                            </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground leading-snug mb-3">
+                            Class XP gained in earlier levels cannot be spent on higher level options, but higher level class xp can be spent on lower level options.
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                            {classXpByCutoff.map((row) => (
+                                <div
+                                    key={row.cutoff}
+                                    className={cn(
+                                        "rounded-xl border px-3.5 py-2.5 min-w-[8rem]",
+                                        row.remaining > 0
+                                            ? "border-primary/40 bg-primary/5"
+                                            : "border-border/80 bg-muted/30"
+                                    )}
+                                >
+                                    <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground sm:text-xs">
+                                        Adv. {row.cutoff}{" "}
+                                        <span className="font-mono font-semibold opacity-80">(cl {row.classLevelRangeLabel})</span>
+                                    </div>
+                                    <div className="text-base font-black tabular-nums mt-1">
+                                        {row.remaining}
+                                        <span className="text-sm opacity-50 font-semibold"> / {row.total}</span>
+                                        <span className="text-xs font-semibold text-muted-foreground ml-1">remaining</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
 
@@ -570,6 +682,22 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
                         )}
                     </section>
                 ) : null}
+
+                {expandedClassId === "fairytamer" &&
+                fairyContractTaken &&
+                fairytamerLevel >= 1 &&
+                onFairyTamerContractsChange ? (
+                    <FairyTamerContractsSection
+                        contracts={fairyTamerContracts}
+                        ftLevel={fairytamerLevel}
+                        creatureTemplates={creatureTemplates}
+                        attributes={attributes}
+                        onChange={onFairyTamerContractsChange}
+                        onToggleFairySpell={handleToggleFairySpell}
+                        isFairySpellSelected={isFairySpellSelected}
+                        canSelectFairySpell={canSelectFairySpell}
+                    />
+                ) : null}
             </div>
         );
     }
@@ -603,6 +731,13 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
                     const currentLevel = localClasses.find(c => c.id === id)?.level || 0;
                     const nextCost = (rulesData.system.xpCostPerLvl as any)[(currentLevel + 1).toString()] || 0;
                     const isComplete = getMaxClassXP(currentLevel) === selectedOptions.filter(o => o.source === id).length;
+                    const xpBands =
+                        currentLevel > 0
+                            ? summarizeClassXpByAdventurerCutoff(
+                                  currentLevel,
+                                  selectedOptions.filter((o) => o.source === id).map((o) => getTalentLevelForPick(o))
+                              )
+                            : [];
 
                     return (
                         <div key={id} className={cn("bg-card border-2 rounded-[2.5rem] p-8 transition-all", currentLevel > 0 ? "border-primary shadow-lg shadow-primary/5" : "border-border")}>
@@ -624,12 +759,37 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
                                     <button type="button" onClick={(e) => { e.stopPropagation(); handleClassLevelChange(id, 1); }} disabled={remainingAdventurerXP < nextCost} className="p-1 rounded-full hover:bg-background/80 disabled:opacity-40"><PlusIcon size={14}/></button>
                                 </div>
                             </div>
+                            {xpBands.length > 0 ? (
+                                <div className="mb-3 flex flex-wrap gap-2 text-xs leading-snug sm:text-sm">
+                                    {xpBands.map((row) => (
+                                        <span
+                                            key={row.cutoff}
+                                            className={cn(
+                                                "rounded-md border px-2.5 py-1.5 font-mono tabular-nums",
+                                                row.remaining > 0
+                                                    ? "border-primary/35 bg-primary/10 text-foreground"
+                                                    : "border-border/70 text-muted-foreground"
+                                            )}
+                                            title={`Adventurer tier ${row.cutoff} (class lv ${row.classLevelRangeLabel}): ${row.remaining} of ${row.total} picks remaining`}
+                                        >
+                                            {row.cutoff}: {row.remaining}/{row.total}
+                                        </span>
+                                    ))}
+                                </div>
+                            ) : null}
                             <button onClick={() => setExpandedClassId(id)} disabled={currentLevel === 0} className={cn("w-full py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all", currentLevel > 0 ? "bg-primary text-white shadow-xl shadow-primary/20" : "bg-muted text-muted-foreground")}>
                                 Build {currentLevel > 0 && !isComplete && "(!)"}
                             </button>
                             {id === "conjurer" && conjurerSummonerTaken && conjurerSlots > 0 ? (
                                 <p className="text-xs text-muted-foreground text-center mt-3">
                                     Set summons inside Build.
+                                </p>
+                            ) : null}
+                            {id === "fairytamer" &&
+                            selectedOptions.some((o) => o.id === "fairyContract" && o.source === "fairytamer") &&
+                            (localClasses.find((c) => c.id === "fairytamer")?.level ?? 0) >= 1 ? (
+                                <p className="text-xs text-muted-foreground text-center mt-3">
+                                    Set fairy contracts inside Build.
                                 </p>
                             ) : null}
                         </div>
@@ -645,14 +805,16 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
                         !hasAtLeastOneClass ||
                         remainingAdventurerXP < 0 ||
                         !allClassXPAssigned ||
-                        !conjurerSummonPicksComplete
+                        !conjurerSummonPicksComplete ||
+                        !fairyTamerPicksComplete
                     }
                     className={cn(
                         "px-12 py-4 rounded-2xl font-black uppercase text-xs tracking-widest",
                         hasAtLeastOneClass &&
                             remainingAdventurerXP >= 0 &&
                             allClassXPAssigned &&
-                            conjurerSummonPicksComplete
+                            conjurerSummonPicksComplete &&
+                            fairyTamerPicksComplete
                             ? "bg-primary text-white shadow-xl shadow-primary/20 hover:scale-105"
                             : "bg-muted text-muted-foreground cursor-not-allowed"
                     )}

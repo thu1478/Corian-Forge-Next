@@ -28,7 +28,12 @@ interface CharacterReviewProps {
   charData: CharacterSaveData;
   adventurerLevel: number;
   levelBonuses: Partial<Record<number, AttributeKey>>;
-  classSelections: { id: string; source: string; selectedEffectIndices?: number[] }[];
+  classSelections: {
+    id: string;
+    source: string;
+    selectedEffectIndices?: number[];
+    fairySpellSlot?: 0 | 1 | 2 | 3;
+  }[];
   selectedFeats: Partial<Record<number, FeatLevelPick>>;
   selectedSkillIds: string[];
   occupationLanguages: string[];
@@ -110,8 +115,9 @@ export function CharacterReview({
       reconcileCreatureRoster(charData.creatures ?? [], traitsAlignedWithExport, rulesData as any, {
         classes: charData.classes,
         conjurerSummonTemplateIds: charData.conjurerSummonTemplateIds,
+        fairyTamerContracts: charData.fairyTamerContracts,
       }),
-    [charData.creatures, charData.classes, charData.conjurerSummonTemplateIds, traitsAlignedWithExport]
+    [charData.creatures, charData.classes, charData.conjurerSummonTemplateIds, charData.fairyTamerContracts, traitsAlignedWithExport]
   );
 
   const creatureTemplates = useMemo(
@@ -142,6 +148,20 @@ export function CharacterReview({
         classTraits.push(row);
       }
       if (classData?.actions?.[sel.id]) actions.push({ id: sel.id });
+      if (
+        sel.source === "fairytamer" &&
+        sel.fairySpellSlot != null &&
+        String(sel.id).startsWith("fairy/")
+      ) {
+        const card = (rulesData as Record<string, any>).actionCards?.[sel.id];
+        const cardType =
+          typeof card?.type === "string" ? String(card.type).toLowerCase() : "";
+        if (cardType === "reaction") {
+          reactions.push({ id: sel.id, slotIndex: -1, charges: 0 });
+        } else {
+          actions.push({ id: sel.id });
+        }
+      }
       if ((classData?.reactions || []).some((r: any) => r.id === sel.id)) {
         reactions.push({ id: sel.id, slotIndex: -1, charges: 0 });
       }
@@ -190,6 +210,7 @@ export function CharacterReview({
       creatures: reconcileCreatureRoster(charData.creatures ?? [], allExportTraits, rulesData as any, {
         classes: charData.classes,
         conjurerSummonTemplateIds: charData.conjurerSummonTemplateIds,
+        fairyTamerContracts: charData.fairyTamerContracts,
       }),
       focusFeatures: charData.classes.map((c) => ({ classSrc: c.id, slotIndex: -1 })),
       skills,

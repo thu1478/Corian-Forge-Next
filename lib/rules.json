@@ -3139,7 +3139,7 @@
           "actionCard": {
             "name": "Spirit Unification",
             "type": "action",
-            "description": "Combine your hearts and minds with all of your summoned fairies. For the duration you can cast their spells and gain resistance to their corresponding damage types. If you have learned Power Boost the bonus is automatically active for no Focus cost. You gain 10 Barrier for each fairy you combined with.",
+            "description": "Combine your hearts and minds with all of your summoned fairies. For the duration you can cast their spells and gain resistance to their corresponding damage types. Their spells deal additional damage equal to your Presence modifier. You gain 10 Barrier for each fairy you combined with.",
             "apCost": 1,
             "focusCost": 7,
             "mpCost": 0,
@@ -10536,7 +10536,7 @@
     "fairy/sonicShield": {
       "name": "Sonic Shield",
       "type": "reaction",
-      "description": "Sylph releases a burst of air to reduce the damage of an incoming ranged attack by 5",
+      "description": "Sylph releases a burst of air to reduce the damage of an incoming ranged attack, forced movement, or fall damage by 5",
       "apCost": 0,
       "focusCost": 0,
       "mpCost": 5,
@@ -10892,7 +10892,7 @@
     "fairy/collapse": {
       "name": "Collapse",
       "type": "action",
-      "description": "Choose up to 5 created pillars of size no more than 3x1. Gargoyle causes each one to collapse in one direction in a 2x1 area adjacent to the pillar, forcing each creature in the area to make a Might Power Roll and take the corresponding crushing damage. The pillars are destroyed afterwards, but leave difficult terrain in the collapsed areas.",
+      "description": "Choose up to 5 created pillars of size no more than 3x1. Gargoyle causes each one to collapse in one direction in a 2x1 area adjacent to the pillar, forcing each creature in the area to make a Might Power Roll and take crushing damage. They can only take damage from one pillar. The pillars are destroyed afterwards, but leave difficult terrain in the collapsed areas.",
       "apCost": 2,
       "focusCost": 7,
       "mpCost": 13,
@@ -11220,6 +11220,132 @@
         "actionIDs": [
         ]
       },
+      "fairySylph": {
+        "name": "Sylph",
+        "description": "Lesser fairy: a small blue-ish feather-winged humanoid, usually no taller than the length of your hand. Contract spells are chosen when you take the fairy in the character creator.",
+        "role": "assistant",
+        "creatureTypes": ["fairy"],
+        "tags": ["fairy", "lesser", "air"],
+        "traitRefs": ["metaphysical"],
+        "actionIDs": []
+      },
+      "fairyWillOWisp": {
+        "name": "Will o' Wisp",
+        "description": "Lesser fairy: a small blue orb with rounded feathered wings, body roughly the size of an apple; sometimes crackles with sparks.",
+        "role": "assistant",
+        "creatureTypes": ["fairy", "volt"],
+        "tags": ["fairy", "lesser"],
+        "traitRefs": ["metaphysical"],
+        "actionIDs": []
+      },
+      "fairyGnome": {
+        "name": "Gnome",
+        "description": "Lesser fairy: tan or brown humanoid wrapped in a robe, only a plain face visible.",
+        "role": "assistant",
+        "creatureTypes": ["fairy"],
+        "tags": ["fairy", "lesser", "earth"],
+        "traitRefs": ["metaphysical"],
+        "actionIDs": []
+      },
+      "fairyPixie": {
+        "name": "Pixie",
+        "description": "Lesser fairy: small green winged humanoid with butterfly-like wings, hand-sized.",
+        "role": "assistant",
+        "creatureTypes": ["fairy"],
+        "tags": ["fairy", "lesser", "nature"],
+        "traitRefs": ["metaphysical"],
+        "actionIDs": []
+      },
+      "fairySalamander": {
+        "name": "Salamander",
+        "description": "Lesser fairy: small red or orange lizard or amphibian.",
+        "role": "assistant",
+        "creatureTypes": ["fairy"],
+        "tags": ["fairy", "lesser", "fire"],
+        "traitRefs": ["metaphysical"],
+        "actionIDs": []
+      },
+      "fairyUndine": {
+        "name": "Undine",
+        "description": "Lesser fairy: humanoid made of water, roughly 5½ ft tall.",
+        "role": "assistant",
+        "creatureTypes": ["fairy"],
+        "tags": ["fairy", "lesser", "water"],
+        "traitRefs": ["metaphysical"],
+        "actionIDs": []
+      },
+      "fairySprite": {
+        "name": "Sprite",
+        "description": "Lesser fairy: whitish hand-sized humanoid without wings; floats.",
+        "role": "assistant",
+        "creatureTypes": ["fairy"],
+        "tags": ["fairy", "lesser", "ice"],
+        "traitRefs": ["metaphysical"],
+        "actionIDs": []
+      },
+      "fairyFlugel": {
+        "name": "Flugel",
+        "description": "Greater fairy: dog-like creature with wing-like ear appendages.",
+        "role": "assistant",
+        "creatureTypes": ["fairy"],
+        "tags": ["fairy", "greater", "air"],
+        "traitRefs": ["metaphysical"],
+        "actionIDs": []
+      },
+      "fairyUnicorn": {
+        "name": "Unicorn",
+        "description": "Greater fairy: horse with a single horn on its forehead.",
+        "role": "assistant",
+        "creatureTypes": ["fairy"],
+        "tags": ["fairy", "greater", "volt"],
+        "traitRefs": ["metaphysical"],
+        "actionIDs": []
+      },
+      "fairyGargoyle": {
+        "name": "Gargoyle",
+        "description": "Greater fairy: large bipedal stone creature with stone wings.",
+        "role": "assistant",
+        "creatureTypes": ["fairy"],
+        "tags": ["fairy", "greater", "earth"],
+        "traitRefs": ["metaphysical"],
+        "actionIDs": []
+      },
+      "fairyDryad": {
+        "name": "Dryad",
+        "description": "Greater fairy: humanoid of plant matter, ~5½ ft tall.",
+        "role": "assistant",
+        "creatureTypes": ["fairy"],
+        "tags": ["fairy", "greater", "nature"],
+        "traitRefs": ["metaphysical"],
+        "actionIDs": []
+      },
+      "fairyCarbuncle": {
+        "name": "Carbuncle",
+        "description": "Greater fairy: fennec-fox-like creature with a gem in its forehead.",
+        "role": "assistant",
+        "creatureTypes": ["fairy"],
+        "tags": ["fairy", "greater", "fire"],
+        "traitRefs": ["metaphysical"],
+        "actionIDs": []
+      },
+      "fairySelkie": {
+        "name": "Selkie",
+        "description": "Greater fairy: seal that swims through the air.",
+        "role": "assistant",
+        "creatureTypes": ["fairy"],
+        "tags": ["fairy", "greater", "water"],
+        "traitRefs": ["metaphysical"],
+        "actionIDs": []
+      },
+      "fairyAlmiraj": {
+        "name": "Almiraj",
+        "description": "Greater fairy: small horned rabbit.",
+        "role": "assistant",
+        "creatureTypes": ["fairy"],
+        "tags": ["fairy", "greater", "ice"],
+        "traitRefs": ["metaphysical"],
+        "actionIDs": []
+      },
       "clayGolem": {
         "name": "Clay Golem",
         "description": "Striker. Max 3 AP",
@@ -11485,12 +11611,11 @@
         "stability": 0,
         "speed": 4,
         "size": "1M",
-        "resistances": ["piercing"],
+        "resistances": ["piercing","dark"],
         "vulnerabilities": [
           { "stat": "crushing", "value": "3" },
           { "stat": "light", "value": "5" }
         ],
-        "immunities": ["dark"],
         "traits": ["unliving", "undeadConstitution"]
       },
       "shade": {
@@ -11543,12 +11668,11 @@
         "stability": 0,
         "speed": 4,
         "size": "1M",
-        "resistances": ["volt"],
+        "resistances": ["volt","dark"],
         "vulnerabilities": [
           { "stat": "fire", "value": "3" },
           { "stat": "light", "value": "5" }
         ],
-        "immunities": ["dark"],
         "traits": ["unliving", "undeadConstitution"],
         "opportunityAttack": 1
       },
@@ -11573,12 +11697,11 @@
         "stability": 0,
         "speed": 4,
         "size": "1T",
-        "resistances": ["volt"],
+        "resistances": ["volt","dark"],
         "vulnerabilities": [
           { "stat": "fire", "value": "3" },
           { "stat": "light", "value": "5" }
         ],
-        "immunities": ["dark"],
         "traits": ["unliving", "undeadConstitution", "extraGrabby", "weakling"]
       },
       "wight": {
@@ -11607,7 +11730,6 @@
           { "stat": "water", "value": "3" },
           { "stat": "light", "value": "5" }
         ],
-        "immunities": ["dark"],
         "traits": ["unliving", "undeadConstitution"],
         "opportunityAttack": 4
       },

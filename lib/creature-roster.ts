@@ -1,7 +1,32 @@
 import type { ReactionRef, TraitRef } from "@/lib/baseRefs"
 import type { TraitEffect } from "@/lib/rules"
+import {
+    type FairyTamerContractsSave,
+    characterHasFairyContract,
+    emptyFairyTamerContracts,
+    getFairytamerLevel,
+} from "@/lib/fairy-tamer"
 
 export const MAX_DEPLOYED_SUMMONS = 1
+
+/** Conjurer Summoner: max minion rows deployed at once (rank 1 → 2, rank 2+ → 3). Excludes summons; mutual exclusion with any deployed summon. */
+export function getMaxConjurerMinionsByMastery(summonMastery: number): number {
+    if (summonMastery >= 2) return 3
+    if (summonMastery >= 1) return 2
+    return 0
+}
+
+/** Roster row from Conjurer creator slots (vs feat unlocks). */
+export function isConjurerRosterEntry(entry: CreatureRosterEntry): boolean {
+    if (entry.rosterSource === "conjurer") return true
+    return entry.id.startsWith("conjurer-slot-")
+}
+
+/** Roster row from Fairy Tamer contracts (character creator). */
+export function isFairyTamerRosterEntry(entry: CreatureRosterEntry): boolean {
+    if (entry.rosterSource === "fairyTamer") return true
+    return entry.id.startsWith("fairy-tamer-slot-")
+}
 
 /** Roster / rules role: assistants & minions share deploy caps; summons use template action list in full. */
 export type CreatureRole = "assistant" | "minion" | "summon"
@@ -61,8 +86,10 @@ export interface CreatureRosterEntry {
     deployed: boolean
     /** When this row exists because of a feat unlock (e.g. trustyCompanion). */
     unlockFeatId?: string
-    /** Feat vs Conjurer manual roster row. */
-    rosterSource?: "feat" | "conjurer"
+    /** Feat vs Conjurer vs Fairy Tamer manual roster row. */
+    rosterSource?: "feat" | "conjurer" | "fairyTamer"
+    /** Fairy Tamer: both contract spells chosen in the creator (not from template actionIDs). */
+    pickedActionCardIds?: string[]
     customName?: string
     notes?: string
     currentHp?: number
@@ -442,6 +469,8 @@ export type ReconcileCreatureRosterOpts = {
     classes?: { id: string; level: number }[]
     /** Per-slot template ids from character creator (`""` = unchosen). */
     conjurerSummonTemplateIds?: string[]
+    /** Fairy Tamer: contract picks from character creator. */
+    fairyTamerContracts?: FairyTamerContractsSave
 }
 
 /**
@@ -460,7 +489,11 @@ export function reconcileCreatureRoster(
     const classes = opts?.classes ?? []
     const prevById = new Map((Array.isArray(saved) ? saved : []).map((c) => [c.id, c]))
     const savedList = (Array.isArray(saved) ? [...saved] : []).filter(
-        (c) => c.rosterSource !== "conjurer" && !c.id.startsWith("conjurer-slot-")
+        (c) =>
+            c.rosterSource !== "conjurer" &&
+            !c.id.startsWith("conjurer-slot-") &&
+            c.rosterSource !== "fairyTamer" &&
+            !c.id.startsWith("fairy-tamer-slot-")
     )
     const byId = new Map(savedList.map((c) => [c.id, c]))
 
@@ -517,18 +550,109 @@ export function reconcileCreatureRoster(
         }
     }
 
+    const ftLevel = getFairytamerLevel(classes)
+    const fairyContracts = opts?.fairyTamerContracts ?? emptyFairyTamerContracts()
+    if (characterHasFairyContract(traits) && ftLevel >= 1) {
+        const addSlot = (slotIndex: 0 | 1 | 2 | 3, slotSave: { templateId: string; actionCardIds: string[] }) => {
+            const tid = String(slotSave.templateId ?? "").trim()
+            if (!tid) return
+            const def = templates[tid]
+            if (!def || def.role !== "assistant") return
+            const id = `fairy-tamer-slot-${slotIndex}`
+            const fresh: CreatureRosterEntry = {
+                id,
+                templateId: tid,
+                kind: "assistant",
+                deployed: false,
+                rosterSource: "fairyTamer",
+                pickedActionCardIds: [...new Set(slotSave.actionCardIds.map((x) => String(x).trim()).filter(Boolean))],
+            }
+            const prev = prevById.get(id)
+            if (prev) {
+                fresh.deployed = prev.deployed
+                fresh.customName = prev.customName
+                fresh.notes = prev.notes
+            }
+            const existingIdx = savedList.findIndex((c) => c.id === id)
+            if (existingIdx >= 0) savedList[existingIdx] = fresh
+            else savedList.push(fresh)
+        }
+        if (fairyContracts.slot0) addSlot(0, fairyContracts.slot0)
+        if (ftLevel >= 2 && fairyContracts.slot1) addSlot(1, fairyContracts.slot1)
+        if (ftLevel >= 3 && fairyContracts.slot2) addSlot(2, fairyContracts.slot2)
+        if (
+            ftLevel >= 5 &&
+            fairyContracts.level5Mode === "fourthLesser" &&
+            fairyContracts.slot3
+        ) {
+            addSlot(3, fairyContracts.slot3)
+        }
+    }
+
     return savedList.map((e) => normalizeSummonPools(e, templates))
 }
 
 export const MAX_DEPLOYED_ASSISTANTS = 2
 
-/** Deploy cap: assistants and minions share this pool. */
+/** Deploy cap: feat-based assistants and minions (not Conjurer roster rows). */
+export function countDeployedFeatAssistantsAndMinions(entries: CreatureRosterEntry[]): number {
+    return entries.filter(
+        (c) =>
+            c.deployed &&
+            (c.kind === "assistant" || c.kind === "minion") &&
+            !isConjurerRosterEntry(c) &&
+            !isFairyTamerRosterEntry(c)
+    ).length
+}
+
+/** Feat companions only; conjurer minions are counted in {@link countDeployedConjurerMinions}. */
 export function countDeployedAssistants(entries: CreatureRosterEntry[]): number {
-    return entries.filter((c) => (c.kind === "assistant" || c.kind === "minion") && c.deployed).length
+    return countDeployedFeatAssistantsAndMinions(entries)
 }
 
 export function countDeployedSummons(entries: CreatureRosterEntry[]): number {
     return entries.filter((c) => c.kind === "summon" && c.deployed).length
+}
+
+export function countDeployedConjurerMinions(entries: CreatureRosterEntry[]): number {
+    return entries.filter((c) => isConjurerRosterEntry(c) && c.kind === "minion" && c.deployed).length
+}
+
+export function countDeployedConjurerSummons(entries: CreatureRosterEntry[]): number {
+    return entries.filter((c) => isConjurerRosterEntry(c) && c.kind === "summon" && c.deployed).length
+}
+
+/** 0 or 1: whether the Summoner “one summon or minion group” slot is in use (conjurer roster only). */
+export function getConjurerSummonOrMinionDeploySlotUsed(entries: CreatureRosterEntry[]): number {
+    return countDeployedConjurerSummons(entries) > 0 || countDeployedConjurerMinions(entries) > 0 ? 1 : 0
+}
+
+/** Whether deploying `entry` would violate feat companion, conjurer minion, or summon caps. */
+export function isCreatureDeployBlocked(
+    entry: CreatureRosterEntry,
+    allEntries: CreatureRosterEntry[],
+    maxConjurerMinions: number
+): boolean {
+    if (entry.deployed) return false
+    const rest = allEntries.filter((c) => c.id !== entry.id)
+
+    if (entry.kind === "summon") {
+        if (countDeployedSummons(rest) >= MAX_DEPLOYED_SUMMONS) return true
+        if (countDeployedConjurerMinions(rest) > 0) return true
+        return false
+    }
+
+    if (isAssistantOrMinionKind(entry.kind)) {
+        if (isConjurerRosterEntry(entry) && entry.kind === "minion") {
+            if (countDeployedConjurerMinions(rest) >= maxConjurerMinions) return true
+            if (countDeployedSummons(rest) > 0) return true
+            return false
+        }
+        if (isFairyTamerRosterEntry(entry)) return false
+        return countDeployedFeatAssistantsAndMinions(rest) >= MAX_DEPLOYED_ASSISTANTS
+    }
+
+    return false
 }
 
 export function isAssistantOrMinionKind(kind: CreatureKind): boolean {
@@ -551,6 +675,12 @@ export function getActionCardIdsForCreatureEntry(
 
     if (tmpl?.role === "summon") {
         return [...new Set(fromTemplate)]
+    }
+
+    if (isFairyTamerRosterEntry(entry)) {
+        const picked = [...(entry.pickedActionCardIds ?? [])].map((x) => String(x).trim()).filter(Boolean)
+        if (picked.length > 0) return [...new Set(picked)]
+        return []
     }
 
     if (entry.unlockFeatId) {

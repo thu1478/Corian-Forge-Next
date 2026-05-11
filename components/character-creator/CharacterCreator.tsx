@@ -11,6 +11,14 @@ import {
     listConjurerCatalogTemplateIdsForSlot,
 } from "@/lib/creature-roster";
 import {
+    characterHasFairyContractFromPicks,
+    emptyFairyTamerContracts,
+    getFairytamerLevel,
+    sanitizeFairyTamerContracts,
+    stripInvalidFairySpellPicks,
+    syncFairyTamerContractSpellsFromPicks,
+} from "@/lib/fairy-tamer";
+import {
     getOccupationDefinition,
     type OccupationRule,
     resolveOccupationLanguagePicks,
@@ -18,7 +26,7 @@ import {
 } from "@/lib/occupation";
 import { UploadIcon } from "lucide-react";
 import { RaceSelection } from "./steps/RaceSelection";
-import ClassSelection from "@/components/character-creator/steps/ClassSelection";
+import ClassSelection, { type ClassOptionPick } from "@/components/character-creator/steps/ClassSelection";
 import { AbilityScores } from "@/components/character-creator/steps/AbilityScores";
 import { CultureStep } from "@/components/character-creator/steps/CultureStep";
 import { OccupationStep } from "@/components/character-creator/steps/OccupationStep";
@@ -27,8 +35,6 @@ import { CharacterReview } from "@/components/character-creator/CharacterReview"
 import { StepProgress } from "@/components/character-creator/steps/StepProgress";
 
 type AttributeKey = "might" | "dexterity" | "reason" | "willpower" | "presence";
-
-type ClassOptionSelection = { id: string; source: string; selectedEffectIndices?: number[] };
 
 const STARTING_XP = rulesData.system.startingXPPerLvl as Record<string, number>;
 const OCCUPATION_RULES = (rulesData.system as { occupation?: Record<string, OccupationRule> }).occupation;
@@ -40,7 +46,7 @@ export default function CharacterCreator() {
     const STEPS = ["Race", "Class", "Abilities", "Culture", "Occupation", "Feats", "Review"];
     const [currentStep, setCurrentStep] = useState(0);
     const [adventurerLevel, setAdventurerLevel] = useState(1);
-    const [classSelections, setClassSelections] = useState<ClassOptionSelection[]>([]);
+    const [classSelections, setClassSelections] = useState<ClassOptionPick[]>([]);
     const [levelBonuses, setLevelBonuses] = useState<Partial<Record<number, AttributeKey>>>({});
     const [cultureEnvironment, setCultureEnvironment] = useState<string | null>(null);
     const [cultureOrganization, setCultureOrganization] = useState<string | null>(null);
@@ -239,6 +245,7 @@ export default function CharacterCreator() {
                     }}
                     onUpdateClassData={(classes, options) => {
                         const hasPriest = classes.some((c) => c.id === "priest" && c.level > 0);
+                        let classOptsAfterFairy: ClassOptionPick[] = options;
                         setCharData((prev) => {
                             const next: CharacterSaveData = {
                                 ...prev,
@@ -281,14 +288,40 @@ export default function CharacterCreator() {
                                     ids = Array.from({ length: slots }, () => "")
                                 }
                             }
-                            return { ...next, conjurerSummonTemplateIds: ids }
+                            const ftLvl = getFairytamerLevel(classes)
+                            const hasFC = characterHasFairyContractFromPicks(options)
+                            const fairySan = sanitizeFairyTamerContracts(
+                                prev.fairyTamerContracts,
+                                ftLvl,
+                                hasFC
+                            )
+                            let nextOptions = options
+                            if (!hasFC || ftLvl < 1) {
+                                nextOptions = options.filter(
+                                    (o) => !(o.source === "fairytamer" && o.fairySpellSlot != null)
+                                )
+                            } else {
+                                nextOptions = stripInvalidFairySpellPicks(options, fairySan)
+                            }
+                            const fairySynced = syncFairyTamerContractSpellsFromPicks(fairySan, nextOptions)
+                            classOptsAfterFairy = nextOptions
+                            return { ...next, conjurerSummonTemplateIds: ids, fairyTamerContracts: fairySynced }
                         })
-                        setClassSelections(options);
+                        setClassSelections(classOptsAfterFairy)
                     }}
                     conjurerSummonTemplateIds={charData.conjurerSummonTemplateIds ?? []}
                     onConjurerSummonsChange={(ids) =>
                         setCharData((prev) => ({ ...prev, conjurerSummonTemplateIds: ids }))
                     }
+                    fairyTamerContracts={charData.fairyTamerContracts ?? emptyFairyTamerContracts()}
+                    onFairyTamerContractsChange={(contracts) => {
+                        setClassSelections((prevSel) => {
+                            const stripped = stripInvalidFairySpellPicks(prevSel, contracts)
+                            const synced = syncFairyTamerContractSpellsFromPicks(contracts, stripped)
+                            setCharData((d) => ({ ...d, fairyTamerContracts: synced }))
+                            return stripped
+                        })
+                    }}
                     onBack={handleBack}
                     onNext={handleNext}
                 />

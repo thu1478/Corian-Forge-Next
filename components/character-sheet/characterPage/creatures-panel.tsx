@@ -20,8 +20,10 @@ import {
     type CreatureRosterEntry,
     type RulesWithBestiary,
     getCreatureTemplates,
-    countDeployedAssistants,
+    countDeployedFeatAssistantsAndMinions,
     countDeployedSummons,
+    countDeployedConjurerMinions,
+    getConjurerSummonOrMinionDeploySlotUsed,
     MAX_DEPLOYED_ASSISTANTS,
     MAX_DEPLOYED_SUMMONS,
     getActionCardIdsForCreatureEntry,
@@ -29,6 +31,10 @@ import {
     characterHasSummonerPassive,
     getConjurerSummonSchoolTag,
     resolveCreatureTraitEntries,
+    getSummonMastery,
+    getMaxConjurerMinionsByMastery,
+    isConjurerRosterEntry,
+    isCreatureDeployBlocked,
 } from "@/lib/creature-roster"
 import type { InventoryItem } from "@/lib/equipment-data"
 
@@ -110,6 +116,8 @@ export function CreaturesPanel({
 
     const schoolTag = useMemo(() => getConjurerSummonSchoolTag(traits, rules), [traits, rules])
     const conjurerEligible = characterHasSummonerPassive(traits, classes)
+    const summonMastery = useMemo(() => getSummonMastery(traits, classes, rules), [traits, classes, rules])
+    const maxConjurerMinions = getMaxConjurerMinionsByMastery(summonMastery)
 
     const openEntry = openId ? creatures.find((c) => c.id === openId) : null
     const openTemplate = openEntry ? templates[openEntry.templateId] : null
@@ -153,19 +161,12 @@ export function CreaturesPanel({
             onPatchCreature(entry.id, { deployed: false })
             return
         }
-        if (isAssistantOrMinionKind(entry.kind)) {
-            const others = countDeployedAssistants(creatures.filter((c) => c.id !== entry.id))
-            if (others >= MAX_DEPLOYED_ASSISTANTS) return
-        }
-        if (entry.kind === "summon") {
-            const others = countDeployedSummons(creatures.filter((c) => c.id !== entry.id))
-            if (others >= MAX_DEPLOYED_SUMMONS) return
-        }
+        if (isCreatureDeployBlocked(entry, creatures, maxConjurerMinions)) return
         onPatchCreature(entry.id, { deployed: true })
     }
 
-    const depAssist = countDeployedAssistants(creatures)
-    const depSummon = countDeployedSummons(creatures)
+    const depAssistants = countDeployedFeatAssistantsAndMinions(creatures)
+    const conjurerSummonMinionSlot = getConjurerSummonOrMinionDeploySlotUsed(creatures)
 
     return (
         <>
@@ -176,13 +177,23 @@ export function CreaturesPanel({
                 </div>
                 <div className="flex flex-wrap gap-3 text-xs font-semibold">
                     <span className="rounded-md bg-muted/60 px-2 py-1 border border-border">
-                        Assistants &amp; minions: {depAssist} / {MAX_DEPLOYED_ASSISTANTS}
+                        Assistants ({depAssistants}/{MAX_DEPLOYED_ASSISTANTS})
                     </span>
-                    <span className="rounded-md bg-muted/60 px-2 py-1 border border-border">
-                        Summons deployed: {depSummon} / {MAX_DEPLOYED_SUMMONS}
-                    </span>
+                    {conjurerEligible ? (
+                        <>
+                            <span className="rounded-md bg-muted/60 px-2 py-1 border border-border">
+                                Summons/Minions ({conjurerSummonMinionSlot}/{MAX_DEPLOYED_SUMMONS})
+                            </span>
+                            <span className="rounded-md bg-muted/60 px-2 py-1 border border-border">
+                                Minion count {maxConjurerMinions}
+                            </span>
+                        </>
+                    ) : null}
                 </div>
-                <p className="text-xs text-muted-foreground">Summons track HP/MP below. Deployed creatures add actions on the Combat tab.</p>
+                <p className="text-xs text-muted-foreground">
+                    Summons track HP/MP below. A conjurer cannot have summons and conjurer minions deployed together.
+                    Deployed creatures add actions on the Combat tab.
+                </p>
                 {conjurerEligible && !schoolTag ? (
                     <p className="text-xs text-amber-700 dark:text-amber-400">
                         Conjurer: choose <strong>Golemancy (Geomancy)</strong> or <strong>Necromancy</strong> on your
@@ -199,14 +210,24 @@ export function CreaturesPanel({
                     {creatures.map((c) => {
                         const tmpl = templates[c.templateId]
                         const defaultName = tmpl?.name || c.templateId
-                        const deployedAssistants = countDeployedAssistants(creatures)
-                        const deployedSummons = countDeployedSummons(creatures)
-                        const assistantCapBlocked =
+                        const rest = creatures.filter((x) => x.id !== c.id)
+                        const deployCapBlocked = !c.deployed && isCreatureDeployBlocked(c, creatures, maxConjurerMinions)
+                        const featCapBlocked =
                             isAssistantOrMinionKind(c.kind) &&
+                            !isConjurerRosterEntry(c) &&
                             !c.deployed &&
-                            deployedAssistants >= MAX_DEPLOYED_ASSISTANTS
+                            countDeployedFeatAssistantsAndMinions(rest) >= MAX_DEPLOYED_ASSISTANTS
+                        const conjurerMinionCapBlocked =
+                            isConjurerRosterEntry(c) &&
+                            c.kind === "minion" &&
+                            !c.deployed &&
+                            (countDeployedConjurerMinions(rest) >= maxConjurerMinions ||
+                                countDeployedSummons(rest) > 0)
                         const summonCapBlocked =
-                            c.kind === "summon" && !c.deployed && deployedSummons >= MAX_DEPLOYED_SUMMONS
+                            c.kind === "summon" &&
+                            !c.deployed &&
+                            (countDeployedSummons(rest) >= MAX_DEPLOYED_SUMMONS ||
+                                countDeployedConjurerMinions(rest) > 0)
 
                         return (
                             <div
@@ -259,7 +280,7 @@ export function CreaturesPanel({
                                             id={`deploy-${c.id}`}
                                             className="h-5 w-9 border border-border/60 data-[state=unchecked]:bg-muted-foreground/30"
                                             checked={c.deployed}
-                                            disabled={assistantCapBlocked || summonCapBlocked}
+                                            disabled={deployCapBlocked}
                                             onCheckedChange={(v) => trySetDeployed(c, v)}
                                         />
                                         <Label
@@ -269,14 +290,23 @@ export function CreaturesPanel({
                                             Deploy to combat
                                         </Label>
                                     </div>
-                                    {assistantCapBlocked ? (
+                                    {featCapBlocked ? (
                                         <span className="text-[10px] text-amber-600 dark:text-amber-400">
-                                            Max {MAX_DEPLOYED_ASSISTANTS} assistants or minions deployed
+                                            Max {MAX_DEPLOYED_ASSISTANTS} feat companions deployed
+                                        </span>
+                                    ) : null}
+                                    {conjurerMinionCapBlocked ? (
+                                        <span className="text-[10px] text-amber-600 dark:text-amber-400">
+                                            {countDeployedSummons(rest) > 0
+                                                ? "Dismiss summons before deploying conjurer minions"
+                                                : `Max ${maxConjurerMinions} conjurer minions (Summon Mastery ${summonMastery})`}
                                         </span>
                                     ) : null}
                                     {summonCapBlocked ? (
                                         <span className="text-[10px] text-amber-600 dark:text-amber-400">
-                                            Max {MAX_DEPLOYED_SUMMONS} summon deployed
+                                            {countDeployedConjurerMinions(rest) > 0
+                                                ? "Dismiss conjurer minions before deploying a summon"
+                                                : `Max ${MAX_DEPLOYED_SUMMONS} summon deployed`}
                                         </span>
                                     ) : null}
                                     </div>
@@ -620,16 +650,8 @@ export function CreaturesPanel({
                                                 className="h-5 w-9 border border-border/60 data-[state=unchecked]:bg-muted-foreground/30"
                                                 checked={openEntry.deployed}
                                                 disabled={
-                                                    (isAssistantOrMinionKind(openEntry.kind) &&
-                                                        !openEntry.deployed &&
-                                                        countDeployedAssistants(
-                                                            creatures.filter((x) => x.id !== openEntry.id)
-                                                        ) >= MAX_DEPLOYED_ASSISTANTS) ||
-                                                    (openEntry.kind === "summon" &&
-                                                        !openEntry.deployed &&
-                                                        countDeployedSummons(
-                                                            creatures.filter((x) => x.id !== openEntry.id)
-                                                        ) >= MAX_DEPLOYED_SUMMONS)
+                                                    !openEntry.deployed &&
+                                                    isCreatureDeployBlocked(openEntry, creatures, maxConjurerMinions)
                                                 }
                                                 onCheckedChange={(v) => trySetDeployed(openEntry, v)}
                                             />

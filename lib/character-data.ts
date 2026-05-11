@@ -2,6 +2,8 @@ import {Equipment, InventoryContainer, InventoryEntry,} from "@/lib/equipment-da
 import {BondTarget, CharacterClass, FocusFeature, Skill} from "@/lib/rules";
 import {ActionRef, ReactionRef, TraitRef} from "@/lib/baseRefs";
 import type {CreatureRosterEntry} from "@/lib/creature-roster";
+import type {FairyTamerContractsSave} from "@/lib/fairy-tamer";
+import {emptyFairyTamerContracts} from "@/lib/fairy-tamer";
 
 export interface CharacterSaveData {
     // Character Info
@@ -96,6 +98,9 @@ export interface CharacterSaveData {
      * Reconciled to `creatures` as `conjurer-slot-0`, … alongside class traits.
      */
     conjurerSummonTemplateIds?: string[]
+
+    /** Fairy Tamer (Fairy Contract passive): creature + two spells per unlock level. */
+    fairyTamerContracts?: FairyTamerContractsSave
 }
 
 export const defaultCharacter: CharacterSaveData = {
@@ -185,6 +190,7 @@ export const defaultCharacter: CharacterSaveData = {
 
     creatures: [],
     conjurerSummonTemplateIds: [],
+    fairyTamerContracts: emptyFairyTamerContracts(),
 }
 
 export function getAttributeModifier(score: number): number {

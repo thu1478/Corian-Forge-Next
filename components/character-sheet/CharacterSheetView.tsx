@@ -123,8 +123,9 @@ export function CharacterSheetView() {
         () => ({
             classes: character?.classes ?? [],
             conjurerSummonTemplateIds: character?.conjurerSummonTemplateIds,
+            fairyTamerContracts: character?.fairyTamerContracts,
         }),
-        [character?.classes, character?.conjurerSummonTemplateIds]
+        [character?.classes, character?.conjurerSummonTemplateIds, character?.fairyTamerContracts]
     )
 
     const creaturesResolved = useMemo(
@@ -149,6 +150,7 @@ export function CharacterSheetView() {
                 creatures: reconcileCreatureRoster(prev.creatures, prev.traits ?? [], rulesData as any, {
                     classes: prev.classes ?? [],
                     conjurerSummonTemplateIds: prev.conjurerSummonTemplateIds,
+                    fairyTamerContracts: prev.fairyTamerContracts,
                 }),
             }))
         }
@@ -160,6 +162,7 @@ export function CharacterSheetView() {
                 const base = reconcileCreatureRoster(prev.creatures, prev.traits ?? [], rulesData as any, {
                     classes: prev.classes ?? [],
                     conjurerSummonTemplateIds: prev.conjurerSummonTemplateIds,
+                    fairyTamerContracts: prev.fairyTamerContracts,
                 })
                 const idx = base.findIndex((c) => c.id === id)
                 if (idx < 0) return prev

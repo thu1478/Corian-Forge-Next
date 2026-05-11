@@ -6,6 +6,7 @@ import {
     resolveOccupationSkillsCount,
 } from "@/lib/occupation";
 import { CharacterSaveData } from "@/lib/character-data";
+import { emptyFairyTamerContracts, type FairyTamerContractsSave } from "@/lib/fairy-tamer";
 import type { InventoryEntry } from "@/lib/equipment-data";
 import { FeatLevelPick, TraitRef } from "@/lib/baseRefs";
 import { CharAttribute } from "@/lib/rules";
@@ -72,7 +73,36 @@ export function createEmptyCreatorCharacter(): CharacterSaveData {
         priestDeity: null,
         creatures: [],
         conjurerSummonTemplateIds: [],
+        fairyTamerContracts: emptyFairyTamerContracts(),
     };
+}
+
+function parseFairyTamerContractsFromImport(raw: unknown): FairyTamerContractsSave {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return emptyFairyTamerContracts()
+    const o = raw as Record<string, unknown>
+    const readSlot = (key: string): FairyTamerContractsSave["slot0"] => {
+        const v = o[key]
+        if (!v || typeof v !== "object" || Array.isArray(v)) return null
+        const t = v as Record<string, unknown>
+        const templateId = String(t.templateId ?? "").trim()
+        const actionCardIds = Array.isArray(t.actionCardIds)
+            ? (t.actionCardIds as unknown[]).map((x) => String(x ?? "").trim()).filter(Boolean)
+            : []
+        if (!templateId) return null
+        return { templateId, actionCardIds }
+    }
+    const lm = o.level5Mode
+    const level5Mode = lm === "fourthLesser" || lm === "upgrade" ? lm : null
+    const usi = o.upgradedSlotIndex
+    const upgradedSlotIndex = usi === 0 || usi === 1 || usi === 2 ? usi : null
+    return {
+        slot0: readSlot("slot0"),
+        slot1: readSlot("slot1"),
+        slot2: readSlot("slot2"),
+        slot3: readSlot("slot3"),
+        level5Mode,
+        upgradedSlotIndex,
+    }
 }
 
 type AttributeKey = "might" | "dexterity" | "reason" | "willpower" | "presence";
@@ -112,7 +142,12 @@ function subtractLevelBonusesFromAttributes(
 export type CreatorImportResult = {
     charData: CharacterSaveData;
     adventurerLevel: number;
-    classSelections: { id: string; source: string; selectedEffectIndices?: number[] }[];
+    classSelections: {
+        id: string;
+        source: string;
+        selectedEffectIndices?: number[];
+        fairySpellSlot?: 0 | 1 | 2 | 3;
+    }[];
     levelBonuses: Partial<Record<number, AttributeKey>>;
     cultureSkills: string[];
     occupationSkills: string[];
@@ -206,17 +241,36 @@ function languageIdsFromImport(names: unknown): string[] {
     return [...new Set(withCommon)];
 }
 
-function inferClassSelections(json: any): { id: string; source: string; selectedEffectIndices?: number[] }[] {
+function inferClassSelections(json: any): {
+    id: string;
+    source: string;
+    selectedEffectIndices?: number[];
+    fairySpellSlot?: 0 | 1 | 2 | 3;
+}[] {
     const classes = rulesData.classes as Record<string, any>;
-    const out: { id: string; source: string; selectedEffectIndices?: number[] }[] = [];
+    const out: {
+        id: string;
+        source: string;
+        selectedEffectIndices?: number[];
+        fairySpellSlot?: 0 | 1 | 2 | 3;
+    }[] = [];
     const seen = new Set<string>();
 
-    const add = (talentId: string, classId: string, indices?: number[]) => {
-        const k = `${classId}::${talentId}`;
+    const add = (talentId: string, classId: string, indices?: number[], fairySpellSlot?: 0 | 1 | 2 | 3) => {
+        const k =
+            fairySpellSlot != null
+                ? `${classId}::${talentId}::ftSpell::${fairySpellSlot}`
+                : `${classId}::${talentId}`;
         if (seen.has(k)) return;
         seen.add(k);
-        const row: { id: string; source: string; selectedEffectIndices?: number[] } = { id: talentId, source: classId };
+        const row: {
+            id: string;
+            source: string;
+            selectedEffectIndices?: number[];
+            fairySpellSlot?: 0 | 1 | 2 | 3;
+        } = { id: talentId, source: classId };
         if (indices?.length) row.selectedEffectIndices = indices;
+        if (fairySpellSlot != null) row.fairySpellSlot = fairySpellSlot;
         out.push(row);
     };
 
@@ -248,6 +302,21 @@ function inferClassSelections(json: any): { id: string; source: string; selected
         const id = typeof r === "object" ? r?.id : r;
         if (!id) continue;
         tryAllClasses(String(id));
+    }
+
+    const fc = json.fairyTamerContracts;
+    if (fc && typeof fc === "object" && !Array.isArray(fc)) {
+        for (const slotIdx of [0, 1, 2, 3] as const) {
+            const slot = (fc as Record<string, unknown>)[`slot${slotIdx}`];
+            if (!slot || typeof slot !== "object") continue;
+            const aids = (slot as { actionCardIds?: unknown }).actionCardIds;
+            if (!Array.isArray(aids)) continue;
+            for (const raw of aids) {
+                const aid = String(raw ?? "").trim();
+                if (!aid.startsWith("fairy/")) continue;
+                add(aid, "fairytamer", undefined, slotIdx);
+            }
+        }
     }
 
     return out;
@@ -396,26 +465,53 @@ function mergeImportedCharData(json: any, empty: CharacterSaveData): CharacterSa
             json.priestDeity != null && String(json.priestDeity).trim() !== ""
                 ? String(json.priestDeity).trim().toLowerCase()
                 : empty.priestDeity ?? null,
-        creatures: Array.isArray(json.creatures)
-            ? (json.creatures as any[])
-                  .filter((c) => c && typeof c.id === "string" && typeof c.templateId === "string")
-                  .map((c) => ({
-                      id: String(c.id),
-                      templateId: String(c.templateId),
-                      kind: c.kind === "summon" ? ("summon" as const) : ("assistant" as const),
-                      deployed: Boolean(c.deployed),
-                      unlockFeatId: typeof c.unlockFeatId === "string" ? c.unlockFeatId : undefined,
-                      customName: typeof c.customName === "string" ? c.customName : undefined,
-                      notes: typeof c.notes === "string" ? c.notes : undefined,
-                      currentHp: typeof c.currentHp === "number" ? c.currentHp : undefined,
-                      maxHp: typeof c.maxHp === "number" ? c.maxHp : undefined,
-                      currentMp: typeof c.currentMp === "number" ? c.currentMp : undefined,
-                      maxMp: typeof c.maxMp === "number" ? c.maxMp : undefined,
-                  }))
-            : empty.creatures ?? [],
         conjurerSummonTemplateIds: Array.isArray(json.conjurerSummonTemplateIds)
             ? (json.conjurerSummonTemplateIds as unknown[]).map((x) => String(x ?? "").trim())
             : empty.conjurerSummonTemplateIds ?? [],
+        fairyTamerContracts:
+            json.fairyTamerContracts != null
+                ? parseFairyTamerContractsFromImport(json.fairyTamerContracts)
+                : empty.fairyTamerContracts ?? emptyFairyTamerContracts(),
+        creatures: Array.isArray(json.creatures)
+            ? (json.creatures as any[])
+                  .filter((c) => c && typeof c.id === "string" && typeof c.templateId === "string")
+                  .map((c) => {
+                      const kindRaw = c.kind
+                      const kind =
+                          kindRaw === "summon"
+                              ? ("summon" as const)
+                              : kindRaw === "minion"
+                                ? ("minion" as const)
+                                : ("assistant" as const)
+                      const rosterSource =
+                          typeof c.rosterSource === "string" ? String(c.rosterSource) : undefined
+                      const pickedActionCardIds = Array.isArray(c.pickedActionCardIds)
+                          ? (c.pickedActionCardIds as unknown[])
+                                .map((x) => String(x ?? "").trim())
+                                .filter(Boolean)
+                          : undefined
+                      return {
+                          id: String(c.id),
+                          templateId: String(c.templateId),
+                          kind,
+                          deployed: Boolean(c.deployed),
+                          unlockFeatId: typeof c.unlockFeatId === "string" ? c.unlockFeatId : undefined,
+                          rosterSource:
+                              rosterSource === "feat" ||
+                              rosterSource === "conjurer" ||
+                              rosterSource === "fairyTamer"
+                                  ? rosterSource
+                                  : undefined,
+                          pickedActionCardIds,
+                          customName: typeof c.customName === "string" ? c.customName : undefined,
+                          notes: typeof c.notes === "string" ? c.notes : undefined,
+                          currentHp: typeof c.currentHp === "number" ? c.currentHp : undefined,
+                          maxHp: typeof c.maxHp === "number" ? c.maxHp : undefined,
+                          currentMp: typeof c.currentMp === "number" ? c.currentMp : undefined,
+                          maxMp: typeof c.maxMp === "number" ? c.maxMp : undefined,
+                      }
+                  })
+            : empty.creatures ?? [],
     };
 }
 
