@@ -36,7 +36,11 @@ export function PowerRollTierRow({
     weaponForPowerRoll?: InventoryItem | null
     powerRollDisplayMode: PowerRollDisplayMode
 }) {
-    const baseDmg = (roll[`tier${tier}Dmg` as keyof PowerRoll] as number) || 0
+    const tierDmgKey = `tier${tier}Dmg` as keyof PowerRoll
+    const tierDmgRaw = roll[tierDmgKey]
+    const hasExplicitNumericTierDmg =
+        typeof tierDmgRaw === "number" && Number.isFinite(tierDmgRaw)
+    const baseDmg = hasExplicitNumericTierDmg ? tierDmgRaw : Number(tierDmgRaw) || 0
     const hasWpn = (roll[`tier${tier}Wpn` as keyof PowerRoll] as boolean) || false
     const potency = roll[`tier${tier}Effect` as keyof PowerRoll] as PotencyEffect | undefined
 
@@ -84,7 +88,8 @@ export function PowerRollTierRow({
         potency.type !== "Special" &&
         (potencySrcIsFixed || Boolean(potency.targetStats && potency.targetStats.length > 0))
 
-    const shouldShowDmg = hasWpn || finalDmg > 0
+    /** Show damage line when +Wpn, total is positive, or tier damage is explicitly set (including 0). */
+    const shouldShowDmg = hasWpn || finalDmg > 0 || hasExplicitNumericTierDmg
 
     const dmgDisplay =
         powerRollDisplayMode === "formula" && hasWpn ? (

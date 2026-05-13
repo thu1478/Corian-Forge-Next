@@ -1828,7 +1828,7 @@
                   "presence"
                 ],
                 "targetStats": [
-                  "reason"
+                  "willpower"
                 ],
                 "effect": "frightened",
                 "strength": "weak",
@@ -1841,7 +1841,7 @@
                   "presence"
                 ],
                 "targetStats": [
-                  "reason"
+                  "willpower"
                 ],
                 "effect": "frightened",
                 "strength": "average",
@@ -1854,7 +1854,7 @@
                   "presence"
                 ],
                 "targetStats": [
-                  "reason"
+                  "willpower"
                 ],
                 "effect": "frightened",
                 "strength": "strong",
@@ -1909,7 +1909,7 @@
           "actionCard": {
             "name": "Echolocation",
             "type": "action",
-            "description": "Release an upbeat song that helps triangulate enemy locations, negating the benefits of Concealed for all hostile creatures for the duration.",
+            "description": "Release an upbeat song that helps triangulate enemy locations, revealing the location of and negating the benefits of Concealed for all hostile creatures in the area for the duration",
             "apCost": 2,
             "focusCost": 1,
             "mpCost": 0,
@@ -1927,7 +1927,7 @@
             "name": "Symphony of Dance",
             "type": "action",
             "description": "Play an upbeat song of dance. All affected creatures have their Speed increased by 2. Remove Slowed or Restrained effects. They do not trigger Opportunity Attacks.",
-            "apCost": 2,
+            "apCost": 1,
             "focusCost": 5,
             "mpCost": 0,
             "tags": [
@@ -2156,19 +2156,19 @@
       },
       "reactions": [
         {
-          "id": "cantStopTheMusic",
-          "name": "Can't stop the music",
+          "id": "spellsinger",
+          "name": "Spellsinger",
           "level": 1,
-          "trigger": "You are about to take physical damage while playing a Song",
-          "description": "Immediately grant yourself 6 Barrier",
+          "trigger": "An ally spends mana",
+          "description": "They regain 3 Mana",
           "focusCost": 1
         },
         {
-          "id": "spellsinger",
-          "name": "Spellsinger",
+          "id": "cantStopTheMusic",
+          "name": "Can't stop the music",
           "level": 3,
-          "trigger": "An ally spends mana",
-          "description": "They regain 3 Mana",
+          "trigger": "You are about to take physical damage while playing a Song",
+          "description": "You gain resistance to physical damage for the rest of the round",
           "focusCost": 1
         }
       ]
@@ -2484,7 +2484,7 @@
                 "targetStats": [
                   "dexterity"
                 ],
-                "effect": "verticalpush",
+                "effect": "push",
                 "distance": 2,
                 "strength": "average"
               },
@@ -2498,7 +2498,7 @@
                 "targetStats": [
                   "dexterity"
                 ],
-                "effect": "verticalpush",
+                "effect": "push",
                 "distance": 3,
                 "strength": "strong"
               }
@@ -3213,7 +3213,7 @@
         "bluntForceTrauma": {
           "name": "Blunt Force Trauma",
           "minLevel": 5,
-          "description": "The minimum damage for a melee weapon attack is increased from 1 to 3."
+          "description": "The minimum damage for a melee physical attack is increased from 1 to 3"
         }
       },
       "freeFeaturesNote": "You gain proficiency with martial melee weapons and martial armor. Fury: You're strong enough to jam your weapon into the side of a stone wall to create a small platform to stand on.",
@@ -3320,13 +3320,29 @@
               "tier1Dmg": 3,
               "tier2Dmg": 4,
               "tier2Effect": {
-                "type": "Special",
-                "effect": "D < [M average] pull 1"
+                "type": "ForcedMovement",
+                "srcStats": [
+                  "might"
+                ],
+                "targetStats": [
+                  "dexterity"
+                ],
+                "effect": "pull",
+                "distance": 1,
+                "strength": "average"
               },
               "tier3Dmg": 6,
               "tier3Effect": {
-                "type": "Special",
-                "effect": "D < [M strong] pull 2"
+                "type": "ForcedMovement",
+                "srcStats": [
+                  "might"
+                ],
+                "targetStats": [
+                  "dexterity"
+                ],
+                "effect": "pull",
+                "distance": 2,
+                "strength": "strong"
               }
             }
           }
@@ -3361,7 +3377,7 @@
             }
           }
         },
-        "mightlyLeap": {
+        "mightyLeap": {
           "minLevel": 1,
           "actionCard": {
             "name": "Mightly Leap",
@@ -3380,6 +3396,17 @@
                 "might"
               ],
               "tier1Dmg": 0,
+              "tier1Effect": {
+                "type": "Condition",
+                "srcStats": [
+                  "might"
+                ],
+                "targetStats": [
+                  "dexterity"
+                ],
+                "effect": "prone",
+                "strength": "weak"
+              },
               "tier2Dmg": 1,
               "tier2Effect": {
                 "type": "Condition",
@@ -3427,23 +3454,12 @@
               "rollStats": [
                 "might"
               ],
-              "tier1Dmg": 3,
+              "tier1Dmg": 2,
               "tier1Wpn": true,
-              "tier2Dmg": 4,
+              "tier2Dmg": 3,
               "tier2Wpn": true,
-              "tier3Dmg": 6,
-              "tier3Wpn": true,
-              "tier3Effect": {
-                "type": "Condition",
-                "srcStats": [
-                  "might"
-                ],
-                "targetStats": [
-                  "dexterity"
-                ],
-                "effect": "prone",
-                "strength": "strong"
-              }
+              "tier3Dmg": 5,
+              "tier3Wpn": true
             }
           }
         },
@@ -3514,16 +3530,16 @@
               "rollStats": [
                 "might"
               ],
-              "tier1Dmg": 3,
+              "tier1Dmg": 5,
               "tier1Wpn": true,
-              "tier2Dmg": 4,
+              "tier2Dmg": 7,
               "tier2Wpn": true,
               "tier2Effect": {
                 "type": "ForcedMovement",
                 "effect": "push",
                 "distance": 2
               },
-              "tier3Dmg": 6,
+              "tier3Dmg": 9,
               "tier3Wpn": true,
               "tier3Effect": {
                 "type": "ForcedMovement",
@@ -3610,32 +3626,8 @@
               "tier1Wpn": true,
               "tier2Dmg": 4,
               "tier2Wpn": true,
-              "tier2Effect": {
-                "type": "Condition",
-                "srcStats": [
-                  "might"
-                ],
-                "targetStats": [
-                  "dexterity"
-                ],
-                "effect": "sundered",
-                "strength": "average",
-                "duration": "roundEnd"
-              },
               "tier3Dmg": 6,
-              "tier3Wpn": true,
-              "tier3Effect": {
-                "type": "Condition",
-                "srcStats": [
-                  "might"
-                ],
-                "targetStats": [
-                  "dexterity"
-                ],
-                "effect": "sundered",
-                "strength": "strong",
-                "duration": "roundEnd"
-              }
+              "tier3Wpn": true
             }
           }
         },
@@ -3675,7 +3667,7 @@
           "actionCard": {
             "name": "Meteor Tackle",
             "type": "action",
-            "description": "Inflict push 7 on yourself in any direction you want. If you slam into a creature after moving at least 1 tiles you do not take damage but instead inflict the remaining push onto the creature, moving along with them.",
+            "description": "Inflict push 7 on yourself, ignoring stability, in any direction you want. If you slam into a creature after moving at least 1 tiles you do not take damage but instead inflict the remaining push onto the creature, moving along with them in the adjacent tile.",
             "apCost": 2,
             "focusCost": 7,
             "mpCost": 0,
@@ -10298,7 +10290,7 @@
             "might"
           ],
           "effect": "slowed",
-            "duration": "turnEnd"
+          "duration": "turnEnd"
         }
       }
     },
@@ -10550,7 +10542,7 @@
     "fairy/magnetRail": {
       "name": "Magnet Rail",
       "type": "action",
-      "description": "Will o wisp turns into a 5x5 area surrounded by electricity. The electricity isn't strong enough to deal damage, but if you move to the edge on your turn you may ride the current to the opposite end as a free Reaction as long as the path is not obstructed.",
+      "description": "Will o wisp turns into a 5x5 area of electricity. Creatures wearing metal armor in the area treat the area as difficult terrain. If you are not wearing metal armor and are standing on the edge then whenever you stride you may instead shift to any other tile on the edge so long as there is a unobstructed path",
       "apCost": 2,
       "focusCost": 3,
       "mpCost": 8,
@@ -10566,7 +10558,7 @@
     "fairy/shockingGrasp": {
       "name": "Shocking Grasp",
       "type": "action",
-      "description": "Will o wisp charges one of your melee attacks with electricity to deal Volt damage. If used on the surface of a body of water the attack becomes an area attack instead, targeting all creatures within 5 tiles of you, but loses the damage bonus from your weapon.",
+      "description": "Will o wisp charges one of your melee attacks with electricityl; to deal magical Volt damage instead. If used on the surface of a body of water the attack becomes an area attack instead, targeting all creatures within 5 tiles of you, but loses the damage bonus from your weapon.",
       "apCost": 2,
       "focusCost": 1,
       "mpCost": 8,
@@ -10612,8 +10604,23 @@
           "willpower"
         ],
         "tier1Dmg": 2,
+        "tier1Effect": {
+          "type": "ForcedMovement",
+          "effect": "push",
+          "distance": 1
+        },
         "tier2Dmg": 3,
-        "tier3Dmg": 5
+        "tier2Effect": {
+          "type": "ForcedMovement",
+          "effect": "push",
+          "distance": 2
+        },
+        "tier3Dmg": 5,
+        "tier3Effect": {
+          "type": "ForcedMovement",
+          "effect": "push",
+          "distance": 3
+        }
       }
     },
     "fairy/mudsport": {
@@ -10704,7 +10711,7 @@
     "fairy/trailingComet": {
       "name": "Trailing Comet",
       "type": "action",
-      "description": "Salamander creates 3 orbs of fire that orbit around you, dealing fire damage each time either a hostile creature and you enter within 1 tile of each other, or if there is a hostile creature within 2 tiles of you during the Start Phase. If there are already hostile creatures in range then the damage triggers instantly for each creature and if there are remaining orbs then they still orbit you. One orb disappears on each hit.",
+      "description": "Salamander creates 3 orbs of fire that orbit around you, dealing fire damage each time either a hostile creature or you enter within 1 tile of each other, or if there is a hostile creature within 2 tiles of you during the Start Phase. If there are already hostile creatures in range then the damage triggers instantly for each creature and if there are remaining orbs then they still orbit you. One orb disappears on each hit.",
       "apCost": 2,
       "focusCost": 1,
       "mpCost": 8,
@@ -10729,7 +10736,7 @@
     "fairy/clearSpring": {
       "name": "Clear Spring",
       "type": "action",
-      "description": "Undine transforms into a large pool of water in a 7x7 area. The water isn't thick enough to impede movement or deal damage, but it does override and prevent most terrain effects in the area.",
+      "description": "Undine transforms into a large pool of water in a 7x7 area. The water isn't thick enough to impede movement or deal damage, but it does override most existing terrestrial terrain effects in the area",
       "apCost": 2,
       "focusCost": 3,
       "mpCost": 10,
@@ -10835,7 +10842,7 @@
     "fairy/thunderstorm": {
       "name": "Thunderstorm",
       "type": "action",
-      "description": "Unicorn ascends into the sky and transforms, creating a thunderstorm. At the start of the round lightning strikes, targeting the creature with the highest elevation and then size in that order. On ties you decide. Volt damage is dealt in a 3x3 area centered on the target. You must have access to the sky.",
+      "description": "Unicorn ascends into the sky and transforms, creating a thunderstorm. At the start of the round lightning strikes, targeting the creature with the highest elevation and then size in that order to deal volt damage. On ties you decide. You must have access to the sky.",
       "apCost": 3,
       "focusCost": 7,
       "mpCost": 25,
@@ -10843,7 +10850,6 @@
       "tags": [
         "Ranged",
         "Spell",
-        "Area",
         "Manifest"
       ],
       "source": "fairy",
@@ -10854,15 +10860,15 @@
           "reason",
           "willpower"
         ],
-        "tier1Dmg": 5,
-        "tier2Dmg": 7,
-        "tier3Dmg": 10
+        "tier1Dmg": 8,
+        "tier2Dmg": 11,
+        "tier3Dmg": 16
       }
     },
     "fairy/magnetRise": {
       "name": "Magnet Rise",
       "type": "action",
-      "description": "Unicorn uses magnetism to let you levitate off the ground this round.\n\nMaintain: During the start phase you may pay 1 Focus and 1 mana to continue levitating this round",
+      "description": "Unicorn uses magnetism to let you levitate off the ground this round, granting you Hover speed equal to your Speed, but you must stay within 1 tile of the ground\nMaintain: During the start phase you may pay 1 Focus and 1 mana to continue levitating this round",
       "apCost": 1,
       "focusCost": 1,
       "mpCost": 3,
@@ -10887,12 +10893,54 @@
         "Spell",
         "Multi(2)"
       ],
-      "source": "fairy"
+      "source": "fairy",
+      "powerRoll": {
+        "rollStats": [
+          "willpower",
+          "presence"
+        ],
+        "tier1Effect": {
+          "srcStats": [
+            "presence"
+          ],
+          "targetStats": [
+            "dexterity"
+          ],
+          "type": "ForcedMovement",
+          "effect": "shift",
+          "distance": 2,
+          "strength": "weak"
+        },
+        "tier2Effect": {
+          "srcStats": [
+            "presence"
+          ],
+          "targetStats": [
+            "dexterity"
+          ],
+          "type": "ForcedMovement",
+          "effect": "shift",
+          "distance": 3,
+          "strength": "average"
+        },
+        "tier3Effect": {
+          "srcStats": [
+            "presence"
+          ],
+          "targetStats": [
+            "dexterity"
+          ],
+          "type": "ForcedMovement",
+          "effect": "shift",
+          "distance": 4,
+          "strength": "strong"
+        }
+      }
     },
     "fairy/collapse": {
       "name": "Collapse",
       "type": "action",
-      "description": "Choose up to 5 created pillars of size no more than 3x1. Gargoyle causes each one to collapse in one direction in a 2x1 area adjacent to the pillar, forcing each creature in the area to make a Might Power Roll and take crushing damage. They can only take damage from one pillar. The pillars are destroyed afterwards, but leave difficult terrain in the collapsed areas.",
+      "description": "Create a 2x1 stone pillar on an unoccupied tile in range. Choose up to 5 created pillars of size no more than 3x1. Gargoyle causes each one to collapse in one direction in a 2x1 area adjacent to the pillar, forcing each creature in the area to make a Might Power Roll and take the corresponding crushing damage. They can only take damage from one pillar. The pillars are destroyed afterwards, but leave difficult terrain in the collapsed areas",
       "apCost": 2,
       "focusCost": 7,
       "mpCost": 13,
@@ -10909,9 +10957,48 @@
         "rollStats": [
           "might"
         ],
-        "tier1Dmg": 4,
-        "tier2Dmg": 6,
-        "tier3Dmg": 8
+        "tier1Dmg": 7,
+        "tier1Effect": {
+          "srcStats": [
+            "willpower",
+            "presence"
+          ],
+          "targetStats": [
+            "might"
+          ],
+          "type": "Condition",
+          "effect": "restrained",
+          "duration": "saveEnd",
+          "strength": "strong"
+        },
+        "tier2Dmg": 5,
+        "tier2Effect": {
+          "srcStats": [
+            "willpower",
+            "presence"
+          ],
+          "targetStats": [
+            "might"
+          ],
+          "type": "Condition",
+          "effect": "restrained",
+          "duration": "saveEnd",
+          "strength": "average"
+        },
+        "tier3Dmg": 3,
+        "tier3Effect": {
+          "srcStats": [
+            "willpower",
+            "presence"
+          ],
+          "targetStats": [
+            "might"
+          ],
+          "type": "Condition",
+          "effect": "restrained",
+          "duration": "saveEnd",
+          "strength": "weak"
+        }
       }
     },
     "fairy/leafStorm": {
@@ -11043,8 +11130,23 @@
           "willpower"
         ],
         "tier1Dmg": 3,
-        "tier2Dmg": 5,
-        "tier3Dmg": 7
+        "tier1Effect": {
+          "type": "ForcedMovement",
+          "effect": "pull",
+          "distance": 1
+        },
+        "tier2Dmg": 4,
+        "tier1Effect": {
+          "type": "ForcedMovement",
+          "effect": "pull",
+          "distance": 2
+        },
+        "tier3Dmg": 6,
+        "tier1Effect": {
+          "type": "ForcedMovement",
+          "effect": "pull",
+          "distance": 3
+        }
       }
     },
     "fairy/hail": {
@@ -11066,7 +11168,7 @@
     "fairy/snowCloak": {
       "name": "Snow Cloak",
       "type": "action",
-      "description": "Almiraj shrouds the target with a magical aura that grants them resistance to water damage. When it is snowing or hailing with this cloak attacks against you have a Bane. You may only have one Snow Cloak at a time.\n\nMaintain: During the Start Phase you may spend 1 Focus and 1 Mana to maintain this effect for this round as well.",
+      "description": "Almiraj shrouds the target with a magical aura that grants them resistance to water damage and lets them walk normally on ice. When it is snowing or hailing with this cloak attacks against you have a Bane. You may only have one Snow Cloak at a time.\n\nMaintain: During the Start Phase you may spend 1 Focus and 1 Mana to maintain this effect for this round as well.",
       "apCost": 1,
       "focusCost": 3,
       "mpCost": 10,
@@ -11170,67 +11272,67 @@
         "description": "This minion can have 2 AP max per round and can make opportunity attacks. They die in one hit and fail every potency"
       },
       "unliving": {
-            "name": "Unliving",
-            "description": "Immune to Bleeding, Charmed, Frightened, and Poisoned conditions. Also unaffected by Bard's Emanation songs",
-          "effects": [
-            {
-              "type": "Immunity",
-              "stat": "bleeding"
-            },
-            {
-              "type": "Immunity",
-              "stat": "charmed"
-            },
-            {
-              "type": "Immunity",
-              "stat": "frightened"
-            },
-            {
-              "type": "Immunity",
-              "stat": "poisoned"
-            }
-          ]
-        },
-        "flammable": {
-            "name": "Flammable",
-            "description": "After taking fire damage you are set alight, taking 3 fire damage at the start of your turn."
-        },
-        "crafty": {
-            "name": "Crafty",
-            "description": "You do not provoke opportunity attacks."
-        },
-        "flying": {
-            "name": "Flying",
-            "description": "You have a flying speed equal to your speed."
-        },
-        "extremeHeatSensitivity": {
-            "name": "Extreme heat sensitivity",
-            "description": "If any fire damage is dealt to a target within 1 tile of this creature, this creature dies."
-        },
-        "explosiveTendencies": {
-            "name": "Explosive tendencies",
-            "description": "When this creature dies it deals 2 fire damage to all creatures within 1 tile of it."
-        },
-        "weakling": {
-            "name": "Weakling",
-            "description": "Opportunity attacks deal 0 damage and this creature cannot attack with them."
-        },
-        "largeFrame": {
-            "name": "Large frame",
-            "description": "Counts as cover against ranged attacks for allies behind it."
-        },
-        "undeadConstitution": {
-            "name": "Undead constitution",
-            "description": "Damaged by most healing spells. Cannot be healed by most healing spells."
-        },
-        "metaphysical": {
-            "name": "Metaphysical",
-            "description": "Does not always exist on the physical plane, but may manifest or affect the physical world magically. Invisible to those unable to see metaphysical beings."
-        },
-        "extraGrabby": {
-            "name": "Extra grabby",
-            "description": "Terrain this creature occupies is difficult terrain for hostile creatures as it tries to grab them."
-        }
+        "name": "Unliving",
+        "description": "Immune to Bleeding, Charmed, Frightened, and Poisoned conditions. Also unaffected by Bard's Emanation songs",
+        "effects": [
+          {
+            "type": "Immunity",
+            "stat": "bleeding"
+          },
+          {
+            "type": "Immunity",
+            "stat": "charmed"
+          },
+          {
+            "type": "Immunity",
+            "stat": "frightened"
+          },
+          {
+            "type": "Immunity",
+            "stat": "poisoned"
+          }
+        ]
+      },
+      "flammable": {
+        "name": "Flammable",
+        "description": "After taking fire damage you are set alight, taking 3 fire damage at the start of your turn."
+      },
+      "crafty": {
+        "name": "Crafty",
+        "description": "You do not provoke opportunity attacks."
+      },
+      "flying": {
+        "name": "Flying",
+        "description": "You have a flying speed equal to your speed."
+      },
+      "extremeHeatSensitivity": {
+        "name": "Extreme heat sensitivity",
+        "description": "If any fire damage is dealt to a target within 1 tile of this creature, this creature dies."
+      },
+      "explosiveTendencies": {
+        "name": "Explosive tendencies",
+        "description": "When this creature dies it deals 2 fire damage to all creatures within 1 tile of it."
+      },
+      "weakling": {
+        "name": "Weakling",
+        "description": "Opportunity attacks deal 0 damage and this creature cannot attack with them."
+      },
+      "largeFrame": {
+        "name": "Large frame",
+        "description": "Counts as cover against ranged attacks for allies behind it."
+      },
+      "undeadConstitution": {
+        "name": "Undead constitution",
+        "description": "Damaged by most healing spells. Cannot be healed by most healing spells."
+      },
+      "metaphysical": {
+        "name": "Metaphysical",
+        "description": "Does not always exist on the physical plane, but may manifest or affect the physical world magically. Invisible to those unable to see metaphysical beings."
+      },
+      "extraGrabby": {
+        "name": "Extra grabby",
+        "description": "Terrain this creature occupies is difficult terrain for hostile creatures as it tries to grab them."
+      }
     },
     "creatures": {
       "trustyCompanion": {
@@ -11250,9 +11352,17 @@
         "description": "Lesser fairy: a small blue-ish feather-winged humanoid, usually no taller than the length of your hand. Contract spells are chosen when you take the fairy in the character creator.",
         "level": 1,
         "role": "assistant",
-        "creatureTypes": ["fairy"],
-        "tags": ["fairy", "lesser", "air"],
-        "traitRefs": ["metaphysical"],
+        "creatureTypes": [
+          "fairy"
+        ],
+        "tags": [
+          "fairy",
+          "lesser",
+          "air"
+        ],
+        "traitRefs": [
+          "metaphysical"
+        ],
         "actionIDs": []
       },
       "fairyWillOWisp": {
@@ -11260,9 +11370,17 @@
         "description": "Lesser fairy: a small blue orb with rounded feathered wings, body roughly the size of an apple; sometimes crackles with sparks.",
         "level": 1,
         "role": "assistant",
-        "creatureTypes": ["fairy", "volt"],
-        "tags": ["fairy", "lesser"],
-        "traitRefs": ["metaphysical"],
+        "creatureTypes": [
+          "fairy",
+          "volt"
+        ],
+        "tags": [
+          "fairy",
+          "lesser"
+        ],
+        "traitRefs": [
+          "metaphysical"
+        ],
         "actionIDs": []
       },
       "fairyGnome": {
@@ -11270,9 +11388,17 @@
         "description": "Lesser fairy: tan or brown humanoid wrapped in a robe, only a plain face visible.",
         "level": 1,
         "role": "assistant",
-        "creatureTypes": ["fairy"],
-        "tags": ["fairy", "lesser", "earth"],
-        "traitRefs": ["metaphysical"],
+        "creatureTypes": [
+          "fairy"
+        ],
+        "tags": [
+          "fairy",
+          "lesser",
+          "earth"
+        ],
+        "traitRefs": [
+          "metaphysical"
+        ],
         "actionIDs": []
       },
       "fairyPixie": {
@@ -11280,9 +11406,17 @@
         "description": "Lesser fairy: small green winged humanoid with butterfly-like wings, hand-sized.",
         "level": 1,
         "role": "assistant",
-        "creatureTypes": ["fairy"],
-        "tags": ["fairy", "lesser", "nature"],
-        "traitRefs": ["metaphysical"],
+        "creatureTypes": [
+          "fairy"
+        ],
+        "tags": [
+          "fairy",
+          "lesser",
+          "nature"
+        ],
+        "traitRefs": [
+          "metaphysical"
+        ],
         "actionIDs": []
       },
       "fairySalamander": {
@@ -11290,9 +11424,17 @@
         "description": "Lesser fairy: small red or orange lizard or amphibian.",
         "level": 1,
         "role": "assistant",
-        "creatureTypes": ["fairy"],
-        "tags": ["fairy", "lesser", "fire"],
-        "traitRefs": ["metaphysical"],
+        "creatureTypes": [
+          "fairy"
+        ],
+        "tags": [
+          "fairy",
+          "lesser",
+          "fire"
+        ],
+        "traitRefs": [
+          "metaphysical"
+        ],
         "actionIDs": []
       },
       "fairyUndine": {
@@ -11300,9 +11442,17 @@
         "description": "Lesser fairy: humanoid made of water, roughly 5½ ft tall.",
         "level": 1,
         "role": "assistant",
-        "creatureTypes": ["fairy"],
-        "tags": ["fairy", "lesser", "water"],
-        "traitRefs": ["metaphysical"],
+        "creatureTypes": [
+          "fairy"
+        ],
+        "tags": [
+          "fairy",
+          "lesser",
+          "water"
+        ],
+        "traitRefs": [
+          "metaphysical"
+        ],
         "actionIDs": []
       },
       "fairySprite": {
@@ -11310,9 +11460,17 @@
         "description": "Lesser fairy: whitish hand-sized humanoid without wings; floats.",
         "level": 1,
         "role": "assistant",
-        "creatureTypes": ["fairy"],
-        "tags": ["fairy", "lesser", "ice"],
-        "traitRefs": ["metaphysical"],
+        "creatureTypes": [
+          "fairy"
+        ],
+        "tags": [
+          "fairy",
+          "lesser",
+          "ice"
+        ],
+        "traitRefs": [
+          "metaphysical"
+        ],
         "actionIDs": []
       },
       "fairyFlugel": {
@@ -11320,9 +11478,17 @@
         "description": "Greater fairy: dog-like creature with wing-like ear appendages.",
         "level": 5,
         "role": "assistant",
-        "creatureTypes": ["fairy"],
-        "tags": ["fairy", "greater", "air"],
-        "traitRefs": ["metaphysical"],
+        "creatureTypes": [
+          "fairy"
+        ],
+        "tags": [
+          "fairy",
+          "greater",
+          "air"
+        ],
+        "traitRefs": [
+          "metaphysical"
+        ],
         "actionIDs": []
       },
       "fairyUnicorn": {
@@ -11330,9 +11496,17 @@
         "description": "Greater fairy: horse with a single horn on its forehead.",
         "level": 5,
         "role": "assistant",
-        "creatureTypes": ["fairy"],
-        "tags": ["fairy", "greater", "volt"],
-        "traitRefs": ["metaphysical"],
+        "creatureTypes": [
+          "fairy"
+        ],
+        "tags": [
+          "fairy",
+          "greater",
+          "volt"
+        ],
+        "traitRefs": [
+          "metaphysical"
+        ],
         "actionIDs": []
       },
       "fairyGargoyle": {
@@ -11340,9 +11514,17 @@
         "description": "Greater fairy: large bipedal stone creature with stone wings.",
         "level": 5,
         "role": "assistant",
-        "creatureTypes": ["fairy"],
-        "tags": ["fairy", "greater", "earth"],
-        "traitRefs": ["metaphysical"],
+        "creatureTypes": [
+          "fairy"
+        ],
+        "tags": [
+          "fairy",
+          "greater",
+          "earth"
+        ],
+        "traitRefs": [
+          "metaphysical"
+        ],
         "actionIDs": []
       },
       "fairyDryad": {
@@ -11350,9 +11532,17 @@
         "description": "Greater fairy: humanoid of plant matter, ~5½ ft tall.",
         "level": 5,
         "role": "assistant",
-        "creatureTypes": ["fairy"],
-        "tags": ["fairy", "greater", "nature"],
-        "traitRefs": ["metaphysical"],
+        "creatureTypes": [
+          "fairy"
+        ],
+        "tags": [
+          "fairy",
+          "greater",
+          "nature"
+        ],
+        "traitRefs": [
+          "metaphysical"
+        ],
         "actionIDs": []
       },
       "fairyCarbuncle": {
@@ -11360,9 +11550,17 @@
         "description": "Greater fairy: fennec-fox-like creature with a gem in its forehead.",
         "level": 5,
         "role": "assistant",
-        "creatureTypes": ["fairy"],
-        "tags": ["fairy", "greater", "fire"],
-        "traitRefs": ["metaphysical"],
+        "creatureTypes": [
+          "fairy"
+        ],
+        "tags": [
+          "fairy",
+          "greater",
+          "fire"
+        ],
+        "traitRefs": [
+          "metaphysical"
+        ],
         "actionIDs": []
       },
       "fairySelkie": {
@@ -11370,9 +11568,17 @@
         "description": "Greater fairy: seal that swims through the air.",
         "level": 5,
         "role": "assistant",
-        "creatureTypes": ["fairy"],
-        "tags": ["fairy", "greater", "water"],
-        "traitRefs": ["metaphysical"],
+        "creatureTypes": [
+          "fairy"
+        ],
+        "tags": [
+          "fairy",
+          "greater",
+          "water"
+        ],
+        "traitRefs": [
+          "metaphysical"
+        ],
         "actionIDs": []
       },
       "fairyAlmiraj": {
@@ -11380,9 +11586,17 @@
         "description": "Greater fairy: small horned rabbit.",
         "level": 5,
         "role": "assistant",
-        "creatureTypes": ["fairy"],
-        "tags": ["fairy", "greater", "ice"],
-        "traitRefs": ["metaphysical"],
+        "creatureTypes": [
+          "fairy"
+        ],
+        "tags": [
+          "fairy",
+          "greater",
+          "ice"
+        ],
+        "traitRefs": [
+          "metaphysical"
+        ],
         "actionIDs": []
       },
       "clayGolem": {
@@ -11426,7 +11640,10 @@
           }
         ],
         "defense": 1,
-        "traits": ["strikerSummon", "unliving"],
+        "traits": [
+          "strikerSummon",
+          "unliving"
+        ],
         "opportunityAttack": 1
       },
       "strawBird": {
@@ -11434,8 +11651,12 @@
         "description": "Geomancy utility Max 3 AP. Little to no damage; provides support. Assign actions when ready.",
         "role": "summon",
         "level": 2,
-        "creatureTypes": ["construct"],
-        "tags": ["geomancy"],
+        "creatureTypes": [
+          "construct"
+        ],
+        "tags": [
+          "geomancy"
+        ],
         "attributes": {
           "might": 9,
           "dexterity": 11,
@@ -11443,27 +11664,48 @@
           "willpower": 7,
           "presence": 7
         },
-        "actionIDs": ["monster/strawPeck"],
+        "actionIDs": [
+          "monster/strawPeck"
+        ],
         "defaultMaxHp": 10,
         "defaultMaxMp": 14,
         "defense": 0,
         "stability": 0,
         "speed": 5,
         "size": "1T",
-        "resistances": ["crushing", "earth"],
-        "vulnerabilities": [
-          { "stat": "slashing", "value": "3" },
-          { "stat": "fire", "value": "3" }
+        "resistances": [
+          "crushing",
+          "earth"
         ],
-        "traits": ["utilitySummon", "unliving", "flammable", "crafty", "flying"]
+        "vulnerabilities": [
+          {
+            "stat": "slashing",
+            "value": "3"
+          },
+          {
+            "stat": "fire",
+            "value": "3"
+          }
+        ],
+        "traits": [
+          "utilitySummon",
+          "unliving",
+          "flammable",
+          "crafty",
+          "flying"
+        ]
       },
       "waxGolem": {
         "name": "Wax golem",
         "description": "Geomancy minion Max 2 AP. Dies in one hit and fails all potencies; group minions share a turn in the slow phase. Typical mana cost 3 (rebalance as needed). Assign actions when ready.",
         "role": "minion",
         "level": 2,
-        "creatureTypes": ["construct"],
-        "tags": ["geomancy"],
+        "creatureTypes": [
+          "construct"
+        ],
+        "tags": [
+          "geomancy"
+        ],
         "attributes": {
           "might": 11,
           "dexterity": 9,
@@ -11471,27 +11713,48 @@
           "willpower": 6,
           "presence": 6
         },
-        "actionIDs": ["monster/sayonara"],
+        "actionIDs": [
+          "monster/sayonara"
+        ],
         "defaultMaxHp": 12,
         "defaultMaxMp": 12,
         "defense": 0,
         "stability": 0,
         "speed": 4,
         "size": "1T",
-        "resistances": ["water", "dark"],
-        "vulnerabilities": [
-          { "stat": "air", "value": "3" },
-          { "stat": "fire", "value": "3" }
+        "resistances": [
+          "water",
+          "dark"
         ],
-        "traits": ["minionType", "unliving", "extremeHeatSensitivity", "explosiveTendencies", "weakling"]
+        "vulnerabilities": [
+          {
+            "stat": "air",
+            "value": "3"
+          },
+          {
+            "stat": "fire",
+            "value": "3"
+          }
+        ],
+        "traits": [
+          "minionType",
+          "unliving",
+          "extremeHeatSensitivity",
+          "explosiveTendencies",
+          "weakling"
+        ]
       },
       "snowGolem": {
         "name": "Snow golem",
         "description": "Geomancy minion Max 2 AP. Dies in one hit and fails all potencies; group minions share a turn. Typical mana cost 3. Assign actions when ready.",
         "role": "minion",
         "level": 2,
-        "creatureTypes": ["construct"],
-        "tags": ["geomancy"],
+        "creatureTypes": [
+          "construct"
+        ],
+        "tags": [
+          "geomancy"
+        ],
         "attributes": {
           "might": 11,
           "dexterity": 9,
@@ -11499,27 +11762,46 @@
           "willpower": 6,
           "presence": 6
         },
-        "actionIDs": ["monster/snowballToss"],
+        "actionIDs": [
+          "monster/snowballToss"
+        ],
         "defaultMaxHp": 12,
         "defaultMaxMp": 12,
         "defense": 10,
         "stability": 0,
         "speed": 1,
         "size": "1S",
-        "resistances": ["water", "earth"],
-        "vulnerabilities": [
-          { "stat": "fire", "value": "3" },
-          { "stat": "light", "value": "3" }
+        "resistances": [
+          "water",
+          "earth"
         ],
-        "traits": ["minionType", "unliving", "extremeHeatSensitivity"]
+        "vulnerabilities": [
+          {
+            "stat": "fire",
+            "value": "3"
+          },
+          {
+            "stat": "light",
+            "value": "3"
+          }
+        ],
+        "traits": [
+          "minionType",
+          "unliving",
+          "extremeHeatSensitivity"
+        ]
       },
       "woodGolem": {
         "name": "Wood golem",
         "description": "Geomancy defender (rank 2). Tougher; cannot disengage; max 2 AP; attacks can slow or push. Assign actions when ready.",
         "role": "summon",
         "level": 4,
-        "creatureTypes": ["construct"],
-        "tags": ["geomancy"],
+        "creatureTypes": [
+          "construct"
+        ],
+        "tags": [
+          "geomancy"
+        ],
         "attributes": {
           "might": 14,
           "dexterity": 9,
@@ -11527,19 +11809,34 @@
           "willpower": 10,
           "presence": 6
         },
-        "actionIDs": ["monster/woodFist"],
+        "actionIDs": [
+          "monster/woodFist"
+        ],
         "defaultMaxHp": 32,
         "defaultMaxMp": 20,
         "defense": 3,
         "stability": 2,
         "speed": 3,
         "size": "1L",
-        "resistances": ["water", "earth"],
-        "vulnerabilities": [
-          { "stat": "slashing", "value": "3" },
-          { "stat": "fire", "value": "3" }
+        "resistances": [
+          "water",
+          "earth"
         ],
-        "traits": ["defenderSummon", "unliving", "largeFrame"],
+        "vulnerabilities": [
+          {
+            "stat": "slashing",
+            "value": "3"
+          },
+          {
+            "stat": "fire",
+            "value": "3"
+          }
+        ],
+        "traits": [
+          "defenderSummon",
+          "unliving",
+          "largeFrame"
+        ],
         "opportunityAttack": 2
       },
       "clayGolemChampion": {
@@ -11547,8 +11844,12 @@
         "description": "Geomancy striker (rank 2). Mobile striker; max 3 AP. Assign actions when ready.",
         "role": "summon",
         "level": 4,
-        "creatureTypes": ["construct"],
-        "tags": ["geomancy"],
+        "creatureTypes": [
+          "construct"
+        ],
+        "tags": [
+          "geomancy"
+        ],
         "attributes": {
           "might": 12,
           "dexterity": 11,
@@ -11556,20 +11857,33 @@
           "willpower": 10,
           "presence": 6
         },
-        "actionIDs": ["monster/claySword"],
+        "actionIDs": [
+          "monster/claySword"
+        ],
         "defaultMaxHp": 27,
         "defaultMaxMp": 20,
         "defense": 2,
         "stability": 1,
         "speed": 5,
         "size": "1M",
-        "resistances": ["slashing", "piercing"],
-        "vulnerabilities": [
-          { "stat": "crushing", "value": "3" },
-          { "stat": "water", "value": "3" }
+        "resistances": [
+          "slashing",
+          "piercing"
         ],
-
-        "traits": ["strikerSummon", "unliving"],
+        "vulnerabilities": [
+          {
+            "stat": "crushing",
+            "value": "3"
+          },
+          {
+            "stat": "water",
+            "value": "3"
+          }
+        ],
+        "traits": [
+          "strikerSummon",
+          "unliving"
+        ],
         "opportunityAttack": 4
       },
       "strawGolem": {
@@ -11577,8 +11891,12 @@
         "description": "Geomancy minion (rank 2). Typical mana cost 5. Assign actions when ready.",
         "role": "minion",
         "level": 4,
-        "creatureTypes": ["construct"],
-        "tags": ["geomancy"],
+        "creatureTypes": [
+          "construct"
+        ],
+        "tags": [
+          "geomancy"
+        ],
         "attributes": {
           "might": 11,
           "dexterity": 9,
@@ -11586,19 +11904,34 @@
           "willpower": 6,
           "presence": 6
         },
-        "actionIDs": ["monster/strawFist"],
+        "actionIDs": [
+          "monster/strawFist"
+        ],
         "defaultMaxHp": 14,
         "defaultMaxMp": 12,
         "defense": 1,
         "stability": 0,
         "speed": 4,
         "size": "1M",
-        "resistances": ["crushing", "earth"],
-        "vulnerabilities": [
-          { "stat": "slashing", "value": "3" },
-          { "stat": "fire", "value": "3" }
+        "resistances": [
+          "crushing",
+          "earth"
         ],
-        "traits": ["minionType", "unliving", "flammable"],
+        "vulnerabilities": [
+          {
+            "stat": "slashing",
+            "value": "3"
+          },
+          {
+            "stat": "fire",
+            "value": "3"
+          }
+        ],
+        "traits": [
+          "minionType",
+          "unliving",
+          "flammable"
+        ],
         "opportunityAttack": 1
       },
       "shielding": {
@@ -11606,8 +11939,12 @@
         "description": "Geomancy minion (rank 2). Typical mana cost 5. Assign actions when ready.",
         "role": "minion",
         "level": 4,
-        "creatureTypes": ["construct"],
-        "tags": ["geomancy"],
+        "creatureTypes": [
+          "construct"
+        ],
+        "tags": [
+          "geomancy"
+        ],
         "attributes": {
           "might": 11,
           "dexterity": 9,
@@ -11615,27 +11952,46 @@
           "willpower": 6,
           "presence": 6
         },
-        "actionIDs": ["monster/interception"],
+        "actionIDs": [
+          "monster/interception"
+        ],
         "defaultMaxHp": 14,
         "defaultMaxMp": 12,
         "defense": 1,
         "stability": 0,
         "speed": 4,
         "size": "1S",
-        "resistances": ["piercing", "earth"],
-        "vulnerabilities": [
-          { "stat": "crushing", "value": "3" },
-          { "stat": "water", "value": "3" }
+        "resistances": [
+          "piercing",
+          "earth"
         ],
-        "traits": ["minionType", "unliving", "weakling"]
+        "vulnerabilities": [
+          {
+            "stat": "crushing",
+            "value": "3"
+          },
+          {
+            "stat": "water",
+            "value": "3"
+          }
+        ],
+        "traits": [
+          "minionType",
+          "unliving",
+          "weakling"
+        ]
       },
       "skeletonMarksman": {
         "name": "Skeleton marksman",
         "description": "Necromancy marksman (rank 1). Ranged physical damage; max 2 AP. Assign actions when ready.",
         "role": "summon",
         "level": 2,
-        "creatureTypes": ["undead"],
-        "tags": ["necromancy"],
+        "creatureTypes": [
+          "undead"
+        ],
+        "tags": [
+          "necromancy"
+        ],
         "attributes": {
           "might": 9,
           "dexterity": 12,
@@ -11643,27 +11999,46 @@
           "willpower": 8,
           "presence": 6
         },
-        "actionIDs": ["monster/rottenCrossbow"],
+        "actionIDs": [
+          "monster/rottenCrossbow"
+        ],
         "defaultMaxHp": 10,
         "defaultMaxMp": 16,
         "defense": 1,
         "stability": 0,
         "speed": 4,
         "size": "1M",
-        "resistances": ["piercing","dark"],
-        "vulnerabilities": [
-          { "stat": "crushing", "value": "3" },
-          { "stat": "light", "value": "5" }
+        "resistances": [
+          "piercing",
+          "dark"
         ],
-        "traits": ["marksmanSummon", "unliving", "undeadConstitution"]
+        "vulnerabilities": [
+          {
+            "stat": "crushing",
+            "value": "3"
+          },
+          {
+            "stat": "light",
+            "value": "5"
+          }
+        ],
+        "traits": [
+          "marksmanSummon",
+          "unliving",
+          "undeadConstitution"
+        ]
       },
       "shade": {
         "name": "Shade",
         "description": "Necromancy utility (rank 1). Little to no damage; support-focused. Assign actions when ready.",
         "role": "summon",
         "level": 2,
-        "creatureTypes": ["undead"],
-        "tags": ["necromancy"],
+        "creatureTypes": [
+          "undead"
+        ],
+        "tags": [
+          "necromancy"
+        ],
         "attributes": {
           "might": 9,
           "dexterity": 9,
@@ -11671,28 +12046,49 @@
           "willpower": 12,
           "presence": 7
         },
-        "actionIDs": ["monster/possess"],
+        "actionIDs": [
+          "monster/possess"
+        ],
         "defaultMaxHp": 10,
         "defaultMaxMp": 24,
         "defense": 0,
         "stability": 0,
         "speed": 4,
         "size": "1M",
-        "resistances": ["slashing"],
-        "vulnerabilities": [
-          { "stat": "earth", "value": "3" },
-          { "stat": "light", "value": "5" }
+        "resistances": [
+          "slashing"
         ],
-        "immunities": ["dark"],
-        "traits": ["utilitySummon", "unliving", "undeadConstitution", "metaphysical"]
+        "vulnerabilities": [
+          {
+            "stat": "earth",
+            "value": "3"
+          },
+          {
+            "stat": "light",
+            "value": "5"
+          }
+        ],
+        "immunities": [
+          "dark"
+        ],
+        "traits": [
+          "utilitySummon",
+          "unliving",
+          "undeadConstitution",
+          "metaphysical"
+        ]
       },
       "zombie": {
         "name": "Zombie",
         "description": "Necromancy minion (rank 1). Typical mana cost 3. Assign actions when ready.",
         "role": "minion",
         "level": 2,
-        "creatureTypes": ["undead"],
-        "tags": ["necromancy"],
+        "creatureTypes": [
+          "undead"
+        ],
+        "tags": [
+          "necromancy"
+        ],
         "attributes": {
           "might": 11,
           "dexterity": 9,
@@ -11700,19 +12096,34 @@
           "willpower": 6,
           "presence": 6
         },
-        "actionIDs": ["monster/rottenPunch"],
+        "actionIDs": [
+          "monster/rottenPunch"
+        ],
         "defaultMaxHp": 12,
         "defaultMaxMp": 12,
         "defense": 1,
         "stability": 0,
         "speed": 4,
         "size": "1M",
-        "resistances": ["volt","dark"],
-        "vulnerabilities": [
-          { "stat": "fire", "value": "3" },
-          { "stat": "light", "value": "5" }
+        "resistances": [
+          "volt",
+          "dark"
         ],
-        "traits": ["minionType", "unliving", "undeadConstitution"],
+        "vulnerabilities": [
+          {
+            "stat": "fire",
+            "value": "3"
+          },
+          {
+            "stat": "light",
+            "value": "5"
+          }
+        ],
+        "traits": [
+          "minionType",
+          "unliving",
+          "undeadConstitution"
+        ],
         "opportunityAttack": 1
       },
       "crawlingHands": {
@@ -11720,8 +12131,12 @@
         "description": "Necromancy minion (rank 1). Typical mana cost 3. Assign actions when ready.",
         "role": "minion",
         "level": 2,
-        "creatureTypes": ["undead"],
-        "tags": ["necromancy"],
+        "creatureTypes": [
+          "undead"
+        ],
+        "tags": [
+          "necromancy"
+        ],
         "attributes": {
           "might": 11,
           "dexterity": 9,
@@ -11729,27 +12144,48 @@
           "willpower": 6,
           "presence": 6
         },
-        "actionIDs": ["monster/sayonara"],
+        "actionIDs": [
+          "monster/sayonara"
+        ],
         "defaultMaxHp": 16,
         "defaultMaxMp": 12,
         "defense": 1,
         "stability": 0,
         "speed": 4,
         "size": "1T",
-        "resistances": ["volt","dark"],
-        "vulnerabilities": [
-          { "stat": "fire", "value": "3" },
-          { "stat": "light", "value": "5" }
+        "resistances": [
+          "volt",
+          "dark"
         ],
-        "traits": ["minionType", "unliving", "undeadConstitution", "extraGrabby", "weakling"]
+        "vulnerabilities": [
+          {
+            "stat": "fire",
+            "value": "3"
+          },
+          {
+            "stat": "light",
+            "value": "5"
+          }
+        ],
+        "traits": [
+          "minionType",
+          "unliving",
+          "undeadConstitution",
+          "extraGrabby",
+          "weakling"
+        ]
       },
       "wight": {
         "name": "Wight",
         "description": "Necromancy defender (rank 2). Cannot disengage; max 2 AP; attacks can slow or push. Assign actions when ready.",
         "role": "summon",
         "level": 4,
-        "creatureTypes": ["undead"],
-        "tags": ["necromancy"],
+        "creatureTypes": [
+          "undead"
+        ],
+        "tags": [
+          "necromancy"
+        ],
         "attributes": {
           "might": 14,
           "dexterity": 9,
@@ -11757,19 +12193,34 @@
           "willpower": 8,
           "presence": 6
         },
-        "actionIDs": ["monster/filthyMace"],
+        "actionIDs": [
+          "monster/filthyMace"
+        ],
         "defaultMaxHp": 32,
         "defaultMaxMp": 12,
         "defense": 2,
         "stability": 2,
         "speed": 3,
         "size": "1M",
-        "resistances": ["fire","dark"],
-        "vulnerabilities": [
-          { "stat": "water", "value": "3" },
-          { "stat": "light", "value": "5" }
+        "resistances": [
+          "fire",
+          "dark"
         ],
-        "traits": ["defenderSummon", "unliving", "undeadConstitution"],
+        "vulnerabilities": [
+          {
+            "stat": "water",
+            "value": "3"
+          },
+          {
+            "stat": "light",
+            "value": "5"
+          }
+        ],
+        "traits": [
+          "defenderSummon",
+          "unliving",
+          "undeadConstitution"
+        ],
         "opportunityAttack": 4
       },
       "wraith": {
@@ -11777,8 +12228,12 @@
         "description": "Necromancy striker (rank 2). Mobile; max 3 AP. Assign actions when ready.",
         "role": "summon",
         "level": 4,
-        "creatureTypes": ["undead"],
-        "tags": ["necromancy"],
+        "creatureTypes": [
+          "undead"
+        ],
+        "tags": [
+          "necromancy"
+        ],
         "attributes": {
           "might": 10,
           "dexterity": 13,
@@ -11786,20 +12241,37 @@
           "willpower": 8,
           "presence": 6
         },
-        "actionIDs": ["monster/spectralClaws"],
+        "actionIDs": [
+          "monster/spectralClaws"
+        ],
         "defaultMaxHp": 22,
         "defaultMaxMp": 12,
         "defense": 0,
         "stability": 0,
         "speed": 5,
         "size": "1M",
-        "resistances": ["fire"],
-        "vulnerabilities": [
-          { "stat": "earth", "value": "3" },
-          { "stat": "light", "value": "5" }
+        "resistances": [
+          "fire"
         ],
-        "immunities": ["dark"],
-        "traits": ["strikerSummon", "unliving", "undeadConstitution", "metaphysical"],
+        "vulnerabilities": [
+          {
+            "stat": "earth",
+            "value": "3"
+          },
+          {
+            "stat": "light",
+            "value": "5"
+          }
+        ],
+        "immunities": [
+          "dark"
+        ],
+        "traits": [
+          "strikerSummon",
+          "unliving",
+          "undeadConstitution",
+          "metaphysical"
+        ],
         "opportunityAttack": 2
       },
       "ghost": {
@@ -11807,8 +12279,12 @@
         "description": "Necromancy minion (rank 2). Typical mana cost 5. Assign actions when ready.",
         "role": "minion",
         "level": 4,
-        "creatureTypes": ["undead"],
-        "tags": ["necromancy"],
+        "creatureTypes": [
+          "undead"
+        ],
+        "tags": [
+          "necromancy"
+        ],
         "attributes": {
           "might": 9,
           "dexterity": 9,
@@ -11816,28 +12292,50 @@
           "willpower": 11,
           "presence": 6
         },
-        "actionIDs": ["monster/magicInterception"],
+        "actionIDs": [
+          "monster/magicInterception"
+        ],
         "defaultMaxHp": 12,
         "defaultMaxMp": 22,
         "defense": 1,
         "stability": 0,
         "speed": 4,
         "size": "1M",
-        "resistances": ["fire"],
-        "vulnerabilities": [
-          { "stat": "earth", "value": "3" },
-          { "stat": "light", "value": "5" }
+        "resistances": [
+          "fire"
         ],
-        "immunities": ["dark"],
-        "traits": ["minionType", "unliving", "undeadConstitution", "metaphysical", "weakling"]
+        "vulnerabilities": [
+          {
+            "stat": "earth",
+            "value": "3"
+          },
+          {
+            "stat": "light",
+            "value": "5"
+          }
+        ],
+        "immunities": [
+          "dark"
+        ],
+        "traits": [
+          "minionType",
+          "unliving",
+          "undeadConstitution",
+          "metaphysical",
+          "weakling"
+        ]
       },
       "poltergeist": {
         "name": "Poltergeist",
         "description": "Necromancy minion (rank 2). Typical mana cost 5. Assign actions when ready.",
         "role": "minion",
         "level": 4,
-        "creatureTypes": ["undead"],
-        "tags": ["necromancy"],
+        "creatureTypes": [
+          "undead"
+        ],
+        "tags": [
+          "necromancy"
+        ],
         "attributes": {
           "might": 11,
           "dexterity": 9,
@@ -11845,16 +12343,31 @@
           "willpower": 6,
           "presence": 6
         },
-        "actionIDs": ["monster/shoePossession"],
+        "actionIDs": [
+          "monster/shoePossession"
+        ],
         "defaultMaxHp": 14,
         "defaultMaxMp": 12,
         "defense": 1,
         "stability": 0,
         "speed": 4,
         "size": "1M",
-        "vulnerabilities": [{ "stat": "light", "value": "5" }],
-        "immunities": ["dark"],
-        "traits": ["minionType", "unliving", "undeadConstitution", "metaphysical", "weakling"]
+        "vulnerabilities": [
+          {
+            "stat": "light",
+            "value": "5"
+          }
+        ],
+        "immunities": [
+          "dark"
+        ],
+        "traits": [
+          "minionType",
+          "unliving",
+          "undeadConstitution",
+          "metaphysical",
+          "weakling"
+        ]
       }
     }
   },
@@ -12005,7 +12518,7 @@
         },
         "heavy": {
           "name": "Heavy",
-          "description": "This action does not have an AP penalty for if using a Heavy weapon."
+          "description": "This action does not have an AP penalty for using a Heavy weapon."
         },
         "hemorrhage": {
           "name": "Hemorrhage",
@@ -12021,7 +12534,7 @@
         },
         "maintain": {
           "name": "Maintain",
-          "description": "You may only have one Maintain effect active at once. If you take damage equal or greater than half your Willpower score (round up) in one turn the effect ends. If you don't pay the Maintain cost then the effect ends."
+          "description": "You may only have one Maintain effect active at once. If you take damage equal to or greater than your Willpower score in one turn the effect ends. If you don't pay the Maintain cost then the effect ends."
         },
         "manifest": {
           "name": "Manifest",

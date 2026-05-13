@@ -35,7 +35,13 @@ export function formatTraitEffectChoiceLabel(
         case "StatChange":
             return effect.stat
                 ? `${effect.stat} +${effect.value ?? "0"}`
-                : `+${effect.value ?? "0"}`;
+                : `+${effect.value ?? "0"}`
+        case "AttributeChange": {
+            const parts = [effect.stat, effect.value].filter(
+                (x) => x != null && String(x).trim() !== ""
+            )
+            return parts.length ? parts.map(String).join(" ") : "Attribute change"
+        }
         case "Vulnerability": {
             const t = vulnerabilityDamageType(effect);
             const a = vulnerabilityAmount(effect);

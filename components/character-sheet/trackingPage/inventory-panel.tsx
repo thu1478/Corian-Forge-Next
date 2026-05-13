@@ -81,6 +81,8 @@ import {
   buildItemInventoryTraitBlocks,
   hydrateItemGrantedActionCards,
 } from "@/lib/item-inventory-details"
+import type { TraitEffect } from "@/lib/rules"
+import { formatTraitEffectChoiceLabel } from "@/lib/trait-selection"
 import {
   ActionCardComponent,
 } from "@/components/character-sheet/combatPage/action-card-manager"
@@ -208,24 +210,18 @@ function filterItems(
   })
 }
 
-function formatTraitEffectLine(effect: unknown): string {
+function formatTraitEffectLine(effect: unknown, rules?: Record<string, unknown>): string {
   if (effect == null) return ""
   if (typeof effect !== "object") return String(effect)
-  const e = effect as Record<string, unknown>
-  if (e.type === "GrantActionCard" && e.value != null) {
-    return `Grants action card: ${e.value}`
+  const typed = effect as { type?: string }
+  if (!typed.type || typeof typed.type !== "string") {
+    try {
+      return JSON.stringify(effect)
+    } catch {
+      return "effect"
+    }
   }
-  if (e.type === "Immunity" && typeof e.stat === "string" && e.stat.trim()) {
-    return `Immune: ${e.stat}`
-  }
-  if (e.type === "GrantSight" && typeof e.stat === "string" && e.stat.trim()) {
-    return `Sight: ${e.stat}`
-  }
-  try {
-    return JSON.stringify(e)
-  } catch {
-    return String(e.type ?? "effect")
-  }
+  return formatTraitEffectChoiceLabel(effect as TraitEffect, rules as any)
 }
 
 function DraggableItemRow({
@@ -1121,7 +1117,7 @@ function InventoryItemDetailSheet({
                               )
                           )
                           .map((eff, i) => (
-                            <li key={i}>{formatTraitEffectLine(eff)}</li>
+                            <li key={i}>{formatTraitEffectLine(eff, rules)}</li>
                           ))}
                       </ul>
                     )}

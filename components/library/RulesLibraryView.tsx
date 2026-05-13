@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { cn } from "@/lib/utils"
 import { formatFeatPrerequisiteLines } from "@/lib/feat-prereqs"
+import { buildItemInventoryTraitBlocks } from "@/lib/item-inventory-details"
 import { formatTraitEffectChoiceLabel } from "@/lib/trait-selection"
 import {
     Select,
@@ -914,9 +915,13 @@ export function RulesLibraryView() {
                                                             {passive.description}
                                                         </p>
                                                         {Array.isArray(passive.effects) && passive.effects.length > 0 ? (
-                                                            <pre className="text-xs bg-muted/50 p-2 rounded-md overflow-x-auto">
-                                                                {JSON.stringify(passive.effects, null, 2)}
-                                                            </pre>
+                                                            <ul className="list-inside list-disc space-y-0.5 text-xs text-muted-foreground">
+                                                                {passive.effects.map((eff: Record<string, unknown>, i: number) => (
+                                                                    <li key={i}>
+                                                                        {formatTraitEffectChoiceLabel(eff as any, RULES)}
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
                                                         ) : null}
                                                         {passive.powerRoll ? (
                                                             <TraitPowerRollCollapsible
@@ -1349,9 +1354,93 @@ export function RulesLibraryView() {
                                                     </div>
                                                 ) : null}
                                                 {def.traits && def.traits.length > 0 ? (
-                                                    <pre className="text-xs bg-muted/50 p-2 rounded-md overflow-x-auto max-h-40">
-                                                        {JSON.stringify(def.traits, null, 2)}
-                                                    </pre>
+                                                    (() => {
+                                                        const traitBlocks = buildItemInventoryTraitBlocks(
+                                                            { traits: def.traits } as InventoryItem,
+                                                            RULES
+                                                        )
+                                                        if (traitBlocks.length === 0) {
+                                                            return (
+                                                                <p className="text-xs text-muted-foreground">
+                                                                    Trait entries could not be resolved for preview.
+                                                                </p>
+                                                            )
+                                                        }
+                                                        return (
+                                                            <div className="space-y-3 border-t border-border/40 pt-2">
+                                                                <span className="text-sm font-semibold">Item traits</span>
+                                                                {traitBlocks.map((block) => (
+                                                                    <div
+                                                                        key={block.traitId}
+                                                                        className="space-y-2 rounded-md border border-border/50 bg-muted/10 p-3"
+                                                                    >
+                                                                        <div>
+                                                                            <p className="text-sm font-semibold text-foreground">
+                                                                                {block.name}
+                                                                            </p>
+                                                                            {block.minLevel != null ? (
+                                                                                <p className="text-xs text-muted-foreground">
+                                                                                    Min. level {block.minLevel}
+                                                                                </p>
+                                                                            ) : null}
+                                                                            {block.description ? (
+                                                                                <p className="mt-1 whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground">
+                                                                                    {block.description}
+                                                                                </p>
+                                                                            ) : null}
+                                                                        </div>
+                                                                        {block.effects && block.effects.length > 0 ? (
+                                                                            <ul className="list-inside list-disc space-y-0.5 text-xs text-muted-foreground">
+                                                                                {block.effects
+                                                                                    .filter(
+                                                                                        (eff) =>
+                                                                                            !(
+                                                                                                typeof eff ===
+                                                                                                    "object" &&
+                                                                                                eff != null &&
+                                                                                                (eff as { type?: string })
+                                                                                                    .type === "GrantActionCard"
+                                                                                            )
+                                                                                    )
+                                                                                    .map((eff, i) => (
+                                                                                        <li key={i}>
+                                                                                            {formatTraitEffectChoiceLabel(
+                                                                                                eff as any,
+                                                                                                RULES
+                                                                                            )}
+                                                                                        </li>
+                                                                                    ))}
+                                                                            </ul>
+                                                                        ) : null}
+                                                                        {block.grantedActionCards.length > 0 ? (
+                                                                            <div className="space-y-2 pt-1">
+                                                                                <p className="text-[10px] font-bold uppercase text-muted-foreground">
+                                                                                    Granted cards
+                                                                                </p>
+                                                                                {block.grantedActionCards.map(
+                                                                                    (action) => (
+                                                                                        <ActionCardComponent
+                                                                                            key={`${id}-${block.traitId}-${action.id}`}
+                                                                                            action={action}
+                                                                                            attributes={DEMO_ATTRIBUTES}
+                                                                                            currentWeapon={cardWeapon}
+                                                                                            offhandWeapon={null}
+                                                                                            forceCollapsed={false}
+                                                                                            powerRollDisplayMode="simple"
+                                                                                            defaultPowerRollExpanded={false}
+                                                                                            collapseAllSignal={
+                                                                                                collapseAllSignal
+                                                                                            }
+                                                                                        />
+                                                                                    )
+                                                                                )}
+                                                                            </div>
+                                                                        ) : null}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )
+                                                    })()
                                                 ) : null}
                                                 {def.powerRoll ? (
                                                     <TraitPowerRollCollapsible
