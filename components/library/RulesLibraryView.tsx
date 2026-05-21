@@ -5,9 +5,11 @@ import rulesData from "@/lib/rules.json"
 import type { ActionCard, PowerRoll } from "@/lib/rules"
 import { ActionCardComponent } from "@/components/character-sheet/combatPage/action-card-manager"
 import { TraitPowerRollCollapsible } from "@/components/power-roll/trait-power-roll-collapsible"
+import { EffectGlossaryTag } from "@/components/effect-glossary-tag"
 import { unwrapEmbeddedActionCard } from "@/lib/embedded-action-card"
 import { hydrateActionCardById } from "@/lib/action-hydrate"
 import type { InventoryItem } from "@/lib/equipment-data"
+import { formatWeaponAttribLabel } from "@/lib/equipment-stats-display"
 import { formatModifier, getAttributeModifier } from "@/lib/character-data"
 import {
     type CreatureDefinition,
@@ -24,6 +26,7 @@ import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { cn } from "@/lib/utils"
 import { formatFeatPrerequisiteLines } from "@/lib/feat-prereqs"
+import { compareFeatsAlphabetically } from "@/lib/feat-sort"
 import { buildItemInventoryTraitBlocks } from "@/lib/item-inventory-details"
 import { formatTraitEffectChoiceLabel } from "@/lib/trait-selection"
 import {
@@ -44,6 +47,7 @@ import {
     PanelLeftClose,
     PanelLeftOpen,
     Swords,
+    Users,
 } from "lucide-react"
 
 const RULES = rulesData as Record<string, any>
@@ -159,6 +163,80 @@ function tocSlug(s: string): string {
             .replace(/[^a-zA-Z0-9]+/g, "-")
             .replace(/^-|-$/g, "")
             .toLowerCase() || "section"
+    )
+}
+
+function sortedRacePassives(
+    passives: Record<string, unknown> | undefined,
+    type: "innate" | "selectable"
+): { pid: string; passive: Record<string, any> }[] {
+    return Object.entries(passives ?? {})
+        .map(([pid, p]) => ({ pid, passive: p as Record<string, any> }))
+        .filter(({ passive }) => (passive.type === "selectable" ? "selectable" : "innate") === type)
+        .sort((a, b) =>
+            String(a.passive.name ?? a.pid).localeCompare(String(b.passive.name ?? b.pid), undefined, {
+                sensitivity: "base",
+            })
+        )
+}
+
+function LibraryRacePassiveCard({
+    pid,
+    passive,
+    previewWeapon,
+    collapseAllSignal,
+}: {
+    pid: string
+    passive: Record<string, any>
+    previewWeapon: InventoryItem | null
+    collapseAllSignal: number
+}) {
+    return (
+        <div className="rounded-lg border border-border bg-card/50 p-4 space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+                <span className="font-semibold">{passive.name}</span>
+                <Badge variant="outline" className="font-mono text-[10px]">
+                    {pid}
+                </Badge>
+                {passive.type === "selectable" && typeof passive.ptCost === "number" ? (
+                    <Badge variant={passive.ptCost < 0 ? "destructive" : "secondary"}>
+                        {passive.ptCost > 0 ? `+${passive.ptCost}` : passive.ptCost} pt
+                    </Badge>
+                ) : passive.type === "innate" ? (
+                    <Badge variant="secondary">Innate</Badge>
+                ) : null}
+            </div>
+            <p className="text-sm text-muted-foreground whitespace-pre-line">{passive.description}</p>
+            {typeof passive.selectAmount === "number" &&
+            passive.selectAmount > 0 &&
+            Array.isArray(passive.effects) &&
+            passive.effects.length > passive.selectAmount ? (
+                <div className="space-y-1 text-sm">
+                    <span className="font-medium">Choose {passive.selectAmount}</span>
+                    <ul className="list-disc pl-4 text-muted-foreground space-y-0.5">
+                        {passive.effects.map((eff: Record<string, unknown>, i: number) => (
+                            <li key={i}>{formatTraitEffectChoiceLabel(eff as any, RULES)}</li>
+                        ))}
+                    </ul>
+                </div>
+            ) : Array.isArray(passive.effects) && passive.effects.length > 0 ? (
+                <ul className="list-inside list-disc space-y-0.5 text-xs text-muted-foreground">
+                    {passive.effects.map((eff: Record<string, unknown>, i: number) => (
+                        <li key={i}>{formatTraitEffectChoiceLabel(eff as any, RULES)}</li>
+                    ))}
+                </ul>
+            ) : null}
+            {passive.powerRoll ? (
+                <TraitPowerRollCollapsible
+                    roll={passive.powerRoll as PowerRoll}
+                    attributes={DEMO_ATTRIBUTES}
+                    currentWeapon={previewWeapon}
+                    offhandWeapon={null}
+                    defaultExpanded={false}
+                    collapseAllSignal={collapseAllSignal}
+                />
+            ) : null}
+        </div>
     )
 }
 
@@ -417,6 +495,7 @@ const LibraryCreatureCard = memo(function LibraryCreatureCard({
 export function RulesLibraryView() {
     const [mainTab, setMainTab] = useState("classes")
     const [classSearch, setClassSearch] = useState("")
+    const [raceSearch, setRaceSearch] = useState("")
     const [featSearch, setFeatSearch] = useState("")
     const [skillSearch, setSkillSearch] = useState("")
     const [equipmentSearch, setEquipmentSearch] = useState("")
@@ -454,6 +533,28 @@ export function RulesLibraryView() {
     }, [filteredClasses, selectedClassId])
 
     const selectedClass = effectiveClassId ? RULES.classes?.[effectiveClassId] : null
+
+    const raceEntries = useMemo(() => {
+        const races = RULES.races ?? {}
+        return Object.entries(races)
+            .map(([id, r]) => ({ id, ...(r as object) } as Record<string, any>))
+            .sort((a, b) => String(a.name ?? a.id).localeCompare(String(b.name ?? b.id)))
+    }, [])
+
+    const filteredRaces = useMemo(() => {
+        const q = raceSearch.trim().toLowerCase()
+        if (!q) return raceEntries
+        return raceEntries.filter((race) => {
+            const passiveBlob = Object.entries(race.passives ?? {})
+                .map(([pid, p]) => {
+                    const passive = p as Record<string, unknown>
+                    return [pid, passive.name, passive.description, passive.type].filter(Boolean).join(" ")
+                })
+                .join(" ")
+            const blob = [race.id, race.name, race.description, passiveBlob].filter(Boolean).join(" ")
+            return matchesQuery(blob, q)
+        })
+    }, [raceEntries, raceSearch])
 
     const featEntries = useMemo(() => {
         const feats = RULES.system?.feats ?? {}
@@ -529,7 +630,15 @@ export function RulesLibraryView() {
             if (b === "other") return -1
             return Number(a) - Number(b)
         })
-        return keys.map((levelKey) => ({ levelKey, label: levelKey === "other" ? "Other" : `Level ${levelKey}`, feats: buckets.get(levelKey)! }))
+        return keys.map((levelKey) => {
+            const row = buckets.get(levelKey)!
+            const feats = [...row].sort((a, b) => compareFeatsAlphabetically(a.id, a, b.id, b))
+            return {
+                levelKey,
+                label: levelKey === "other" ? "Other" : `Level ${levelKey}`,
+                feats,
+            }
+        })
     }, [filteredFeats])
 
     const creatureEntries = useMemo(() => {
@@ -616,10 +725,14 @@ export function RulesLibraryView() {
                         <span>Rules library — preview action cards and catalog data from rules.json</span>
                     </div>
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                        <TabsList className="w-full sm:w-auto sm:flex-1 grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-1 h-auto min-h-10 py-1">
+                        <TabsList className="w-full sm:w-auto sm:flex-1 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1 h-auto min-h-10 py-1">
                             <TabsTrigger value="classes" className="gap-2">
                                 <Swords className="w-4 h-4" />
                                 Classes
+                            </TabsTrigger>
+                            <TabsTrigger value="races" className="gap-2">
+                                <Users className="w-4 h-4" />
+                                Races
                             </TabsTrigger>
                             <TabsTrigger value="feats" className="gap-2">
                                 <Award className="w-4 h-4" />
@@ -759,6 +872,25 @@ export function RulesLibraryView() {
                                                     </CollapsibleContent>
                                                 </Collapsible>
                                             ) : null}
+                                        </>
+                                    ) : null}
+                                    {mainTab === "races" ? (
+                                        <>
+                                            <p className="px-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                                                Races
+                                            </p>
+                                            <div className="max-h-56 space-y-0.5 overflow-y-auto pr-1">
+                                                {filteredRaces.map((race) => (
+                                                    <button
+                                                        key={race.id}
+                                                        type="button"
+                                                        onClick={() => libraryScrollTo(`lib-race-${tocSlug(race.id)}`)}
+                                                        className="w-full rounded-md px-2 py-1.5 text-left text-xs hover:bg-muted"
+                                                    >
+                                                        <span className="font-medium">{race.name ?? race.id}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
                                         </>
                                     ) : null}
                                     {mainTab === "feats" ? (
@@ -1082,6 +1214,87 @@ export function RulesLibraryView() {
                     </div>
                 </TabsContent>
 
+                <TabsContent value="races" className="mt-0 space-y-6">
+                    <div className="space-y-1.5 max-w-md">
+                        <Label htmlFor="lib-race-search">Search races</Label>
+                        <Input
+                            id="lib-race-search"
+                            placeholder="Name, description, or trait…"
+                            value={raceSearch}
+                            onChange={(e) => setRaceSearch(e.target.value)}
+                        />
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                        Selectable racial traits cost points in character creation (typically 3 total); innate traits are
+                        automatic.
+                    </p>
+                    <div className="space-y-12">
+                        {filteredRaces.length === 0 ? (
+                            <p className="text-muted-foreground">No races match your search.</p>
+                        ) : (
+                            filteredRaces.map((race) => {
+                                const innate = sortedRacePassives(race.passives, "innate")
+                                const selectable = sortedRacePassives(race.passives, "selectable")
+                                return (
+                                    <section
+                                        key={race.id}
+                                        id={`lib-race-${tocSlug(race.id)}`}
+                                        className="scroll-mt-36 space-y-4"
+                                    >
+                                        <div>
+                                            <h2 className="text-2xl font-black tracking-tight">{race.name ?? race.id}</h2>
+                                            <Badge variant="outline" className="mt-2 font-mono text-[10px]">
+                                                {race.id}
+                                            </Badge>
+                                            {typeof race.description === "string" && race.description.trim() ? (
+                                                <p className="text-sm text-muted-foreground mt-3 whitespace-pre-line leading-relaxed">
+                                                    {race.description}
+                                                </p>
+                                            ) : null}
+                                        </div>
+                                        {innate.length > 0 ? (
+                                            <div className="space-y-3">
+                                                <h3 className="text-lg font-bold border-b border-border pb-1">
+                                                    Innate traits
+                                                </h3>
+                                                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                                                    {innate.map(({ pid, passive }) => (
+                                                        <LibraryRacePassiveCard
+                                                            key={pid}
+                                                            pid={pid}
+                                                            passive={passive}
+                                                            previewWeapon={previewWeapon}
+                                                            collapseAllSignal={collapseAllSignal}
+                                                        />
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ) : null}
+                                        {selectable.length > 0 ? (
+                                            <div className="space-y-3">
+                                                <h3 className="text-lg font-bold border-b border-border pb-1">
+                                                    Selectable traits
+                                                </h3>
+                                                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                                                    {selectable.map(({ pid, passive }) => (
+                                                        <LibraryRacePassiveCard
+                                                            key={pid}
+                                                            pid={pid}
+                                                            passive={passive}
+                                                            previewWeapon={previewWeapon}
+                                                            collapseAllSignal={collapseAllSignal}
+                                                        />
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ) : null}
+                                    </section>
+                                )
+                            })
+                        )}
+                    </div>
+                </TabsContent>
+
                 <TabsContent value="feats" className="mt-0 space-y-6">
                     <div className="space-y-1.5 max-w-md">
                         <Label htmlFor="lib-feat-search">Search feats</Label>
@@ -1309,16 +1522,14 @@ export function RulesLibraryView() {
                                                     {def.description}
                                                 </p>
                                                 {Array.isArray(def.tags) && def.tags.length > 0 ? (
-                                                    <div className="flex flex-wrap gap-1">
+                                                    <div className="flex flex-wrap gap-1.5">
                                                         {def.tags.map((t: string) => (
-                                                            <Badge key={t} variant="outline">
-                                                                {t}
-                                                            </Badge>
+                                                            <EffectGlossaryTag key={t} tag={t} />
                                                         ))}
                                                     </div>
                                                 ) : null}
                                                 {def.type === "weapon" ? (
-                                                    <div className="text-sm grid grid-cols-2 sm:grid-cols-4 gap-2 text-muted-foreground">
+                                                    <div className="text-sm grid grid-cols-2 sm:grid-cols-3 gap-2 text-muted-foreground">
                                                         <span>
                                                             <span className="font-medium text-foreground">Damage</span>{" "}
                                                             {def.damage}
@@ -1330,6 +1541,9 @@ export function RulesLibraryView() {
                                                         <span>
                                                             <span className="font-medium text-foreground">Range</span>{" "}
                                                             {def.range}
+                                                        </span>
+                                                        <span className="sm:col-span-2">
+                                                            {formatWeaponAttribLabel(def.attributes)}
                                                         </span>
                                                         <span>
                                                             <span className="font-medium text-foreground">Value</span>{" "}

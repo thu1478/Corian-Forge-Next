@@ -1,5 +1,7 @@
 import { actionTagsIncludeCanonical } from "@/lib/action-tag-utils"
-import type { InventoryItem, WeaponItem } from "@/lib/equipment-data"
+import type { InventoryItem, ShieldItem, WeaponItem } from "@/lib/equipment-data"
+import type { TraitRef } from "@/lib/baseRefs"
+import { traitRefsIncludeId } from "@/lib/trait-helpers"
 
 function isWeaponItem(w: InventoryItem | null | undefined): w is WeaponItem {
   return !!w && w.type === "weapon"
@@ -45,6 +47,50 @@ function weaponIsFirearm(w: WeaponItem): boolean {
   return actionTagsIncludeCanonical(w.tags || [], "Firearm")
 }
 
+function isShieldItem(w: InventoryItem | null | undefined): w is ShieldItem {
+  return !!w && w.type === "shield"
+}
+
+/** Shields count for Weapon actions when Shield Master applies (melee bashes and ranged throws). */
+function shieldHandSatisfiesWeaponActionKind(_actionTags: string[]): boolean {
+  return true
+}
+
+export type WeaponActionEligibilityOptions = {
+  traits?: readonly TraitRef[]
+}
+
+function hasTightGrip(traits: readonly TraitRef[] | undefined): boolean {
+  return !!traits && traitRefsIncludeId(traits, "tightGrip")
+}
+
+/** Effective 1H/2H profile for action tag matching (Tight Grip: non-Heavy 2H counts as 1H). */
+export function weaponEffectiveHandProfile(
+  w: WeaponItem,
+  hasTightGripFeat: boolean
+): { oneHand: boolean; twoHand: boolean } {
+  const twoHand = actionTagsIncludeCanonical(w.tags, "2H")
+  const oneHand =
+    actionTagsIncludeCanonical(w.tags, "1H") ||
+    (hasTightGripFeat && twoHand && !actionTagsIncludeCanonical(w.tags, "heavy"))
+  return { oneHand, twoHand }
+}
+
+/** Glossary 1H/2H action tags vs equipped weapon hand profile. */
+export function weaponSatisfiesActionHandTags(
+  actionTags: string[],
+  w: WeaponItem,
+  hasTightGripFeat: boolean
+): boolean {
+  const wants1H = actionTagsIncludeCanonical(actionTags, "1H")
+  const wants2H = actionTagsIncludeCanonical(actionTags, "2H")
+  if (!wants1H && !wants2H) return true
+  const { oneHand, twoHand } = weaponEffectiveHandProfile(w, hasTightGripFeat)
+  if (wants1H && !oneHand) return false
+  if (wants2H && !twoHand) return false
+  return true
+}
+
 /** At least one hand holds a weapon with the Brawling tag (for brawling-only non-Weapon actions). */
 export function hasBrawlingWeaponInHands(
   activeWeapon: InventoryItem | null | undefined,
@@ -55,6 +101,24 @@ export function hasBrawlingWeaponInHands(
     if (actionTagsIncludeCanonical(w.tags || [], "brawling")) return true
   }
   return false
+}
+
+function weaponPassesActionChecks(
+  w: WeaponItem,
+  actionTags: string[],
+  rollStats: readonly string[],
+  firearmAction: boolean,
+  tightGrip: boolean
+): boolean {
+  if (firearmAction) {
+    if (!weaponIsFirearm(w)) return false
+  } else if (!weaponAttributesCompatible(w, rollStats)) {
+    return false
+  }
+  if (!weaponMatchesActionKind(w, actionTags)) return false
+  if (!weaponSatisfiesBrawlingTag(w, actionTags)) return false
+  if (!weaponSatisfiesActionHandTags(actionTags, w, tightGrip)) return false
+  return true
 }
 
 /**
@@ -69,22 +133,34 @@ export function hasEquippedWeaponForWeaponAction(
   rollStats: readonly string[] | undefined,
   activeWeapon: InventoryItem | null | undefined,
   offhandWeapon: InventoryItem | null | undefined,
+  options?: WeaponActionEligibilityOptions,
 ): boolean {
   const tags = actionTags ?? []
   const stats = rollStats ?? []
   const firearmAction = isFirearmAction(tags)
+  const tightGrip = hasTightGrip(options?.traits)
+
   for (const w of [activeWeapon, offhandWeapon]) {
     if (!isWeaponItem(w)) continue
-    if (firearmAction) {
-      if (!weaponIsFirearm(w)) continue
-    } else {
-      if (!weaponAttributesCompatible(w, stats)) continue
-    }
-    if (!weaponMatchesActionKind(w, tags)) continue
-    if (!weaponSatisfiesBrawlingTag(w, tags)) continue
-    return true
+    if (weaponPassesActionChecks(w, tags, stats, firearmAction, tightGrip)) return true
   }
+
+  const shieldMaster = options?.traits && traitRefsIncludeId(options.traits, "shieldMaster")
+  if (shieldMaster && actionTagsIncludeCanonical(tags, "Weapon") && !firearmAction) {
+    for (const s of [activeWeapon, offhandWeapon]) {
+      if (!isShieldItem(s)) continue
+      if (actionTagsIncludeCanonical(tags, "brawling")) continue
+      if (stats.length > 0 && !weaponAttributesCompatibleShieldMaster(stats)) continue
+      if (!shieldHandSatisfiesWeaponActionKind(tags)) continue
+      return true
+    }
+  }
+
   return false
+}
+
+function weaponAttributesCompatibleShieldMaster(_rollStats: readonly string[]): boolean {
+  return true
 }
 
 /**
@@ -98,20 +174,16 @@ export function resolveWeaponForActionPowerRoll(
   rollStats: readonly string[] | undefined,
   activeWeapon: InventoryItem | null | undefined,
   offhandWeapon: InventoryItem | null | undefined,
+  options?: WeaponActionEligibilityOptions,
 ): WeaponItem | null {
   const tags = actionTags ?? []
   const stats = rollStats ?? []
   const firearmAction = isFirearmAction(tags)
+  const tightGrip = hasTightGrip(options?.traits)
+
   for (const w of [activeWeapon, offhandWeapon]) {
     if (!isWeaponItem(w)) continue
-    if (firearmAction) {
-      if (!weaponIsFirearm(w)) continue
-    } else {
-      if (!weaponAttributesCompatible(w, stats)) continue
-    }
-    if (!weaponMatchesActionKind(w, tags)) continue
-    if (!weaponSatisfiesBrawlingTag(w, tags)) continue
-    return w
+    if (weaponPassesActionChecks(w, tags, stats, firearmAction, tightGrip)) return w
   }
   return null
 }

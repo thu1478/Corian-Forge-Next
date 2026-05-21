@@ -2,16 +2,34 @@
 
 import {useEffect, useLayoutEffect, useMemo, useState} from "react" // Added useState
 import {cn} from "@/lib/utils"
-import {ChevronDown, Clock, Crosshair, Droplets, Swords, Target, Wrench, Zap} from "lucide-react" // Added ChevronDown
+import {ChevronDown, Clock, Crosshair, Droplets, Sword, Swords, Target, Wrench, Zap} from "lucide-react" // Added ChevronDown
 import {InventoryItem} from "@/lib/equipment-data";
 import {ActionCard} from "@/lib/rules";
-import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover"
-import {findEffectGlossaryEntry} from "@/lib/glossary-lookup"
+import { EffectGlossaryTag } from "@/components/effect-glossary-tag"
 import {
     PowerRollTierRow,
     type PowerRollDisplayMode,
 } from "@/components/power-roll/power-roll-tier-row"
 import { resolveWeaponForActionPowerRoll } from "@/lib/weapon-power-roll"
+import { buildWeaponBondContext } from "@/lib/weapon-bond"
+import {
+    computeArcaneTraditionImplementBonus,
+    computePowerRollFlatDamageBonus,
+    computeShieldSubstituteWeaponDamage,
+    resolvePowerRollTierAmountSuffix,
+    type CombatRuleBonusInput,
+} from "@/lib/power-roll-combat-bonuses"
+import { ChargePips } from "@/components/character-sheet/charge-pips"
+import {
+    hasChargeTracking,
+    lookupChargeDefinition,
+    resolveCurrentCharges,
+    resolveMaxCharges,
+    type RulesWithCharges,
+} from "@/lib/charge-helpers"
+import rulesData from "@/lib/rules.json"
+
+export type CombatRuleContext = CombatRuleBonusInput
 
 export type ActionSpendResourceKind = "mp" | "focus" | "ip"
 
@@ -48,44 +66,9 @@ interface ActionCardProps {
     defaultPowerRollExpanded?: boolean
     /** Increment (e.g. library "Collapse all") to collapse card body and power-roll tiers. */
     collapseAllSignal?: number
-}
-
-function ActionCardGlossaryTag({ tag }: { tag: string }) {
-    const entry = useMemo(() => findEffectGlossaryEntry(tag), [tag])
-    const title = entry?.name ?? tag
-    const body =
-        entry?.description?.trim() ||
-        "This tag is not defined in rules.glossary.effectDictionary yet."
-
-    return (
-        <Popover>
-            <PopoverTrigger asChild>
-                <button
-                    type="button"
-                    className={cn(
-                        "text-xs px-2.5 py-1 rounded-full border font-medium uppercase tracking-wider",
-                        "bg-muted/50 dark:bg-white/5 border-border dark:border-white/10 text-foreground/70",
-                        "cursor-pointer transition-colors",
-                        "hover:bg-muted hover:text-foreground hover:border-primary/40",
-                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                    )}
-                >
-                    {tag}
-                </button>
-            </PopoverTrigger>
-            <PopoverContent
-                align="start"
-                side="top"
-                sideOffset={6}
-                className="w-[min(92vw,28rem)] max-w-none border-border p-4 text-left shadow-md"
-            >
-                <div className="space-y-2">
-                    <p className="text-sm font-semibold leading-tight text-foreground">{title}</p>
-                    <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-line">{body}</p>
-                </div>
-            </PopoverContent>
-        </Popover>
-    )
+    /** When set, power rolls include Shield Master / Arcane Tradition / Reward for Faith math. */
+    combatRuleContext?: CombatRuleContext
+    onUpdateCharges?: (newCount: number) => void
 }
 
 const typeConfig = {
@@ -124,6 +107,8 @@ export function ActionCardComponent({
                                         powerRollDisplayMode = "simple",
                                         defaultPowerRollExpanded = true,
                                         collapseAllSignal,
+                                        combatRuleContext,
+                                        onUpdateCharges,
                                     }: ActionCardProps) {
     // Each card maintains its own independent state
     const [isExpanded, setIsExpanded] = useState(true);
@@ -140,10 +125,36 @@ export function ActionCardComponent({
                 action.tags,
                 action.powerRoll?.rollStats,
                 currentWeapon ?? null,
-                offhandWeapon ?? null
+                offhandWeapon ?? null,
+                { traits: combatRuleContext?.traits }
             ),
-        [action.tags, action.powerRoll?.rollStats, currentWeapon, offhandWeapon]
+        [action.tags, action.powerRoll?.rollStats, currentWeapon, offhandWeapon, combatRuleContext?.traits]
     );
+
+    const shieldSubstituteWeaponDamage = useMemo(
+        () => computeShieldSubstituteWeaponDamage(action, combatRuleContext),
+        [action, combatRuleContext]
+    );
+
+    const flatPowerRollBonus = useMemo(() => {
+        const fromCards = computePowerRollFlatDamageBonus(action, combatRuleContext)
+        const arcane = computeArcaneTraditionImplementBonus(action, combatRuleContext)
+        return fromCards + arcane
+    }, [action, combatRuleContext])
+
+    const tierAmountSuffix = useMemo(
+        () => resolvePowerRollTierAmountSuffix(action.hiddenTags),
+        [action.hiddenTags]
+    )
+
+    const weaponBondContext = useMemo(
+        () =>
+            buildWeaponBondContext(
+                combatRuleContext?.traits,
+                combatRuleContext?.bondedWeaponUids ?? []
+            ),
+        [combatRuleContext?.traits, combatRuleContext?.bondedWeaponUids]
+    )
 
     // Effect to listen to the "Global Collapse" button from parent
     useEffect(() => {
@@ -159,10 +170,33 @@ export function ActionCardComponent({
     const config = typeConfig[action.type] || typeConfig.action
     const TypeIcon = config.icon
 
+    const pr = action.powerRoll
+    const addsWeaponDamageToPowerRoll =
+        !!pr &&
+        (pr.tier1Wpn === true ||
+            pr.tier2Wpn === true ||
+            pr.tier3Wpn === true ||
+            (shieldSubstituteWeaponDamage != null && shieldSubstituteWeaponDamage > 0) ||
+            flatPowerRollBonus > 0)
+
     const spendInteractive = Boolean(onSpendActionCost && actionCostBudget && !disabled)
     const mpCost = action.mpCost ?? 0
     const focusCost = action.focusCost ?? 0
     const ipCost = action.ipCost ?? 0
+
+    const chargeDef = useMemo(() => {
+        if (hasChargeTracking(action)) return action
+        return lookupChargeDefinition("action", action.id, rulesData as RulesWithCharges)
+    }, [action])
+    const maxCharges = useMemo(
+        () => resolveMaxCharges(chargeDef, attributes),
+        [chargeDef, attributes]
+    )
+    const currentCharges = useMemo(
+        () => resolveCurrentCharges(action.charges, maxCharges),
+        [action.charges, maxCharges]
+    )
+    const showChargePips = maxCharges > 0 && Boolean(onUpdateCharges)
 
     const trySpend = (kind: ActionSpendResourceKind, amount: number) => {
         if (!spendInteractive || amount <= 0) return
@@ -187,6 +221,17 @@ export function ActionCardComponent({
                     <div>
                         <div className="flex items-center gap-2">
                             <h3 className="font-bold text-foreground leading-tight text-lg">{action.name}</h3>
+                            {addsWeaponDamageToPowerRoll ? (
+                                <span
+                                    className="inline-flex shrink-0 text-foreground/55 hover:text-foreground/80"
+                                    title="Weapon or implement damage is included in the power roll (tiers and/or equipment bonuses)"
+                                >
+                                    <Sword className="h-4 w-4" aria-hidden />
+                                    <span className="sr-only">
+                                        Weapon or implement damage is included in the power roll
+                                    </span>
+                                </span>
+                            ) : null}
                             <ChevronDown className={cn(
                                 "w-5 h-5 transition-transform duration-300 opacity-30 group-hover/header:opacity-100",
                                 !isExpanded && "-rotate-90"
@@ -303,6 +348,23 @@ export function ActionCardComponent({
                     )}
                 </div>
 
+                {showChargePips ? (
+                    <div className="mb-4" onClick={(e) => e.stopPropagation()}>
+                        <ChargePips
+                            maxCharges={maxCharges}
+                            currentCharges={currentCharges}
+                            label={
+                                chargeDef?.fixedMaxCharges != null
+                                    ? "Charges"
+                                    : chargeDef?.chargeStat
+                                      ? `${chargeDef.chargeStat} Charges`
+                                      : "Charges"
+                            }
+                            onChange={(n) => onUpdateCharges?.(n)}
+                        />
+                    </div>
+                ) : null}
+
                 {/* Stats Row */}
                 <div className="flex flex-wrap gap-x-5 gap-y-2 mb-4 text-sm text-foreground/70">
                     {action.range && (
@@ -378,7 +440,11 @@ export function ActionCardComponent({
                                 badgeStyle={config.badge}
                                 attributes={attributes}
                                 weaponForPowerRoll={weaponForPowerRollDamage}
+                                shieldSubstituteWeaponDamage={shieldSubstituteWeaponDamage}
+                                flatDamageBonus={flatPowerRollBonus}
+                                tierAmountSuffix={tierAmountSuffix}
                                 powerRollDisplayMode={powerRollDisplayMode}
+                                weaponBondContext={weaponBondContext}
                             />
                             <PowerRollTierRow
                                 label="12-16"
@@ -387,7 +453,11 @@ export function ActionCardComponent({
                                 badgeStyle={config.badge}
                                 attributes={attributes}
                                 weaponForPowerRoll={weaponForPowerRollDamage}
+                                shieldSubstituteWeaponDamage={shieldSubstituteWeaponDamage}
+                                flatDamageBonus={flatPowerRollBonus}
+                                tierAmountSuffix={tierAmountSuffix}
                                 powerRollDisplayMode={powerRollDisplayMode}
+                                weaponBondContext={weaponBondContext}
                             />
                             <PowerRollTierRow
                                 label=">=17"
@@ -396,7 +466,11 @@ export function ActionCardComponent({
                                 badgeStyle={config.badge}
                                 attributes={attributes}
                                 weaponForPowerRoll={weaponForPowerRollDamage}
+                                shieldSubstituteWeaponDamage={shieldSubstituteWeaponDamage}
+                                flatDamageBonus={flatPowerRollBonus}
+                                tierAmountSuffix={tierAmountSuffix}
                                 powerRollDisplayMode={powerRollDisplayMode}
+                                weaponBondContext={weaponBondContext}
                             />
                         </div>
                     </div>
@@ -405,7 +479,7 @@ export function ActionCardComponent({
                 {/* Tags (glossary popover per tag) */}
                 <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-border dark:border-white/10">
                     {(action.tags ?? []).map((tag) => (
-                        <ActionCardGlossaryTag key={tag} tag={tag} />
+                        <EffectGlossaryTag key={tag} tag={tag} />
                     ))}
                 </div>
 

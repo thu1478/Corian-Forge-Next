@@ -10,18 +10,25 @@ export const CharAttribute = {
 } as const;
 export type CharAttribute = (typeof CharAttribute)[keyof typeof CharAttribute];
 
+export type ChargeResetTiming = "endOfCombat" | "shortRest" | "longRest"
+
+export interface ChargeDefinition {
+    chargeStat?: string
+    /** When set, max charges are fixed (not derived from an attribute). */
+    fixedMaxCharges?: number
+    /** If omitted or empty, rest buttons do not auto-refill this ability. */
+    chargeReset?: ChargeResetTiming[]
+}
+
 export interface FocusFeature {
     classSrc: string
     slotIndex: number
 }
 
-export interface Reaction extends ReactionRef {
+export interface Reaction extends ReactionRef, ChargeDefinition {
     name: string
     description: string
     trigger: string
-    chargeStat ?: string
-    /** When set, max charges are fixed (not derived from an attribute). */
-    fixedMaxCharges?: number
     actionCard ?: ActionCard
 }
 
@@ -30,14 +37,33 @@ export interface CharacterClass {
     level: number
 }
 
-export interface TraitEffect {
-    type: "StatChange" | "Resistance" | "Vulnerability" | "Immunity" | "GrantSight" | "AttributeChange" | "GrantActionCard" | "Language" | "SummonSchool"
-    stat?: string
-    /** Omitted on some rows (e.g. `Immunity`, `GrantSight` with only `stat`). */
-    value?: string
+/** Skill training from passive/feat/effect rows (creator + export). */
+export interface GrantSkillEffect {
+    type: "GrantSkill"
+    /** Catalog skill id — granted automatically with no picker. */
+    skillId?: string
+    /** When `skillId` absent: creator picks this many skills. */
+    pickCount?: number
+    /** Category names and/or catalog keys; omit or empty = any skill in catalog. */
+    skillBuckets?: string[]
+    unlockSkillIds?: string[]
+    unlockCategories?: string[]
+    /** Defaults true when `pickCount > 1`. */
+    distinctPicks?: boolean
 }
 
-export interface Trait extends TraitRef {
+export type TraitEffect =
+    | {
+          type: "StatChange" | "Resistance" | "Vulnerability" | "Immunity" | "GrantSight" | "AttributeChange" | "GrantActionCard" | "Language" | "SummonSchool"
+          stat?: string
+          /** Omitted on some rows (e.g. `Immunity`, `GrantSight` with only `stat`). */
+          value?: string
+          /** Conditional StatChange, e.g. `dualWielding` for Cross Block. */
+          when?: string
+      }
+    | GrantSkillEffect
+
+export interface Trait extends TraitRef, ChargeDefinition {
     uid: string
     name: string
     source: "racial" | "feat" | "class" | "background" | "other"
@@ -58,7 +84,6 @@ export interface RacialPassive extends Trait {
 
 export interface Skill {
     name: string
-    attribute: "might" | "dexterity" | "reason" | "willpower" | "presence"
     hasExpertise: boolean
 }
 
@@ -181,7 +206,7 @@ export interface PowerRoll {
 
 //</editor-fold>
 
-export interface ActionCard extends ActionRef {
+export interface ActionCard extends ActionRef, ChargeDefinition {
     name: string
     type: "action" | "reaction" | "freeReaction"
     description: string
@@ -194,5 +219,7 @@ export interface ActionCard extends ActionRef {
     damageType?: DamageType
     powerRoll?: PowerRoll
     tags: string[]
+    /** Machine-readable tags not shown in UI (e.g. `shield`, `sustain`, `heal`, `barrier`). */
+    hiddenTags?: string[]
     source: string
 }

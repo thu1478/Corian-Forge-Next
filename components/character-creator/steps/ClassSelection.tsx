@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect, useMemo, useState } from "react"
-import { ArrowLeftIcon, PlusIcon, MinusIcon, CheckCircleIcon } from "lucide-react"
+import { ArrowLeftIcon, PlusIcon, MinusIcon, CheckCircleIcon, ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 import rulesData from "@/lib/rules.json"
 import { ActionCardComponent } from "@/components/character-sheet/combatPage/action-card-manager"
@@ -9,6 +9,9 @@ import { TraitPowerRollCollapsible } from "@/components/power-roll/trait-power-r
 import { unwrapEmbeddedActionCard } from "@/lib/embedded-action-card"
 import { getDeityPassiveEntries, resolveDeityBoonDisplay } from "@/lib/priest-deities"
 import { formatTraitEffectChoiceLabel } from "@/lib/trait-selection"
+import type { SkillChooserRequirement } from "@/lib/grant-skill-effects"
+import { allSkillChooserPicksComplete } from "@/lib/grant-skill-effects"
+import { SkillGrantPickBlocks } from "@/components/character-creator/skill-grant-pick-blocks"
 import {
     conjurerClassTraitRefsFromPicks,
     getConjurerSummonSchoolTag,
@@ -30,6 +33,16 @@ import {
     type FairyTamerContractsSave,
 } from "@/lib/fairy-tamer"
 import { FairyTamerContractsSection } from "@/components/character-creator/steps/FairyTamerContractsSection"
+import {
+    artificerHasSpecialInventionPassive,
+    formatWeaponInfusionDamageLabel,
+    isSpecialInventionSaveComplete,
+} from "@/lib/creator-import"
+import type {
+    InventionVariant,
+    SpecialInventionSave,
+    WeaponInfusionDamageType,
+} from "@/lib/character-data"
 import { Label } from "@/components/ui/label"
 import {
     Select,
@@ -38,8 +51,34 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 
 type LevelKey = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10";
+
+type SpecialInventionRulesUi = {
+    variants?: Record<string, { name?: string; description?: string; modulePick?: number }>;
+    weaponInfusionDamageTypes?: string[];
+    modules?: Record<string, { label?: string }>;
+};
+
+function toggleInventionModulePick(
+    current: string[] | undefined,
+    moduleId: string,
+    max: number
+): string[] {
+    const list = [...(current ?? [])];
+    const idx = list.indexOf(moduleId);
+    if (idx >= 0) {
+        list.splice(idx, 1);
+        return list;
+    }
+    if (list.length >= max) return list;
+    return [...list, moduleId];
+}
 
 export type ClassOptionPick = {
     id: string
@@ -70,6 +109,17 @@ function isConjurerSummonTakenOnOtherSlot(
     return (picks ?? []).some((raw, j) => j !== slotIndex && String(raw ?? "").trim() === tid)
 }
 
+function skillGrantRequirementsForClass(
+    classId: string,
+    requirements: SkillChooserRequirement[]
+): SkillChooserRequirement[] {
+    const passivePrefix = `classPassive::${classId}::`
+    const trainingPrefix = `classTraining::${classId}::`
+    return requirements.filter(
+        (r) => r.key.startsWith(passivePrefix) || r.key.startsWith(trainingPrefix)
+    )
+}
+
 interface ClassSelectionProps {
     selectedOptions: ClassOptionPick[];
     classes: { id: string; level: number }[];
@@ -92,6 +142,15 @@ interface ClassSelectionProps {
     onConjurerSummonsChange?: (templateIds: string[]) => void;
     fairyTamerContracts?: FairyTamerContractsSave;
     onFairyTamerContractsChange?: (contracts: FairyTamerContractsSave) => void;
+    specialInvention?: SpecialInventionSave;
+    onSpecialInventionChange?: (save: SpecialInventionSave | undefined) => void;
+    /** Class passive / skill-training grant pickers shown before Next. */
+    skillGrantRequirements?: SkillChooserRequirement[];
+    creatorSkillGrantPicks?: Record<string, string[]>;
+    skillGrantsComplete?: boolean;
+    onSkillGrantPicksChange?: (key: string, ids: string[]) => void;
+    /** Skill counts across culture / occupation / grants for picker chrome. */
+    grantPickerSkillCounts?: Record<string, number>;
     onBack: () => void;
     onNext: () => void;
 }
@@ -110,6 +169,13 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
                                                            onConjurerSummonsChange,
                                                            fairyTamerContracts: fairyTamerContractsProp,
                                                            onFairyTamerContractsChange,
+                                                           specialInvention,
+                                                           onSpecialInventionChange,
+                                                           skillGrantRequirements = [],
+                                                           creatorSkillGrantPicks = {},
+                                                           skillGrantsComplete = true,
+                                                           onSkillGrantPicksChange,
+                                                           grantPickerSkillCounts = {},
                                                            onBack,
                                                            onNext
                                                        }) => {
@@ -191,6 +257,14 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
         () => isFairyTamerPicksComplete(fairyTamerContracts, fairytamerLevel, fairyContractTaken),
         [fairyContractTaken, fairytamerLevel, fairyTamerContracts]
     );
+
+    const artificerLevel = localClasses.find((c) => c.id === "artificer")?.level ?? 0;
+    const specialInventionNeeded = artificerHasSpecialInventionPassive(
+        selectedOptions,
+        localClasses
+    );
+    const specialInventionComplete =
+        !specialInventionNeeded || isSpecialInventionSaveComplete(specialInvention);
 
     const getTalentLevelForPick = (pick: ClassOptionPick): number => {
         if (pick.source === "fairytamer" && pick.fairySpellSlot != null) {
@@ -533,6 +607,57 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
                                 ) : null}
                             </div>
                         ) : null}
+                        {(() => {
+                            if (
+                                !onSkillGrantPicksChange ||
+                                skillGrantRequirements.length === 0 ||
+                                expandedClassId == null
+                            ) {
+                                return null
+                            }
+                            const reqsThisClass = skillGrantRequirementsForClass(
+                                expandedClassId,
+                                skillGrantRequirements
+                            )
+                            if (reqsThisClass.length === 0) return null
+                            const grantsOk = allSkillChooserPicksComplete(reqsThisClass, creatorSkillGrantPicks ?? {})
+                            return (
+                                <Collapsible defaultOpen className="mt-10 rounded-2xl border border-primary/25 bg-muted/20 overflow-hidden">
+                                    <CollapsibleTrigger
+                                        type="button"
+                                        className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left transition-colors hover:bg-muted/40 border-b border-transparent data-[state=open]:border-border/60 [&[data-state=open]>svg:last-child]:rotate-180"
+                                    >
+                                        <div className="min-w-0">
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-primary">
+                                                Skill training & passive grants
+                                            </p>
+                                            <p className="mt-1 text-xs text-muted-foreground font-medium normal-case tracking-normal">
+                                                Choices from this class (e.g. bonus training or Knowledge is Power). Collapse when you&apos;re done to focus on talents.
+                                            </p>
+                                            {!grantsOk ? (
+                                                <p className="mt-2 text-xs font-bold text-amber-700 dark:text-amber-400">
+                                                    Required picks unfinished — assign skills below.
+                                                </p>
+                                            ) : null}
+                                        </div>
+                                        <ChevronDown className="h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-200" />
+                                    </CollapsibleTrigger>
+                                    <CollapsibleContent>
+                                        <div className="border-t border-border/60 bg-card/60 px-4 pb-6 pt-4">
+                                            <SkillGrantPickBlocks
+                                                density="inline"
+                                                showOuterHeading={false}
+                                                requirements={reqsThisClass}
+                                                picks={creatorSkillGrantPicks}
+                                                globalSkillCounts={grantPickerSkillCounts}
+                                                attributes={attributes}
+                                                onChange={onSkillGrantPicksChange}
+                                            />
+                                        </div>
+                                    </CollapsibleContent>
+                                </Collapsible>
+                            )
+                        })()}
                         {typeof classData.primaryAttribute === "string" && classData.primaryAttribute.trim() ? (
                             <p className="text-sm text-muted-foreground">
                                 <span className="font-bold text-foreground">Primary attribute:</span>{" "}
@@ -683,6 +808,203 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
                     </section>
                 ) : null}
 
+                {expandedClassId === "artificer" &&
+                specialInventionNeeded &&
+                onSpecialInventionChange ? (
+                    (() => {
+                        const si = (rulesData.classes as Record<string, { specialInvention?: SpecialInventionRulesUi }>)
+                            .artificer?.specialInvention;
+                        const variant = specialInvention?.variant;
+                        const armorPool =
+                            (rulesData.items as Record<string, { inventionModulePool?: string[] }>)
+                                .arm_artificer_armor?.inventionModulePool ?? [];
+                        const backpackPool =
+                            (rulesData.items as Record<string, { inventionModulePool?: string[] }>)
+                                .gear_support_backpack?.inventionModulePool ?? [];
+                        const armorModules = specialInvention?.armorModules ?? [];
+                        const backpackModules = specialInvention?.backpackModules ?? [];
+                        const modulePick =
+                            si?.variants?.modularArmor?.modulePick ??
+                            si?.variants?.supportBackpack?.modulePick ??
+                            2;
+                        const needsInfusionType = backpackModules.includes("weaponInfusion");
+                        const infusionTypes = (si?.weaponInfusionDamageTypes ?? []).filter((d) =>
+                            ["volt", "water", "fire", "earth"].includes(String(d))
+                        ) as WeaponInfusionDamageType[];
+
+                        return (
+                            <section className="mt-16 rounded-2xl border border-border bg-card/80 p-6 space-y-6">
+                                <div>
+                                    <h2 className="text-xl font-black uppercase italic tracking-tight text-foreground">
+                                        Special Invention
+                                    </h2>
+                                    <p className="text-sm text-muted-foreground leading-relaxed mt-2">
+                                        Choose one invention at Artificer level 3. Modular Armor and Support
+                                        Backpack each require exactly {modulePick} modules; Weapon Infusion also
+                                        needs a damage type.
+                                    </p>
+                                </div>
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                    {Object.entries(si?.variants ?? {}).map(([id, def]) => (
+                                        <button
+                                            key={id}
+                                            type="button"
+                                            onClick={() =>
+                                                onSpecialInventionChange({
+                                                    variant: id as InventionVariant,
+                                                    armorModules:
+                                                        id === "modularArmor"
+                                                            ? specialInvention?.armorModules
+                                                            : undefined,
+                                                    backpackModules:
+                                                        id === "supportBackpack"
+                                                            ? specialInvention?.backpackModules
+                                                            : undefined,
+                                                    weaponInfusionDamageType:
+                                                        id === "supportBackpack"
+                                                            ? specialInvention?.weaponInfusionDamageType
+                                                            : undefined,
+                                                })
+                                            }
+                                            className={cn(
+                                                "rounded-xl border p-4 text-left transition-colors",
+                                                variant === id
+                                                    ? "border-primary bg-primary/10"
+                                                    : "border-border hover:border-primary/40"
+                                            )}
+                                        >
+                                            <div className="font-bold text-sm">{def.name ?? id}</div>
+                                            <div className="text-xs text-muted-foreground mt-1">
+                                                {def.description ?? ""}
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                                {variant === "modularArmor" ? (
+                                    <div className="space-y-3">
+                                        <Label className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                                            Armor modules (pick {modulePick})
+                                        </Label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {armorPool.map((mid) => {
+                                                const selected = armorModules.includes(mid);
+                                                const disabled =
+                                                    !selected && armorModules.length >= modulePick;
+                                                return (
+                                                    <button
+                                                        key={mid}
+                                                        type="button"
+                                                        disabled={disabled}
+                                                        onClick={() =>
+                                                            onSpecialInventionChange({
+                                                                variant: "modularArmor",
+                                                                armorModules: toggleInventionModulePick(
+                                                                    armorModules,
+                                                                    mid,
+                                                                    modulePick
+                                                                ),
+                                                                backpackModules: undefined,
+                                                                weaponInfusionDamageType: undefined,
+                                                            })
+                                                        }
+                                                        className={cn(
+                                                            "rounded-lg border px-3 py-2 text-xs font-semibold",
+                                                            selected
+                                                                ? "border-primary bg-primary text-primary-foreground"
+                                                                : "border-border disabled:opacity-40"
+                                                        )}
+                                                    >
+                                                        {si?.modules?.[mid]?.label ?? mid}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                ) : null}
+                                {variant === "supportBackpack" ? (
+                                    <div className="space-y-4">
+                                        <div className="space-y-3">
+                                            <Label className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                                                Backpack modules (pick {modulePick})
+                                            </Label>
+                                            <div className="flex flex-wrap gap-2">
+                                                {backpackPool.map((mid) => {
+                                                    const selected = backpackModules.includes(mid);
+                                                    const disabled =
+                                                        !selected &&
+                                                        backpackModules.length >= modulePick;
+                                                    return (
+                                                        <button
+                                                            key={mid}
+                                                            type="button"
+                                                            disabled={disabled}
+                                                            onClick={() => {
+                                                                const nextMods = toggleInventionModulePick(
+                                                                    backpackModules,
+                                                                    mid,
+                                                                    modulePick
+                                                                );
+                                                                onSpecialInventionChange({
+                                                                    variant: "supportBackpack",
+                                                                    backpackModules: nextMods,
+                                                                    armorModules: undefined,
+                                                                    weaponInfusionDamageType:
+                                                                        nextMods.includes("weaponInfusion")
+                                                                            ? specialInvention?.weaponInfusionDamageType
+                                                                            : undefined,
+                                                                });
+                                                            }}
+                                                            className={cn(
+                                                                "rounded-lg border px-3 py-2 text-xs font-semibold",
+                                                                selected
+                                                                    ? "border-primary bg-primary text-primary-foreground"
+                                                                    : "border-border disabled:opacity-40"
+                                                            )}
+                                                        >
+                                                            {si?.modules?.[mid]?.label ?? mid}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                        {needsInfusionType ? (
+                                            <div className="space-y-1.5 max-w-xs">
+                                                <Label className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                                                    Weapon Infusion damage type
+                                                </Label>
+                                                <Select
+                                                    value={
+                                                        specialInvention?.weaponInfusionDamageType ?? ""
+                                                    }
+                                                    onValueChange={(v) =>
+                                                        onSpecialInventionChange({
+                                                            variant: "supportBackpack",
+                                                            backpackModules,
+                                                            weaponInfusionDamageType:
+                                                                v as WeaponInfusionDamageType,
+                                                        })
+                                                    }
+                                                >
+                                                    <SelectTrigger className="h-10 text-sm">
+                                                        <SelectValue placeholder="Select type…" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {infusionTypes.map((dt) => (
+                                                            <SelectItem key={dt} value={dt}>
+                                                                {formatWeaponInfusionDamageLabel(dt)}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                        ) : null}
+                                    </div>
+                                ) : null}
+                            </section>
+                        );
+                    })()
+                ) : null}
+
                 {expandedClassId === "fairytamer" &&
                 fairyContractTaken &&
                 fairytamerLevel >= 1 &&
@@ -792,6 +1114,15 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
                                     Set fairy contracts inside Build.
                                 </p>
                             ) : null}
+                            {id === "artificer" &&
+                            artificerLevel >= 3 &&
+                            selectedOptions.some(
+                                (o) => o.id === "specialInvention" && o.source === "artificer"
+                            ) ? (
+                                <p className="text-xs text-muted-foreground text-center mt-3">
+                                    Set Special Invention inside Build.
+                                </p>
+                            ) : null}
                         </div>
                     );
                 })}
@@ -806,7 +1137,9 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
                         remainingAdventurerXP < 0 ||
                         !allClassXPAssigned ||
                         !conjurerSummonPicksComplete ||
-                        !fairyTamerPicksComplete
+                        !fairyTamerPicksComplete ||
+                        !specialInventionComplete ||
+                        !skillGrantsComplete
                     }
                     className={cn(
                         "px-12 py-4 rounded-2xl font-black uppercase text-xs tracking-widest",
@@ -814,7 +1147,9 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
                             remainingAdventurerXP >= 0 &&
                             allClassXPAssigned &&
                             conjurerSummonPicksComplete &&
-                            fairyTamerPicksComplete
+                            fairyTamerPicksComplete &&
+                            specialInventionComplete &&
+                            skillGrantsComplete
                             ? "bg-primary text-white shadow-xl shadow-primary/20 hover:scale-105"
                             : "bg-muted text-muted-foreground cursor-not-allowed"
                     )}

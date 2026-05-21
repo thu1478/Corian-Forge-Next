@@ -7,6 +7,13 @@ import { PotencyEffect, PowerRoll } from "@/lib/rules"
 import { getAttributeModifier } from "@/lib/character-data"
 import { potencyStrengthDisplayLabel, potencyStrengthToModifier } from "@/lib/potency-strength"
 import { getPowerRollPotencyBadgeAndDuration } from "@/lib/potency-display"
+import type { PowerRollTierAmountSuffix } from "@/lib/power-roll-combat-bonuses"
+import { findPotencyEffectGlossaryEntry } from "@/lib/glossary-lookup"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import type { WeaponBondContext } from "@/lib/weapon-bond"
+import { getEffectiveWeaponDamage } from "@/lib/weapon-bond"
+import { statDeltaTextClass } from "@/lib/stat-delta-display"
+import { parseWeaponBaseDamage } from "@/lib/weapon-bond"
 
 export type PowerRollDisplayMode = "simple" | "formula"
 
@@ -26,6 +33,10 @@ export function PowerRollTierRow({
     attributes,
     weaponForPowerRoll,
     powerRollDisplayMode,
+    flatDamageBonus = 0,
+    shieldSubstituteWeaponDamage,
+    tierAmountSuffix = "DMG",
+    weaponBondContext,
 }: {
     label: string
     roll: PowerRoll
@@ -35,6 +46,13 @@ export function PowerRollTierRow({
     /** Weapon whose damage applies for +Wpn tiers (already resolved for active/offhand + melee/ranged). */
     weaponForPowerRoll?: InventoryItem | null
     powerRollDisplayMode: PowerRollDisplayMode
+    /** Added to tier total (implement / shield-attack card bonuses). */
+    flatDamageBonus?: number
+    /** When +Wpn and no normal weapon, Shield Master uses this value as weapon damage. */
+    shieldSubstituteWeaponDamage?: number | null
+    /** Suffix for the tier amount line: DMG, HP (heal), or Barrier. */
+    tierAmountSuffix?: PowerRollTierAmountSuffix
+    weaponBondContext?: WeaponBondContext
 }) {
     const tierDmgKey = `tier${tier}Dmg` as keyof PowerRoll
     const tierDmgRaw = roll[tierDmgKey]
@@ -45,12 +63,16 @@ export function PowerRollTierRow({
     const potency = roll[`tier${tier}Effect` as keyof PowerRoll] as PotencyEffect | undefined
 
     let weaponBonus = 0
-    if (hasWpn && weaponForPowerRoll && weaponForPowerRoll.type === "weapon") {
-        const raw = weaponForPowerRoll.damage as number | string | undefined
-        weaponBonus = typeof raw === "number" && Number.isFinite(raw) ? raw : Number(raw) || 0
+    if (hasWpn && weaponForPowerRoll?.type === "weapon") {
+        weaponBonus = weaponBondContext
+            ? getEffectiveWeaponDamage(weaponForPowerRoll, weaponBondContext)
+            : parseWeaponBaseDamage(weaponForPowerRoll)
+    } else if (hasWpn && shieldSubstituteWeaponDamage != null && shieldSubstituteWeaponDamage > 0) {
+        weaponBonus = shieldSubstituteWeaponDamage
     }
 
-    const finalDmg = (hasWpn ? weaponBonus : 0) + baseDmg
+    const flat = Math.max(0, Math.floor(Number(flatDamageBonus)) || 0)
+    const finalDmg = (hasWpn ? weaponBonus : 0) + baseDmg + flat
 
     let potencyThreshold: number | null = null
     let maxSrcMod: number | null = null
@@ -89,18 +111,25 @@ export function PowerRollTierRow({
         (potencySrcIsFixed || Boolean(potency.targetStats && potency.targetStats.length > 0))
 
     /** Show damage line when +Wpn, total is positive, or tier damage is explicitly set (including 0). */
-    const shouldShowDmg = hasWpn || finalDmg > 0 || hasExplicitNumericTierDmg
+    const shouldShowDmg = hasWpn || finalDmg > 0 || hasExplicitNumericTierDmg || flat > 0
+
+    const suffixLabel = tierAmountSuffix === "Barrier" ? "Barrier" : tierAmountSuffix === "HP" ? "HP" : "DMG"
 
     const dmgDisplay =
-        powerRollDisplayMode === "formula" && hasWpn ? (
+        powerRollDisplayMode === "formula" && (hasWpn || flat > 0) ? (
             <>
-                {baseDmg} + {weaponBonus}{" "}
-                <span className="text-[10px] opacity-40 uppercase ml-0.5">DMG</span>
+                {(() => {
+                    const parts: string[] = [String(baseDmg)]
+                    if (hasWpn && weaponBonus > 0) parts.push(String(weaponBonus))
+                    if (flat > 0) parts.push(String(flat))
+                    return parts.join(" + ")
+                })()}{" "}
+                <span className="text-[10px] opacity-40 uppercase ml-0.5">{suffixLabel}</span>
             </>
         ) : (
             <>
                 {finalDmg}{" "}
-                <span className="text-[10px] opacity-40 uppercase ml-0.5">DMG</span>
+                <span className="text-[10px] opacity-40 uppercase ml-0.5">{suffixLabel}</span>
             </>
         )
 
@@ -108,6 +137,16 @@ export function PowerRollTierRow({
         () => (potency ? getPowerRollPotencyBadgeAndDuration(potency) : { badge: "", duration: null as string | null }),
         [potency]
     )
+
+    const potencyGlossaryEntry = useMemo(
+        () => (potency ? findPotencyEffectGlossaryEntry(potency) : null),
+        [potency]
+    )
+
+    const potencyPopoverTitle = potencyGlossaryEntry?.name ?? potencyBadge
+    const potencyPopoverBody =
+        potencyGlossaryEntry?.description?.trim() ||
+        "This potency effect is not defined in rules.glossary.effectDictionary yet."
 
     return (
         <div className="flex flex-col rounded-lg bg-muted/50 dark:bg-black/30 border border-border dark:border-white/10 overflow-hidden">
@@ -156,14 +195,37 @@ export function PowerRollTierRow({
                     )}
 
                     {potencyBadge ? (
-                        <span
-                            className={cn(
-                                "text-sm px-2.5 py-1 rounded font-extrabold uppercase tracking-tight leading-none shadow-sm",
-                                badgeStyle
-                            )}
-                        >
-                            {potencyBadge}
-                        </span>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <button
+                                    type="button"
+                                    className={cn(
+                                        "text-sm px-2.5 py-1 rounded font-extrabold uppercase tracking-tight leading-none shadow-sm",
+                                        badgeStyle,
+                                        "cursor-pointer transition-[filter,box-shadow] border border-transparent",
+                                        "hover:brightness-[0.97] dark:hover:brightness-110",
+                                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                    )}
+                                >
+                                    {potencyBadge}
+                                </button>
+                            </PopoverTrigger>
+                            <PopoverContent
+                                align="start"
+                                side="top"
+                                sideOffset={6}
+                                className="w-[min(92vw,28rem)] max-w-none border-border p-4 text-left shadow-md"
+                            >
+                                <div className="space-y-2">
+                                    <p className="text-sm font-semibold leading-tight text-foreground">
+                                        {potencyPopoverTitle}
+                                    </p>
+                                    <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-line">
+                                        {potencyPopoverBody}
+                                    </p>
+                                </div>
+                            </PopoverContent>
+                        </Popover>
                     ) : null}
 
                     {potencyDurationLabel ? (

@@ -9,7 +9,7 @@ export interface HydratedCharacter extends Omit<CharacterSaveData, 'equipment' |
     reactions: Reaction[]
     inventory: InventoryItem[];
     equipment: {
-        activeWeapon: WeaponItem | null;
+        activeWeapon: WeaponItem | ShieldItem | null;
         offhand: WeaponItem | ShieldItem | null;
         armor: ArmorItem | null;
         accessories: Record<string, MiscItem | null>;

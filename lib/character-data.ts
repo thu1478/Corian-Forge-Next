@@ -5,6 +5,25 @@ import type {CreatureRosterEntry} from "@/lib/creature-roster";
 import type {FairyTamerContractsSave} from "@/lib/fairy-tamer";
 import {emptyFairyTamerContracts} from "@/lib/fairy-tamer";
 
+export type InventionVariant =
+    | "potionLauncher"
+    | "trapBelt"
+    | "modularArmor"
+    | "supportBackpack";
+
+export type WeaponInfusionDamageType = "volt" | "water" | "fire" | "earth";
+
+export type InventionModuleConfig = {
+    weaponInfusion?: { damageType: WeaponInfusionDamageType };
+};
+
+export type SpecialInventionSave = {
+    variant: InventionVariant;
+    armorModules?: string[];
+    backpackModules?: string[];
+    weaponInfusionDamageType?: WeaponInfusionDamageType;
+};
+
 export interface CharacterSaveData {
     // Character Info
     name: string
@@ -101,6 +120,18 @@ export interface CharacterSaveData {
 
     /** Fairy Tamer (Fairy Contract passive): creature + two spells per unlock level. */
     fairyTamerContracts?: FairyTamerContractsSave
+
+    /** Character creator only: keyed skill grant picker state (see grant-skill-effects keys). Exported for re-import. */
+    creatorSkillGrantPicks?: Record<string, string[]>
+
+    /** Weapon Bond: inventory item uids with +1 damage (Weapon Bond passive). */
+    bondedWeaponUids?: string[]
+
+    /** Combat-tab temporary defense modifier (added to derived defense). */
+    combatDefenseDelta?: number
+
+    /** Artificer Special Invention (level 3): variant, module picks, weapon infusion damage type. */
+    specialInvention?: SpecialInventionSave
 }
 
 export const defaultCharacter: CharacterSaveData = {
@@ -191,6 +222,7 @@ export const defaultCharacter: CharacterSaveData = {
     creatures: [],
     conjurerSummonTemplateIds: [],
     fairyTamerContracts: emptyFairyTamerContracts(),
+    creatorSkillGrantPicks: {},
 }
 
 export function getAttributeModifier(score: number): number {
@@ -212,6 +244,39 @@ export interface CharacterStats {
 export interface ClassLevel {
     id: string
     level: number
+}
+
+/** Class-level bonus skill picks (`rules.classes[*].skillTraining` / `skillTrainings`), parallel to stat bonuses. */
+export interface ClassSkillTrainingRule {
+    pickCount: number
+    frequency?: number
+    once?: boolean
+    skillBuckets?: string[]
+    unlockSkillIds?: string[]
+    unlockCategories?: string[]
+}
+
+/** Flatten class rule `skillTraining` / `skillTrainings` into a concrete list for grant-skill-effects. */
+export function classSkillTrainingEntries(
+    classRule: { skillTraining?: ClassSkillTrainingRule; skillTrainings?: ClassSkillTrainingRule[] } | undefined
+): ClassSkillTrainingRule[] {
+    if (!classRule) return []
+    if (Array.isArray(classRule.skillTrainings) && classRule.skillTrainings.length > 0) {
+        return classRule.skillTrainings
+    }
+    const single = classRule.skillTraining
+    if (single && typeof single === "object") return [single]
+    return []
+}
+
+/** How many times a skill-training rule triggers for `classLevel` (same stacking as HP statBonus). */
+export function countClassSkillTrainingApplications(classLevel: number, rule: ClassSkillTrainingRule): number {
+    const lvl = Math.max(0, Math.floor(Number(classLevel) || 0))
+    if (rule.once === true) {
+        return lvl >= 1 ? 1 : 0
+    }
+    const freq = typeof rule.frequency === "number" && rule.frequency > 0 ? rule.frequency : 1
+    return Math.floor(lvl / freq)
 }
 
 /** Class-level max stat contributions from `rules.classes[*].statBonus` or `.statBonuses`. */
@@ -262,16 +327,41 @@ export function sumClassStatBonus(
     }, 0)
 }
 
-type TraitLike = { effects?: Array<{ type: string; stat?: string; value?: string }> };
+type TraitLike = {
+    effects?: Array<{ type: string; stat?: string; value?: string; when?: string }>
+}
+
+export type StatChangeContext = {
+    isDualWielding?: boolean
+}
+
+function statChangeApplies(
+    effect: { when?: string },
+    context: StatChangeContext | undefined
+): boolean {
+    const when = effect.when?.trim()
+    if (!when) return true
+    if (when === "dualWielding") return context?.isDualWielding === true
+    return false
+}
 
 /** Sums StatChange effects for a stat key (e.g. might, maxHP). */
-export function sumTraitStatChangeEffects(traits: TraitLike[], statName: string): number {
+export function sumTraitStatChangeEffects(
+    traits: TraitLike[],
+    statName: string,
+    context?: StatChangeContext
+): number {
     return traits.reduce((total, trait) => {
         const bonuses =
-            trait.effects?.filter(e => e.type === "StatChange" && e.stat === statName) || [];
-        const sum = bonuses.reduce((s, b) => s + parseInt(b.value ?? "0", 10), 0);
-        return total + sum;
-    }, 0);
+            trait.effects?.filter(
+                (e) =>
+                    e.type === "StatChange" &&
+                    e.stat === statName &&
+                    statChangeApplies(e, context)
+            ) || []
+        const sum = bonuses.reduce((s, b) => s + parseInt(b.value ?? "0", 10), 0)
+        return total + sum
+    }, 0)
 }
 
 /**

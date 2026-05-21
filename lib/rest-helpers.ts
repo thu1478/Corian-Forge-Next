@@ -1,4 +1,4 @@
-import { getAttributeModifier } from "@/lib/character-data"
+import { applyRestChargeEffects, type RulesWithCharges } from "@/lib/charge-helpers"
 import type { Reaction } from "@/lib/rules"
 
 /**
@@ -16,39 +16,38 @@ export function buildReactionLibrary(rules: { classes?: Record<string, unknown>;
     return [...classReactions, ...globalReactions]
 }
 
-/**
- * Sets each reaction's `charges` to its current maximum.
- * Uses `chargeStat` from the **rules definition** when present so saves that omit or null out
- * `chargeStat` still refill correctly. Reactions with `charges === -1` are left unchanged.
- */
-export function restoreReactionCharges<T extends Reaction>(
-    reactions: T[],
+import type { ActionRef, TraitRef } from "@/lib/baseRefs"
+
+type EndOfCombatCharacter = {
+    focus?: number
+    barrier?: number
+    combatDefenseDelta?: number
+    traits?: TraitRef[]
+    actions?: ActionRef[]
+    reactions?: Reaction[]
+}
+
+/** Focus/barrier cleared, combat defense adjustment reset; restores charges tagged `endOfCombat`. */
+export function applyEndOfCombatEffects<T extends EndOfCombatCharacter>(
+    prev: T,
     attributes: Record<string, number>,
-    rules: { classes?: Record<string, unknown>; actionCards?: Record<string, unknown> }
-): T[] {
-    const library = buildReactionLibrary(rules)
-    return reactions.map((rx) => {
-        if (rx.charges === -1) return rx
-
-        const rule = library.find((r: any) => r?.id === rx.id) as
-            | { chargeStat?: string | null; fixedMaxCharges?: number }
-            | undefined
-        const fixed =
-            typeof rule?.fixedMaxCharges === "number" && Number.isFinite(rule.fixedMaxCharges)
-                ? Math.max(0, Math.floor(rule.fixedMaxCharges))
-                : null
-        if (fixed != null) {
-            return { ...rx, charges: fixed }
-        }
-
-        const statFromRule =
-            typeof rule?.chargeStat === "string" ? rule.chargeStat.trim() : ""
-        const statFromRx =
-            typeof rx.chargeStat === "string" ? rx.chargeStat.trim() : ""
-        const stat = statFromRule || statFromRx
-        if (!stat) return rx
-
-        const maxCh = Math.max(0, getAttributeModifier(attributes[stat] ?? 10))
-        return { ...rx, charges: maxCh }
-    })
+    rules: RulesWithCharges
+): T {
+    const withCharges = applyRestChargeEffects(
+        {
+            traits: prev.traits,
+            actions: prev.actions,
+            reactions: prev.reactions,
+        },
+        "endOfCombat",
+        attributes,
+        rules
+    )
+    return {
+        ...prev,
+        ...withCharges,
+        focus: 0,
+        barrier: 0,
+        combatDefenseDelta: 0,
+    }
 }

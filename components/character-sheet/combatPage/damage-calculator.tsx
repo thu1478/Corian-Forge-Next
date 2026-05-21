@@ -6,11 +6,13 @@ import {X, GripHorizontal, Shield, Heart, Sparkles, Swords} from "lucide-react"
 import {Button} from "@/components/ui/button"
 import {Input} from "@/components/ui/input"
 import {resolveIncomingDamage, type DamageChannel} from "@/lib/damage-resolution"
+import { statDeltaTextClass } from "@/lib/stat-delta-display"
 
 interface DamageCalculatorProps {
     isOpen: boolean
     onClose: () => void
-    defense: number
+    baseDefense: number
+    effectiveDefense: number
     hp: { current: number; max: number }
     barrier: number
     onApplyDamage: (newHp: number, newBarrier: number) => void
@@ -22,7 +24,8 @@ interface DamageCalculatorProps {
 export function DamageCalculator({
                                      isOpen,
                                      onClose,
-                                     defense,
+                                     baseDefense,
+                                     effectiveDefense,
                                      hp,
                                      barrier,
                                      onApplyDamage,
@@ -48,14 +51,14 @@ export function DamageCalculator({
             resolveIncomingDamage({
                 rawDamage,
                 penetration: rawPen,
-                defense,
+                defense: effectiveDefense,
                 sundered: damageChannel === "physical" && sundered,
                 damageChannel,
                 damageType,
                 resistances,
                 vulnerabilities,
             }),
-        [rawDamage, rawPen, defense, damageChannel, sundered, damageType, resistances, vulnerabilities]
+        [rawDamage, rawPen, effectiveDefense, damageChannel, sundered, damageType, resistances, vulnerabilities]
     )
 
     const finalDamage = breakdown.finalDamage
@@ -296,9 +299,23 @@ export function DamageCalculator({
                         <div className="flex items-center justify-between">
               <span className="text-muted-foreground">
                 {sundered ? "Defense (sundered, after pen)" : "Defense (after pen)"}
+                {effectiveDefense !== baseDefense ? (
+                  <span className="block text-[10px] normal-case">
+                    Adjusted from base {baseDefense}
+                    {effectiveDefense - baseDefense > 0
+                      ? ` (+${effectiveDefense - baseDefense})`
+                      : ` (${effectiveDefense - baseDefense})`}
+                  </span>
+                ) : null}
               </span>
                             <span
-                                className="font-mono font-bold text-foreground tabular-nums">−{breakdown.relevantDefense}</span>
+                                className={cn(
+                                  "font-mono font-bold tabular-nums",
+                                  statDeltaTextClass(effectiveDefense, baseDefense) || "text-foreground"
+                                )}
+                            >
+                              −{breakdown.relevantDefense}
+                            </span>
                         </div>
                     )}
                     <div className="flex items-center justify-between border-t border-border/60 pt-2">

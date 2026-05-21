@@ -688,56 +688,48 @@
       "manaStrike": {
         "name": "Mana Strike",
         "minLevel": 1,
-        "description": "Once per turn you can spend 2 Mana to add your Rea, WiP, or Pre modifier to your melee weapon attack's damage."
-      },
-      "moreSongs": {
-        "name": "More Songs",
-        "minLevel": 1,
-        "description": "You can learn 2 more Songs from the Bard class",
-        "prereqs": {
-          "classes": [
-            "bard"
-          ],
-          "level": 1
-        }
+        "description": "Once per round you can spend 5 Mana to add half your Rea, WiP, or Pre modifier (round up) to your weapon attack's damage."
       },
       "coupDeGrace": {
         "name": "Coup de Grace",
         "minLevel": 1,
         "description": "Your melee attacks on a prone target gain double Boon instead of Boon.",
         "prereqs": {
-          "classes": [
-            "brawler",
-            "fury",
-            "scout",
-            "weaponmaster"
-          ],
-          "level": 1
+          "classes": {
+            "1": [
+              "brawler",
+              "fury",
+              "scout",
+              "weaponmaster"
+            ]
+          }
         }
       },
       "improvedThrowing": {
         "name": "Improved Throwing",
         "minLevel": 1,
-        "description": "Increase Throwing range by 5 tiles and damage by 2",
+        "description": "Increase Throwing range by 3 tiles and damage by 1",
         "prereqs": {
-          "classes": [
-            "fury",
-            "marksman"
-          ],
-          "level": 1
+          "classes": {
+            "1": [
+              "fury",
+              "marksman"
+            ]
+          }
         }
       },
       "dedicatedStrike": {
         "name": "Dedicated Strike",
         "minLevel": 1,
-        "description": "When you attack with a 2H non-Firearm weapon with an action that costs 2 AP or more you may accept a Bane on the attack to add +3 damage to it.",
+        "description": "When you attack with a 2H non-Firearm weapon with an action that costs 2 AP or more  you may reduce your Stability by 1 (min 0) and cannot willing move for the rest of the round to deal +3 damage on this attack",
         "prereqs": {
-          "classes": [
-            "fury",
-            "marksman",
-            "weaponmaster"
-          ],
-          "level": 1
+          "classes": {
+            "1": [
+              "fury",
+              "marksman",
+              "weaponmaster"
+            ]
+          }
         }
       },
       "patientShooter": {
@@ -745,10 +737,11 @@
         "minLevel": 1,
         "description": "Starting from the second round if you have not changed positions the entire previous round and you know Steady Aim then your first ranged attack this round automatically gains the benefit of Steady Aim.",
         "prereqs": {
-          "classes": [
-            "marksman"
-          ],
-          "level": 1
+          "classes": {
+            "1": [
+              "marksman"
+            ]
+          }
         }
       },
       "naturalist": {
@@ -756,10 +749,11 @@
         "minLevel": 1,
         "description": "Whenever you use a healing consumable like a herb to heal, an additional 2 HP is restored.",
         "prereqs": {
-          "classes": [
-            "scout"
-          ],
-          "level": 1
+          "classes": {
+            "1": [
+              "scout"
+            ]
+          }
         }
       },
       "spearCharge": {
@@ -767,10 +761,11 @@
         "minLevel": 1,
         "description": "If you use Charge while wielding a polearm you deal +1 damage.",
         "prereqs": {
-          "classes": [
-            "weaponmaster"
-          ],
-          "level": 1
+          "classes": {
+            "1": [
+              "weaponmaster"
+            ]
+          }
         }
       },
       "additionalRespite": {
@@ -785,15 +780,72 @@
           }
         ]
       },
+      "allSkilledUp": {
+        "name": "All Skilled Up",
+        "minLevel": 1,
+        "description": "Gain 2 skills.",
+        "effects": [
+          {
+            "type": "GrantSkill",
+            "pickCount": 2,
+            "distinctPicks": true
+          }
+        ]
+      },
+      "mobileCover": {
+        "name": "Mobile Cover",
+        "minLevel": 1,
+        "description": "While you have a shield equipped you act as cover to adjacent allies whose size is no bigger than yours",
+        "prereqs": {
+          "classes": {
+            "1": [
+              "weaponmaster",
+              "guardian",
+              "marksman"
+            ]
+          }
+        }
+      },
+      "touchRam": {
+        "name": "Touchram",
+        "minLevel": 1,
+        "description": "You may use Implement weapons for Opportunity attacks, using half the weapon's damage (round up) as the damage",
+        "prereqs": {
+          "classes": {
+            "1": [
+              "conjurer",
+              "priest",
+              "sorcerer",
+              "tactician"
+            ]
+          }
+        }
+      },
+      "featherFall": {
+        "name": "Featherfall",
+        "minLevel": 1,
+        "description": "When you or an ally is about to suffer fall damage you may spend 10 Mana to reduce that fall damage by half for up to 3 targets",
+        "prereqs": {
+          "classes": {
+            "1": [
+              "conjurer",
+              "priest",
+              "sorcerer",
+              "tactician"
+            ]
+          }
+        }
+      },
       "fineMotorUpgrade": {
         "name": "Fine motor upgrade",
         "minLevel": 3,
         "description": "The mechanical arm from the Artificer's Tinker's Armor can now hold and fire 1H ranged weapons for you.",
         "prereqs": {
-          "classes": [
-            "artificer"
-          ],
-          "level": 3
+          "classes": {
+            "3": [
+              "artificer"
+            ]
+          }
         }
       },
       "pistolMaster": {
@@ -808,25 +860,12 @@
           }
         ],
         "prereqs": {
-          "classes": [
-            "artificer",
-            "marksman"
-          ],
-          "level": 3
-        }
-      },
-      "magesSpellbook": {
-        "name": "Mage's Spellbook",
-        "minLevel": 3,
-        "description": "You can learn 2 more available spells from any of the prerequisite classes you have levels in",
-        "prereqs": {
-          "classes": [
-            "artificer",
-            "conjurer",
-            "sorcerer",
-            "wizard"
-          ],
-          "level": 3
+          "classes": {
+            "3": [
+              "artificer",
+              "marksman"
+            ]
+          }
         }
       },
       "destructiveKi": {
@@ -834,12 +873,19 @@
         "minLevel": 3,
         "description": "You no longer gain the Opportunity attack from Chain Strike. Your attacks with Brawling weapons automatically gain Penetration (3).",
         "prereqs": {
-          "classes": [
-            "brawler"
-          ],
-          "level": 3,
-          "other": [
-            "chainStrike"
+          "all": [
+            {
+              "classes": {
+                "3": [
+                  "brawler"
+                ]
+              }
+            },
+            {
+              "other": [
+                "chainStrike"
+              ]
+            }
           ]
         }
       },
@@ -848,12 +894,19 @@
         "minLevel": 3,
         "description": "Your Force Palm attacks have their ranged increased to 5 and deal magical damage. Whenever you are allowed to make an Opportunity Attack you may instead replace it with a Force Palm with no AP cost.",
         "prereqs": {
-          "classes": [
-            "brawler"
-          ],
-          "level": 3,
-          "other": [
-            "forcePalm"
+          "all": [
+            {
+              "classes": {
+                "3": [
+                  "brawler"
+                ]
+              }
+            },
+            {
+              "other": [
+                "forcePalm"
+              ]
+            }
           ]
         }
       },
@@ -869,12 +922,24 @@
           }
         ],
         "prereqs": {
-          "classes": [
-            "brawler",
-            "fury",
-            "guardian"
-          ],
-          "level": 3
+          "any": [
+            {
+              "classes": {
+                "1": [
+                  "brawler",
+                  "fury",
+                  "guardian"
+                ]
+              }
+            },
+            {
+              "classes": {
+                "3": [
+                  "priest"
+                ]
+              }
+            }
+          ]
         }
       },
       "spellblade": {
@@ -907,13 +972,14 @@
           }
         ],
         "prereqs": {
-          "classes": [
-            "conjurer",
-            "fairytamer",
-            "scout",
-            "tactician"
-          ],
-          "level": 3
+          "classes": {
+            "3": [
+              "conjurer",
+              "fairytamer",
+              "scout",
+              "tactician"
+            ]
+          }
         }
       },
       "seismicToss": {
@@ -921,10 +987,11 @@
         "minLevel": 3,
         "description": "You ignore 2 Stability when throwing a creature.",
         "prereqs": {
-          "classes": [
-            "fury"
-          ],
-          "level": 3
+          "classes": {
+            "3": [
+              "fury"
+            ]
+          }
         }
       },
       "metalHarmony": {
@@ -932,10 +999,11 @@
         "minLevel": 3,
         "description": "You can cast spells while wearing martial armor",
         "prereqs": {
-          "classes": [
-            "guardian"
-          ],
-          "level": 3
+          "classes": {
+            "3": [
+              "guardian"
+            ]
+          }
         }
       },
       "aerialMenace": {
@@ -943,10 +1011,11 @@
         "minLevel": 3,
         "description": "Your ranged attacks deal +3 damage against flying targets",
         "prereqs": {
-          "classes": [
-            "marksman"
-          ],
-          "level": 3
+          "classes": {
+            "3": [
+              "marksman"
+            ]
+          }
         }
       },
       "crossbowMaster": {
@@ -954,10 +1023,11 @@
         "minLevel": 3,
         "description": "Your attacks with crossbows gain Penetrate (2)",
         "prereqs": {
-          "classes": [
-            "marksman"
-          ],
-          "level": 3
+          "classes": {
+            "3": [
+              "marksman"
+            ]
+          }
         }
       },
       "runAndGun": {
@@ -965,16 +1035,28 @@
         "minLevel": 3,
         "description": "After making a ranged weapon attack whose AP cost is no more than 2 you may shift 1.",
         "prereqs": {
-          "classes": [
-            "marksman"
-          ],
-          "level": 3
+          "any": [
+            {
+              "classes": {
+                "1": [
+                  "marksman"
+                ]
+              }
+            },
+            {
+              "classes": {
+                "3": [
+                  "scout"
+                ]
+              }
+            }
+          ]
         }
       },
       "selflessness": {
         "name": "Selflessness",
         "minLevel": 3,
-        "description": "Whenever you are healed by an ally that is not yourself you may spend a Reaction to restore 3 HP to all allies within 2 tiles."
+        "description": "Whenever you are healed in combat by an ally that is not yourself you may spend a Reaction and 2 Mana to restore 3 HP to all allies within 2 tiles."
       },
       "warden": {
         "name": "Warden",
@@ -985,10 +1067,74 @@
         "name": "Wave Swing",
         "minLevel": 3,
         "description": "You can use Wave Swing action",
+        "effects": [
+          {
+            "type": "GrantActionCard",
+            "value": "feat/waveSwing"
+          }
+        ],
         "prereqs": {
           "other": [
-            "spellBlade"
+            "manaStrike"
           ]
+        }
+      },
+      "wellTimedBlock": {
+        "name": "Well-timed Block",
+        "minLevel": 3,
+        "description": "After the first time you raise your shield per round, the damage of the next Opportunity Attack you suffer is reduced by your shield's defense",
+        "prereqs": {
+          "any": [
+            {
+              "classes": {
+                "1": [
+                  "weaponmaster",
+                  "guardian"
+                ]
+              }
+            },
+            {
+              "classes": {
+                "3": [
+                  "marksman"
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "crossBlock": {
+        "name": "Cross Block",
+        "minLevel": 3,
+        "description": "While dual wielding you gain +1 Stability",
+        "effects": [
+          {
+            "type": "StatChange",
+            "stat": "stability",
+            "value": "1",
+            "when": "dualWielding"
+          }
+        ],
+        "prereqs": {
+          "classes": {
+            "3": [
+              "brawler",
+              "weaponmaster"
+            ]
+          }
+        }
+      },
+      "executioner": {
+        "name": "Executioner",
+        "minLevel": 3,
+        "description": "If you kill a non-minion class enemy with a melee attack whose AP cost is at least 2 AP using a 2H weapon you may immediately make an Opportunity Attack on another creature in range using half your weapon's damage (round up)",
+        "prereqs": {
+          "classes": {
+            "3": [
+              "fury",
+              "weaponmaster"
+            ]
+          }
         }
       },
       "featureCreep": {
@@ -996,10 +1142,11 @@
         "minLevel": 5,
         "description": "If you chose Compound Weapon or Tinker's Armor you can make one more choice from your options.",
         "prereqs": {
-          "classes": [
-            "artificer"
-          ],
-          "level": 5
+          "classes": {
+            "5": [
+              "artificer"
+            ]
+          }
         }
       },
       "tenacity": {
@@ -1014,13 +1161,14 @@
           }
         ],
         "prereqs": {
-          "classes": [
-            "brawler",
-            "fury",
-            "guardian",
-            "weaponmaster"
-          ],
-          "level": 5
+          "classes": {
+            "5": [
+              "brawler",
+              "fury",
+              "guardian",
+              "weaponmaster"
+            ]
+          }
         }
       },
       "greaterAnimalCompanion": {
@@ -1028,15 +1176,22 @@
         "minLevel": 5,
         "description": "Choose 2 effects. For each effect either one of your animal companion's actions gains that effect or you gain a new Action.",
         "prereqs": {
-          "classes": [
-            "conjurer",
-            "fairytamer",
-            "scout",
-            "tactician"
-          ],
-          "level": 5,
-          "other": [
-            "trustyCompanion"
+          "all": [
+            {
+              "classes": {
+                "5": [
+                  "conjurer",
+                  "fairytamer",
+                  "scout",
+                  "tactician"
+                ]
+              }
+            },
+            {
+              "other": [
+                "trustyCompanion"
+              ]
+            }
           ]
         }
       },
@@ -1052,16 +1207,16 @@
           }
         ],
         "prereqs": {
-          "classes": [
-            "artificer",
-            "bard",
-            "cleric",
-            "conjurer",
-            "fairytamer",
-            "sorcerer",
-            "wizard"
-          ],
-          "level": 5
+          "classes": {
+            "5": [
+              "artificer",
+              "cleric",
+              "conjurer",
+              "fairytamer",
+              "sorcerer",
+              "wizard"
+            ]
+          }
         }
       },
       "subtleCast": {
@@ -1069,13 +1224,14 @@
         "minLevel": 3,
         "description": "If you double the mana cost of a spell you may cast the spell quietly and without the usual magical light effects.",
         "prereqs": {
-          "classes": [
-            "conjurer",
-            "fairytamer",
-            "sorcerer",
-            "wizard"
-          ],
-          "level": 3
+          "classes": {
+            "3": [
+              "conjurer",
+              "fairytamer",
+              "sorcerer",
+              "wizard"
+            ]
+          }
         }
       },
       "violentcast": {
@@ -1083,13 +1239,14 @@
         "minLevel": 3,
         "description": "When you kill an enemy with magic damage you deal 3 damage of the same type to all hostile creatures within 1 tile.",
         "prereqs": {
-          "classes": [
-            "conjurer",
-            "fairytamer",
-            "sorcerer",
-            "wizard"
-          ],
-          "level": 3
+          "classes": {
+            "3": [
+              "conjurer",
+              "fairytamer",
+              "sorcerer",
+              "wizard"
+            ]
+          }
         }
       },
       "tightGrip": {
@@ -1097,10 +1254,11 @@
         "minLevel": 5,
         "description": "You may treat non-Heavy two-handed weapons as 1H and Heavy weapons no longer increase AP costs.",
         "prereqs": {
-          "classes": [
-            "fury"
-          ],
-          "level": 5
+          "classes": {
+            "3": [
+              "fury"
+            ]
+          }
         }
       },
       "rampart": {
@@ -1108,10 +1266,11 @@
         "minLevel": 5,
         "description": "For the first round of combat until you start your turn you gain Resistance to all damage types",
         "prereqs": {
-          "classes": [
-            "guardian"
-          ],
-          "level": 5
+          "classes": {
+            "5": [
+              "guardian"
+            ]
+          }
         }
       },
       "immovable": {
@@ -1126,10 +1285,11 @@
           }
         ],
         "prereqs": {
-          "classes": [
-            "guardian"
-          ],
-          "level": 5
+          "classes": {
+            "3": [
+              "guardian"
+            ]
+          }
         }
       },
       "magicPenetration": {
@@ -1137,10 +1297,11 @@
         "minLevel": 5,
         "description": "You may double the mana cost of a spell to ignore resistance.",
         "prereqs": {
-          "classes": [
-            "sorcerer"
-          ],
-          "level": 5
+          "classes": {
+            "5": [
+              "sorcerer"
+            ]
+          }
         }
       },
       "extremeEvasion": {
@@ -1148,21 +1309,23 @@
         "minLevel": 5,
         "description": "When using Evasion you warp instead of shift after the triggering attack",
         "prereqs": {
-          "classes": [
-            "scout"
-          ],
-          "level": 5
+          "classes": {
+            "5": [
+              "scout"
+            ]
+          }
         }
       },
       "criticalEdge": {
         "name": "Critical Edge",
         "minLevel": 3,
-        "description": "When attacking a creature that has a status effect or you are flanking you can also roll a critical success on a 17 or 18",
+        "description": "When attacking a creature that has a status effect or you are flanking you can also roll a critical success on an 18",
         "prereqs": {
-          "classes": [
-            "scout"
-          ],
-          "level": 3
+          "classes": {
+            "3": [
+              "scout"
+            ]
+          }
         }
       },
       "parryMaster": {
@@ -1170,37 +1333,11 @@
         "minLevel": 5,
         "description": "You may use Parry on non-melee attacks as well. Parry becomes a free Reaction.",
         "prereqs": {
-          "classes": [
-            "weaponmaster"
-          ],
-          "level": 5
-        }
-      },
-      "testSelector": {
-        "name": "Test Selector Feat",
-        "minLevel": 1,
-        "description": "Either increase max hp by 5 or max mp by 5",
-        "selectAmount": 1,
-        "effects": [
-          {
-            "type": "StatChange",
-            "stat": "maxHP",
-            "value": "5"
-          },
-          {
-            "type": "StatChange",
-            "stat": "maxMP",
-            "value": "5"
+          "classes": {
+            "5": [
+              "weaponmaster"
+            ]
           }
-        ],
-        "prereqs": {
-          "classes": [
-            "brawler",
-            "fury",
-            "guardian",
-            "weaponmaster"
-          ],
-          "level": 1
         }
       }
     }
@@ -1243,7 +1380,7 @@
         "specialInvention": {
           "name": "Special Invention",
           "minLevel": 3,
-          "description": "Refer to the Special Invention page."
+          "description": "At level 3, choose one invention: Potion Launcher (launcher + extra-large alchemy satchel), Trap Dispenser Belt, Modular Armor (pick two modules), or Support Backpack (pick two modules; Weapon Infusion requires a damage type)."
         },
         "deepPockets": {
           "name": "Deep Pockets",
@@ -1256,6 +1393,74 @@
               "value": "2"
             }
           ]
+        }
+      },
+      "specialInvention": {
+        "variants": {
+          "potionLauncher": {
+            "name": "Potion Launcher",
+            "description": "Grants a potion launcher and an extra-large alchemy satchel.",
+            "grants": ["wp_potion_launcher", "gear_extra_large_alchemy_satchel"]
+          },
+          "trapBelt": {
+            "name": "Trap Dispenser Belt",
+            "description": "Deployable actions can be performed twice as fast at double IP cost.",
+            "grants": ["acc_trap_dispenser_belt"]
+          },
+          "modularArmor": {
+            "name": "Modular Armor",
+            "description": "Artificer's armor (Defense 4, martial). Pick two invention modules.",
+            "grants": ["arm_artificer_armor"],
+            "modulePick": 2,
+            "moduleItemId": "arm_artificer_armor"
+          },
+          "supportBackpack": {
+            "name": "Support Backpack",
+            "description": "Unlimited-capacity back container. Pick two invention modules.",
+            "grants": ["gear_support_backpack"],
+            "modulePick": 2,
+            "moduleItemId": "gear_support_backpack"
+          }
+        },
+        "weaponInfusionDamageTypes": ["volt", "water", "fire", "earth"],
+        "modules": {
+          "hoverBoots": {
+            "passiveId": "invention_hoverBoots",
+            "label": "Hover Boots"
+          },
+          "heatGoggles": {
+            "passiveId": "invention_heatGoggles",
+            "label": "Heat Goggles (low-light)"
+          },
+          "miningLight": {
+            "passiveId": "invention_miningLight",
+            "label": "Mining Light"
+          },
+          "rollerblades": {
+            "passiveId": "invention_rollerblades",
+            "label": "Rollerblades (+2 Speed)"
+          },
+          "robotTail": {
+            "passiveId": "invention_robotTail",
+            "label": "Robot Tail (weapon)",
+            "grantItemId": "wp_robot_tail"
+          },
+          "backSupport": {
+            "passiveId": "invention_backSupport",
+            "label": "Back Support (+1 Stability)"
+          },
+          "mechanicalArm": {
+            "passiveId": "invention_mechanicalArm",
+            "label": "Mechanical Arm"
+          },
+          "manaTank": {
+            "passiveId": "invention_manaTank",
+            "label": "Mana Tank (+10 Max MP)"
+          },
+          "weaponInfusion": {
+            "passiveIdPrefix": "invention_weaponInfusion_",
+            "label": "Weapon Infusion"
+          }
         }
       },
       "actions": {
@@ -1577,12 +1782,12 @@
             }
           }
         },
-        "burstShot": {
+        "repeatingShot": {
           "minLevel": 5,
           "actionCard": {
-            "name": "Burst Shot",
+            "name": "Repeating Shot",
             "type": "action",
-            "description": "Fire a 3-round burst of bullets from your firearm.",
+            "description": "Fire a burst of bullets from your firearm.",
             "apCost": 2,
             "focusCost": 7,
             "mpCost": 10,
@@ -1591,7 +1796,8 @@
               "Ranged",
               "Spell",
               "Weapon",
-              "Firearm"
+              "Firearm",
+              "Repeat(2)"
             ],
             "source": "artificer",
             "ipCost": 3,
@@ -1599,11 +1805,11 @@
               "rollStats": [
                 "dexterity"
               ],
-              "tier1Dmg": 6,
+              "tier1Dmg": 1,
               "tier1Wpn": true,
-              "tier2Dmg": 9,
+              "tier2Dmg": 2,
               "tier2Wpn": true,
-              "tier3Dmg": 12,
+              "tier3Dmg": 3,
               "tier3Wpn": true
             }
           }
@@ -1686,6 +1892,10 @@
         "stat": "hp",
         "amount": 1,
         "frequency": 2
+      },
+      "skillTraining": {
+        "pickCount": 2,
+        "once": true
       },
       "focusFeat": {
         "name": "Lyrical Pride",
@@ -2065,7 +2275,7 @@
             "tags": [
               "Ranged",
               "Song",
-              "Emanation"
+              "Multi(5)"
             ],
             "source": "bard",
             "powerRoll": {
@@ -2159,7 +2369,7 @@
           "id": "spellsinger",
           "name": "Spellsinger",
           "level": 1,
-          "trigger": "An ally spends mana",
+          "trigger": "An ally that can hear you spends mana during combat",
           "description": "They regain 3 Mana",
           "focusCost": 1
         },
@@ -2167,7 +2377,7 @@
           "id": "cantStopTheMusic",
           "name": "Can't stop the music",
           "level": 3,
-          "trigger": "You are about to take physical damage while playing a Song",
+          "trigger": "You are about to take physical damage while you or your pet is playing a Song",
           "description": "You gain resistance to physical damage for the rest of the round",
           "focusCost": 1
         }
@@ -2193,7 +2403,7 @@
         "chainStrike": {
           "name": "Chain Strike",
           "minLevel": 1,
-          "description": "After you attack with a Brawling weapon as part of an action you may make an Opportunity Attack with a Brawling weapon. Your target does not have to be the same as the first. You can also treat your fists as a weapon for the sake of changing damage types."
+          "description": "After you attack with a Brawling weapon as part of an action you may make an Opportunity Attack with a Brawling weapon. If you spend 3 Focus you can add Repeat(2) to this Opportunity Attack. Your target does not have to be the same as the first. You can also treat your fists as a weapon for the sake of changing damage types."
         },
         "onTheMove": {
           "name": "On the Move",
@@ -2456,7 +2666,7 @@
           "actionCard": {
             "name": "Swallow Kick",
             "type": "action",
-            "description": "You unleash a powerful vertical kick, dealing physical air damage",
+            "description": "You unleash a powerful kick, dealing physical air damage",
             "apCost": 2,
             "focusCost": 5,
             "mpCost": 0,
@@ -2472,9 +2682,9 @@
                 "might",
                 "dexterity"
               ],
-              "tier1Dmg": 3,
+              "tier1Dmg": 4,
               "tier1Wpn": true,
-              "tier2Dmg": 4,
+              "tier2Dmg": 6,
               "tier2Wpn": true,
               "tier2Effect": {
                 "type": "ForcedMovement",
@@ -2484,11 +2694,11 @@
                 "targetStats": [
                   "dexterity"
                 ],
-                "effect": "push",
+                "effect": "slide",
                 "distance": 2,
                 "strength": "average"
               },
-              "tier3Dmg": 6,
+              "tier3Dmg": 8,
               "tier3Wpn": true,
               "tier3Effect": {
                 "type": "ForcedMovement",
@@ -2498,7 +2708,7 @@
                 "targetStats": [
                   "dexterity"
                 ],
-                "effect": "push",
+                "effect": "slide",
                 "distance": 3,
                 "strength": "strong"
               }
@@ -2863,7 +3073,7 @@
           "actionCard": {
             "name": "Totem of Anger",
             "type": "action",
-            "description": "Summon a wooden totem in an unoccupied tile. All allies within 1 tile of it have their ranged weapon attack damage increased by 2.",
+            "description": "Summon a wooden totem in an unoccupied tile. All allies within 1 tile of it have their weapon attack damage increased by 2.",
             "apCost": 2,
             "focusCost": 3,
             "mpCost": 8,
@@ -2953,12 +3163,12 @@
             "source": "conjurer"
           }
         },
-        "healingBeam": {
+        "keenCall": {
           "minLevel": 3,
           "actionCard": {
-            "name": "Healing Beam",
+            "name": "Keen Call",
             "type": "action",
-            "description": "Choose an ally. A healing beam stretches from you to them. Heal all allies, including undead and constructs, in the area of the beam and deal nature damage to all hostile creatures in the area. The targeted ally and yourself are included in this area.",
+            "description": "Choose an ally. Their next Power Roll gains double boon.",
             "apCost": 2,
             "focusCost": 5,
             "mpCost": 10,
@@ -2967,15 +3177,7 @@
               "Ranged",
               "Spell"
             ],
-            "source": "conjurer",
-            "powerRoll": {
-              "rollStats": [
-                "reason"
-              ],
-              "tier1Dmg": 4,
-              "tier2Dmg": 6,
-              "tier3Dmg": 8
-            }
+            "source": "conjurer"
           }
         },
         "finalOrder": {
@@ -3018,7 +3220,7 @@
           "actionCard": {
             "name": "Echo Strike",
             "type": "action",
-            "description": "Choose an ally. Once per round whenever the target makes a melee attack they may make an Opportunity attack against the same target as a free Reaction.\n\nMaintain: During the start phase you may spend 1 Focus and 5 Mana to maintain this ability. If you do so then the effect persists for this round as well",
+            "description": "Choose an ally. Once per round whenever the target makes a melee attack they may add Repeat(2) to that attack.\n\nMaintain: During the start phase you may spend 1 Focus and 5 Mana to maintain this ability. If you do so then the effect persists for this round as well",
             "apCost": 2,
             "focusCost": 7,
             "mpCost": 13,
@@ -3191,7 +3393,7 @@
         "bigHands": {
           "name": "Big Hands",
           "minLevel": 1,
-          "description": "You gain a +1 bonus on Grab checks."
+          "description": "You gain a Boon on Grab checks."
         },
         "frenzy": {
           "name": "Frenzy",
@@ -3211,9 +3413,9 @@
           ]
         },
         "bluntForceTrauma": {
-          "name": "Blunt Force Trauma",
+          "name": "Juggernaut",
           "minLevel": 5,
-          "description": "The minimum damage for a melee physical attack is increased from 1 to 3"
+          "description": "When you make an Opportunity Attack with a 2H weapon you can give it Multi(2) but the damage is halved (round up)"
         }
       },
       "freeFeaturesNote": "You gain proficiency with martial melee weapons and martial armor. Fury: You're strong enough to jam your weapon into the side of a stone wall to create a small platform to stand on.",
@@ -3380,9 +3582,9 @@
         "mightyLeap": {
           "minLevel": 1,
           "actionCard": {
-            "name": "Mightly Leap",
+            "name": "Mighty Leap",
             "type": "action",
-            "description": "Your Speed doubles for the sake of this attack. Choose an unoccupied tile within tiles equal to your Speed. You jump high in the air and land on that tile by warping to it, releasing a powerful shockwave around you that affects all creatures within 1 tile, dealing crushing damage.",
+            "description": "Choose an unoccupied tile within tiles equal to your Speed. You jump high in the air and land on that tile by warping to it, releasing a powerful shockwave around you that affects all creatures within 1 tile, dealing crushing damage. Deal bonus damage equal to the stability of any creature you have Grabbed",
             "apCost": 2,
             "focusCost": 0,
             "mpCost": 0,
@@ -3513,7 +3715,7 @@
           "actionCard": {
             "name": "Roundhouse",
             "type": "action",
-            "description": "Prepare to swing in a circle around you, hitting all creatures within 2 tiles",
+            "description": "Prepare to swing in a circle around you, hitting all creatures within range of your weapon",
             "apCost": 2,
             "focusCost": 5,
             "mpCost": 0,
@@ -3622,11 +3824,11 @@
               "rollStats": [
                 "might"
               ],
-              "tier1Dmg": 3,
+              "tier1Dmg": 4,
               "tier1Wpn": true,
-              "tier2Dmg": 4,
+              "tier2Dmg": 6,
               "tier2Wpn": true,
-              "tier3Dmg": 6,
+              "tier3Dmg": 8,
               "tier3Wpn": true
             }
           }
@@ -3753,7 +3955,7 @@
         "bigBarriers": {
           "name": "Big Barriers",
           "minLevel": 1,
-          "description": "When granting Barrier you can increase the amount granted by your shield's defense if you have one equipped. You also deal +1 damage while you have Barrier."
+          "description": "When granting Barrier you can increase the barrier amount by your shield's defense if you have one equipped."
         },
         "centerOfGravity": {
           "name": "Center of Gravity",
@@ -3770,17 +3972,60 @@
         "elementalTraining": {
           "name": "Elemental Training",
           "minLevel": 5,
-          "description": "Choose one damage type that is not crushing, slashing, or piercing. You gain resistance to that damage type."
+          "description": "Choose one damage type that is not crushing, slashing, or piercing. You gain resistance to that damage type.",
+          "selectAmount": 1,
+          "effects": [
+            {
+              "type": "Resistance",
+              "stat": "air",
+              "value": "2"
+            },
+            {
+              "type": "Resistance",
+              "stat": "volt",
+              "value": "2"
+            },
+            {
+              "type": "Resistance",
+              "stat": "fire",
+              "value": "2"
+            },
+            {
+              "type": "Resistance",
+              "stat": "water",
+              "value": "2"
+            },
+            {
+              "type": "Resistance",
+              "stat": "earth",
+              "value": "2"
+            },
+            {
+              "type": "Resistance",
+              "stat": "nature",
+              "value": "2"
+            },
+            {
+              "type": "Resistance",
+              "stat": "light",
+              "value": "2"
+            },
+            {
+              "type": "Resistance",
+              "stat": "dark",
+              "value": "2"
+            }
+          ]
         }
       },
       "freeFeaturesNote": "You gain proficiency with martial melee weapons, martial armor, and martial shields. Guardian: You can easily detect killing intent.",
       "actions": {
-        "getBehindMe": {
+        "braceForImpact": {
           "minLevel": 1,
           "actionCard": {
-            "name": "Get behind me",
+            "name": "Brace for Impact",
             "type": "action",
-            "description": "You cannot willingly move for the rest of the round. You are treated as an object for the sake of cover and gain 1 Stability. Gain 5 Barrier.",
+            "description": "You cannot willingly move for the rest of the round. You are treated as an object for the sake of cover and gain 1 Stability. Gain 5 Barrier",
             "apCost": 1,
             "focusCost": 0,
             "mpCost": 0,
@@ -3805,7 +4050,52 @@
               "Emanation"
             ],
             "source": "guardian",
-            "duration": "6 seconds"
+            "duration": "6 seconds",
+            "powerRoll": {
+              "rollStats": [
+                "might",
+                "presence"
+              ],
+              "tier1Effect": {
+                "type": "Condition",
+                "srcStats": [
+                  "might",
+                  "presence"
+                ],
+                "targetStats": [
+                  "presence"
+                ],
+                "effect": "taunted",
+                "strength": "weak",
+                "duration": "turnEnd"
+              },
+              "tier2Effect": {
+                "type": "Condition",
+                "srcStats": [
+                  "might",
+                  "presence"
+                ],
+                "targetStats": [
+                  "presence"
+                ],
+                "effect": "taunted",
+                "strength": "average",
+                "duration": "turnEnd"
+              },
+              "tier3Effect": {
+                "type": "Condition",
+                "srcStats": [
+                  "might",
+                  "presence"
+                ],
+                "targetStats": [
+                  "presence"
+                ],
+                "effect": "taunted",
+                "strength": "strong",
+                "duration": "turnEnd"
+              }
+            }
           }
         },
         "shieldBash": {
@@ -3822,6 +4112,9 @@
               "Melee"
             ],
             "source": "guardian",
+            "hiddenTags": [
+              "shield"
+            ],
             "powerRoll": {
               "rollStats": [
                 "might"
@@ -3860,7 +4153,39 @@
             "tags": [
               "Melee"
             ],
-            "source": "guardian"
+            "source": "guardian",
+            "hiddenTags": [
+              "shield"
+            ],
+            "powerRoll": {
+              "rollStats": [
+                "might"
+              ],
+              "tier1Dmg": 3,
+              "tier1Effect": {
+                "type": "ForcedMovement",
+                "effect": "push",
+                "distance": 2
+              },
+              "tier2Dmg": 4,
+              "tier2Effect": {
+                "type": "ForcedMovement",
+                "effect": "push",
+                "distance": 3
+              },
+              "tier3Dmg": 6,
+              "tier3Effect": {
+                "type": "Condition",
+                "srcStats": [
+                  "might"
+                ],
+                "targetStats": [
+                  "might"
+                ],
+                "effect": "prone",
+                "strength": "strong"
+              }
+            }
           }
         },
         "hammeringBlows": {
@@ -3878,6 +4203,9 @@
               "Penetrate(3)"
             ],
             "source": "guardian",
+            "hiddenTags": [
+              "shield"
+            ],
             "powerRoll": {
               "rollStats": [
                 "might"
@@ -3903,6 +4231,9 @@
               "Multi(2)"
             ],
             "source": "guardian",
+            "hiddenTags": [
+              "shield"
+            ],
             "powerRoll": {
               "rollStats": [
                 "might"
@@ -3929,13 +4260,17 @@
             ],
             "source": "guardian",
             "duration": "1 minute",
+            "hiddenTags": [
+              "sustain",
+              "barrier"
+            ],
             "powerRoll": {
               "rollStats": [
                 "presence"
               ],
-              "tier1Dmg": 8,
-              "tier2Dmg": 11,
-              "tier3Dmg": 16
+              "tier1Dmg": 5,
+              "tier2Dmg": 7,
+              "tier3Dmg": 9
             }
           }
         },
@@ -3953,7 +4288,25 @@
               "Melee"
             ],
             "source": "guardian",
-            "duration": "6 seconds"
+            "duration": "6 seconds",
+            "powerRoll": {
+              "rollStats": [
+                "might",
+                "presence"
+              ],
+              "tier1Effect": {
+                "type": "Special",
+                "effect": "Vulnerability(5)"
+              },
+              "tier2Effect": {
+                "type": "Special",
+                "effect": "Vulnerability(3)"
+              },
+              "tier3Effect": {
+                "type": "Special",
+                "effect": "Vulnerability(1)"
+              }
+            }
           }
         },
         "crownOfThorns": {
@@ -3992,7 +4345,17 @@
               ],
               "tier1Dmg": 2,
               "tier2Dmg": 3,
-              "tier3Dmg": 5
+              "tier2Effect": {
+                "type": "ForcedMovement",
+                "effect": "push",
+                "distance": 1
+              },
+              "tier3Dmg": 5,
+              "tier3Effect": {
+                "type": "ForcedMovement",
+                "effect": "push",
+                "distance": 2
+              }
             }
           }
         },
@@ -4008,7 +4371,48 @@
             "range": "3",
             "tags": [],
             "source": "guardian",
-            "duration": "18 seconds"
+            "duration": "18 seconds",
+            "powerRoll": {
+              "rollStats": [
+                "presence"
+              ],
+              "tier1Effect": {
+                "type": "Condition",
+                "srcStats": [
+                  "might",
+                  "presence"
+                ],
+                "targetStats": [
+                  "presence"
+                ],
+                "effect": "taunted",
+                "strength": "weak"
+              },
+              "tier2Effect": {
+                "type": "Condition",
+                "srcStats": [
+                  "might",
+                  "presence"
+                ],
+                "targetStats": [
+                  "presence"
+                ],
+                "effect": "taunted",
+                "strength": "average"
+              },
+              "tier3Effect": {
+                "type": "Condition",
+                "srcStats": [
+                  "might",
+                  "presence"
+                ],
+                "targetStats": [
+                  "presence"
+                ],
+                "effect": "taunted",
+                "strength": "strong"
+              }
+            }
           }
         },
         "deflectiveShield": {
@@ -4060,8 +4464,7 @@
           "type": "Reaction",
           "level": 1,
           "trigger": "You are about to be attacked",
-          "description": "You raise your shield, gaining its defense bonus until the start of your next turn.",
-          "focusCost": 1
+          "description": "You raise your shield, gaining its defense bonus until the start of your next turn."
         },
         {
           "id": "castle",
@@ -4097,12 +4500,12 @@
         "platformStability": {
           "name": "Platform Stability",
           "minLevel": 1,
-          "description": "If you have not changed positions since the beginning of the round your ranged weapon attacks deal +2 damage."
+          "description": "If you have not changed positions since the beginning of the round your ranged attacks deal +2 damage."
         },
         "throwingArt": {
           "name": "Throwing Art",
           "minLevel": 1,
-          "description": "When attacking by throwing a weapon or object you deal +1 damage."
+          "description": "If attacking by throwing a weapon or object you may spend 1 Focus if you are dual-wielding throwable objects to throw both and grant the attack Repeat(2)"
         },
         "barrage": {
           "name": "Barrage",
@@ -4112,7 +4515,7 @@
         "skilledSniper": {
           "name": "Skilled Sniper",
           "minLevel": 5,
-          "description": "Hitting a creature with a ranged weapon attack within 1 tile of max range grants Penetrate (2)."
+          "description": "Hitting a creature at least 8 tiles away with a ranged weapon attack grants Penetrate (2) for that attack"
         }
       },
       "freeFeaturesNote": "You gain proficiency with martial ranged weapons and martial shields. Marksman: You recognize almost all melee weapons used by almost any creature as well as most non-firearm ammo.",
@@ -4254,14 +4657,14 @@
             }
           }
         },
-        "sonicSensor": {
+        "smokeShot": {
           "minLevel": 1,
           "actionCard": {
-            "name": "Sonic Sensor",
+            "name": "Smoke Shot",
             "type": "action",
-            "description": "Fire a special shot that releases sonar waves from the target. For the rest of the round the target does not grant a Bane nor gain a Boon from the usual effects of Concealment.",
+            "description": "Fire a special shot whose end is a rounded ball filled with smokepowder",
             "apCost": 2,
-            "focusCost": 1,
+            "focusCost": 3,
             "mpCost": 0,
             "range": "Wpn",
             "tags": [
@@ -4273,12 +4676,42 @@
               "rollStats": [
                 "dexterity"
               ],
-              "tier1Dmg": 1,
-              "tier1Wpn": true,
-              "tier2Dmg": 2,
-              "tier2Wpn": true,
-              "tier3Dmg": 3,
-              "tier3Wpn": true
+              "tier1Effect": {
+                "type": "Condition",
+                "srcStats": [
+                  "dexterity"
+                ],
+                "targetStats": [
+                  "dexterity"
+                ],
+                "effect": "blinded",
+                "strength": "weak",
+                "duration": "roundEnd"
+              },
+              "tier2Effect": {
+                "type": "Condition",
+                "srcStats": [
+                  "dexterity"
+                ],
+                "targetStats": [
+                  "dexterity"
+                ],
+                "effect": "blinded",
+                "strength": "average",
+                "duration": "roundEnd"
+              },
+              "tier3Effect": {
+                "type": "Condition",
+                "srcStats": [
+                  "dexterity"
+                ],
+                "targetStats": [
+                  "dexterity"
+                ],
+                "effect": "blinded",
+                "strength": "strong",
+                "duration": "roundEnd"
+              }
             }
           }
         },
@@ -4434,7 +4867,7 @@
               "tier3Effect": {
                 "type": "ForcedMovement",
                 "effect": "push",
-                "distance": 3
+                "distance": 4
               }
             }
           }
@@ -4459,11 +4892,11 @@
               "rollStats": [
                 "dexterity"
               ],
-              "tier1Dmg": 6,
+              "tier1Dmg": 3,
               "tier1Wpn": true,
-              "tier2Dmg": 9,
+              "tier2Dmg": 5,
               "tier2Wpn": true,
-              "tier3Dmg": 12,
+              "tier3Dmg": 7,
               "tier3Wpn": true
             }
           }
@@ -4473,7 +4906,7 @@
           "actionCard": {
             "name": "Lockdown",
             "type": "action",
-            "description": "Choose a 5x5 area. If any hostile creature strides in that area you immediately take a shot at them.",
+            "description": "Choose a 5x5 area. If any hostile creature in that area shifts without cover or strides you immediately take a shot at them as a free reaction. Roll once total.",
             "apCost": 2,
             "focusCost": 7,
             "mpCost": 0,
@@ -4511,18 +4944,19 @@
               "Ranged",
               "Weapon",
               "2H",
-              "Delay"
+              "Delay",
+              "Repeat(2)"
             ],
             "source": "marksman",
             "powerRoll": {
               "rollStats": [
                 "dexterity"
               ],
-              "tier1Dmg": 8,
+              "tier1Dmg": 2,
               "tier1Wpn": true,
-              "tier2Dmg": 11,
+              "tier2Dmg": 3,
               "tier2Wpn": true,
-              "tier3Dmg": 16,
+              "tier3Dmg": 4,
               "tier3Wpn": true
             }
           }
@@ -4569,6 +5003,8 @@
           "type": "Reaction",
           "level": 3,
           "trigger": "A hostile creature targets an ally within 10 tiles with a ranged attack",
+          "chargeStat": "dexterity",
+          "chargeReset": ["endOfCombat"],
           "description": "You have Crossfire charges equal to your Dexterity modifier. You may spend one of these charges to decrease the success tier of that ranged attack by 1. Doesn't work against critical hits. Charges reset at the end of combat."
         }
       ]
@@ -4764,13 +5200,17 @@
               "Spell"
             ],
             "source": "priest",
+            "hiddenTags": [
+              "sustain",
+              "heal"
+            ],
             "powerRoll": {
               "rollStats": [
                 "willpower"
               ],
-              "tier1Dmg": 3,
-              "tier2Dmg": 5,
-              "tier3Dmg": 7
+              "tier1Dmg": 1,
+              "tier2Dmg": 2,
+              "tier3Dmg": 3
             }
           }
         },
@@ -4790,17 +5230,21 @@
               "Multi(2)"
             ],
             "source": "priest",
+            "hiddenTags": [
+              "sustain",
+              "heal"
+            ],
             "powerRoll": {
               "rollStats": [
                 "willpower"
               ],
-              "tier1Dmg": 6,
-              "tier2Dmg": 9,
+              "tier1Dmg": 3,
+              "tier2Dmg": 4,
               "tier2Effect": {
                 "type": "Special",
                 "effect": "End one status effect on each target"
               },
-              "tier3Dmg": 12,
+              "tier3Dmg": 6,
               "tier3Effect": {
                 "type": "Special",
                 "effect": "End two status effects on each target"
@@ -4825,13 +5269,17 @@
             ],
             "source": "priest",
             "duration": "1 minute",
+            "hiddenTags": [
+              "sustain",
+              "barrier"
+            ],
             "powerRoll": {
               "rollStats": [
                 "willpower"
               ],
-              "tier1Dmg": 4,
-              "tier2Dmg": 7,
-              "tier3Dmg": 10,
+              "tier1Dmg": 3,
+              "tier2Dmg": 4,
+              "tier3Dmg": 6,
               "tier3Effect": {
                 "type": "Special",
                 "effect": "End one status effect on one of the targets"
@@ -4877,16 +5325,20 @@
             "tags": [
               "Ranged",
               "Spell",
-              "Multi(5)"
+              "Repeat(5)"
             ],
             "source": "priest",
+            "hiddenTags": [
+              "sustain",
+              "heal"
+            ],
             "powerRoll": {
               "rollStats": [
                 "willpower"
               ],
-              "tier1Dmg": 2,
-              "tier2Dmg": 3,
-              "tier3Dmg": 5
+              "tier1Dmg": 1,
+              "tier2Dmg": 2,
+              "tier3Dmg": 3
             }
           }
         },
@@ -4895,7 +5347,7 @@
           "actionCard": {
             "name": "Divine Infusion",
             "type": "action",
-            "description": "Choose one of your or an ally's weapon. Give it either Infusion ( Light )(light) or Infusion ( Dark )(Dark). You can only have one of these at a time.",
+            "description": "Choose one of your or an ally's weapon. Give it either Infusion (Light) or Infusion (Dark). You can only have one of these at a time.",
             "apCost": 1,
             "focusCost": 3,
             "mpCost": 2,
@@ -5002,6 +5454,10 @@
               "Spell"
             ],
             "source": "priest",
+            "hiddenTags": [
+              "sustain",
+              "heal"
+            ],
             "powerRoll": {
               "rollStats": [
                 "willpower"
@@ -5027,13 +5483,17 @@
               "Spell"
             ],
             "source": "priest",
+            "hiddenTags": [
+              "sustain",
+              "heal"
+            ],
             "powerRoll": {
               "rollStats": [
                 "willpower"
               ],
-              "tier1Dmg": 12,
-              "tier2Dmg": 16,
-              "tier3Dmg": 24
+              "tier1Dmg": 10,
+              "tier2Dmg": 13,
+              "tier3Dmg": 18
             }
           }
         },
@@ -5050,13 +5510,17 @@
             "tags": [],
             "source": "priest",
             "duration": "1 minute",
+            "hiddenTags": [
+              "sustain",
+              "heal"
+            ],
             "powerRoll": {
               "rollStats": [
                 "willpower"
               ],
-              "tier1Dmg": 4,
-              "tier2Dmg": 6,
-              "tier3Dmg": 8
+              "tier1Dmg": 2,
+              "tier2Dmg": 3,
+              "tier3Dmg": 5
             }
           },
           "deityId": "sinir"
@@ -5134,7 +5598,7 @@
             "description": "Branulla: Grant the target Barrier immediately. When the Delay effect triggers if the target is Bloodied or Dying they lose HP equal to the Barrier amount.",
             "apCost": 2,
             "focusCost": 1,
-            "mpCost": 5,
+            "mpCost": 10,
             "range": "12",
             "tags": [
               "Ranged",
@@ -5142,13 +5606,17 @@
               "Delay"
             ],
             "source": "priest",
+            "hiddenTags": [
+              "sustain",
+              "barrier"
+            ],
             "powerRoll": {
               "rollStats": [
                 "willpower"
               ],
-              "tier1Dmg": 6,
-              "tier2Dmg": 9,
-              "tier3Dmg": 12
+              "tier1Dmg": 5,
+              "tier2Dmg": 7,
+              "tier3Dmg": 9
             }
           },
           "deityId": "branulla"
@@ -5158,7 +5626,7 @@
           "actionCard": {
             "name": "Generous Donation",
             "type": "action",
-            "description": "Branulla: Choose a willing target with less HP than you. You swap HP with them. Their HP cannot exceed their maximum. Afterwards both of you are healed.",
+            "description": "Branulla: Choose a willing target with less HP than you. You swap HP with them. Both HP cannot exceed their maximum. Afterwards both of you are healed.",
             "apCost": 2,
             "focusCost": 7,
             "mpCost": 15,
@@ -5168,6 +5636,10 @@
               "Spell"
             ],
             "source": "priest",
+            "hiddenTags": [
+              "sustain",
+              "heal"
+            ],
             "powerRoll": {
               "rollStats": [
                 "willpower"
@@ -5232,7 +5704,7 @@
             "description": "Phara: Empower your next melee attack. If that attack hits an Undead the attack's damage is increased by 8. Otherwise the damage is increased by 5.",
             "apCost": 1,
             "focusCost": 3,
-            "mpCost": 5,
+            "mpCost": 10,
             "range": "Self",
             "tags": [
               "Melee",
@@ -5263,9 +5735,9 @@
               "rollStats": [
                 "willpower"
               ],
-              "tier1Dmg": 8,
-              "tier2Dmg": 11,
-              "tier3Dmg": 16
+              "tier1Dmg": 6,
+              "tier2Dmg": 9,
+              "tier3Dmg": 12
             }
           },
           "deityId": "phara"
@@ -5313,7 +5785,7 @@
             "description": "Eyja: Create a pillar of ice on an unoccupied tile. It has the durability of wood. All creatures within 1 tile of the pillar are immune to Bleeding and Poisoned.",
             "apCost": 1,
             "focusCost": 7,
-            "mpCost": 10,
+            "mpCost": 3,
             "range": "8",
             "tags": [
               "Ranged",
@@ -5332,7 +5804,7 @@
             "description": "Torphon: Create a pillar of mud on an unoccupied tile. It has the durability of wood.",
             "apCost": 1,
             "focusCost": 1,
-            "mpCost": 10,
+            "mpCost": 8,
             "range": "8",
             "tags": [
               "Ranged",
@@ -5359,13 +5831,17 @@
             ],
             "source": "priest",
             "duration": "6 seconds",
+            "hiddenTags": [
+              "sustain",
+              "barrier"
+            ],
             "powerRoll": {
               "rollStats": [
                 "willpower"
               ],
-              "tier1Dmg": 12,
-              "tier2Dmg": 16,
-              "tier3Dmg": 24
+              "tier1Dmg": 10,
+              "tier2Dmg": 13,
+              "tier3Dmg": 18
             }
           },
           "deityId": "torphon"
@@ -5421,12 +5897,16 @@
               "Spell"
             ],
             "source": "priest",
+            "hiddenTags": [
+              "sustain",
+              "heal"
+            ],
             "powerRoll": {
               "rollStats": [
                 "willpower"
               ],
               "tier1Dmg": 6,
-              "tier2Dmg": 6,
+              "tier2Dmg": 9,
               "tier3Dmg": 12
             }
           },
@@ -5540,7 +6020,7 @@
           "actionCard": {
             "name": "Sacred Flowers",
             "type": "action",
-            "description": "Atris: Create a field of flowers in a 5x5 area in range. All creatures in the area regenerate 8 HP during the End Phase.\n\nMaintain: During the start phase you may spend 1 Focus and 8 Mana to maintain this ability.",
+            "description": "Atris: Create a field of flowers in a 5x5 area in range. All creatures in the area regenerate 6 HP during the End Phase.\n\nMaintain: During the start phase you may spend 1 Focus and 8 Mana to maintain this ability.",
             "apCost": 2,
             "focusCost": 7,
             "mpCost": 13,
@@ -5551,7 +6031,11 @@
               "Area"
             ],
             "source": "priest",
-            "duration": "6 seconds"
+            "duration": "6 seconds",
+            "hiddenTags": [
+              "sustain",
+              "heal"
+            ]
           },
           "deityId": "atris"
         }
@@ -5603,7 +6087,7 @@
         "backpacker": {
           "name": "Backpacker",
           "minLevel": 1,
-          "description": "Once per combat you may spend 2 AP to target an adjacent ally. If you do so you allow them to immediately spend 1 Respite."
+          "description": "Once per combat you may use an Interact action to target an adjacent ally. If you do so you allow them to immediately spend 1 Respite."
         },
         "forage": {
           "name": "Forage",
@@ -5643,7 +6127,7 @@
           "actionCard": {
             "name": "Blitz",
             "type": "action",
-            "description": "You may immediately warp up to twice your Speed to an an unoccupied tile adjacent to a hostile creature and attack them with your weapon.",
+            "description": "You may immediately shift up to your Speed to an an unoccupied tile adjacent to a hostile creature and attack them with your weapon. If you are not wearing martial armor you may warp up to twice your Speed instead",
             "apCost": 2,
             "focusCost": 1,
             "mpCost": 0,
@@ -5822,9 +6306,8 @@
             "range": "Wpn",
             "tags": [
               "Melee",
-              "Weapon",
-              "1H",
-              "Light"
+              "Ranged",
+              "Weapon"
             ],
             "source": "scout",
             "powerRoll": {
@@ -5832,11 +6315,11 @@
                 "might",
                 "dexterity"
               ],
-              "tier1Dmg": 2,
+              "tier1Dmg": 1,
               "tier1Wpn": true,
-              "tier2Dmg": 3,
+              "tier2Dmg": 2,
               "tier2Wpn": true,
-              "tier3Dmg": 5,
+              "tier3Dmg": 3,
               "tier3Wpn": true
             }
           }
@@ -5937,7 +6420,7 @@
                 "targetStats": [
                   "dexterity"
                 ],
-                "effect": "shaken",
+                "effect": "blinded",
                 "strength": "strong",
                 "duration": "roundEnd"
               },
@@ -5949,7 +6432,7 @@
                 "targetStats": [
                   "dexterity"
                 ],
-                "effect": "shaken",
+                "effect": "blinded",
                 "strength": "average",
                 "duration": "roundEnd"
               },
@@ -5961,19 +6444,19 @@
                 "targetStats": [
                   "dexterity"
                 ],
-                "effect": "shaken",
+                "effect": "blinded",
                 "strength": "weak",
                 "duration": "roundEnd"
               }
             }
           }
         },
-        "flurry": {
+        "crossSlash": {
           "minLevel": 3,
           "actionCard": {
-            "name": "Flurry",
+            "name": "Cross Slash",
             "type": "action",
-            "description": "Release a flurry of attacks. If you are dual wielding this deals an extra 2 damage.",
+            "description": "You may stride 1 towards your target as part of this attack. If you are dual wielding this deals an extra 2 damage.",
             "apCost": 2,
             "focusCost": 3,
             "mpCost": 0,
@@ -5988,15 +6471,15 @@
                 "might",
                 "dexterity"
               ],
-              "tier1Dmg": 3,
+              "tier1Dmg": 2,
               "tier1Wpn": true,
-              "tier2Dmg": 4,
+              "tier2Dmg": 3,
               "tier2Wpn": true,
               "tier2Effect": {
                 "type": "Special",
                 "effect": "hemorrhage"
               },
-              "tier3Dmg": 6,
+              "tier3Dmg": 5,
               "tier3Wpn": true,
               "tier3Effect": {
                 "type": "Special",
@@ -6103,6 +6586,7 @@
           "level": 3,
           "trigger": "You are attacked and your Speed is at least 1",
           "chargeStat": "dexterity",
+          "chargeReset": ["endOfCombat"],
           "description": "You gain Evasion charges equal to your Dexterity modifier. You may spend an Evasion charge to reduce the success tier of the attack by 1 only against you and shift 3 after the attack completes. Your Evasion charges reset at the end of combat."
         }
       ]
@@ -6137,10 +6621,10 @@
           "minLevel": 3,
           "description": "Can add multi (2) to a non-Delay and non-Area ranged spell attack by doubling the mana cost. If it already has multi (2) change it to multi (3)."
         },
-        "elementalFocus": {
-          "name": "Elemental Focus",
+        "carefulCasting": {
+          "name": "Careful Casting",
           "minLevel": 5,
-          "description": "Choose one damage type. Your spells that deal that damage type cost half as much mana."
+          "description": "Your Area spells deal half damage (round up) to allies"
         }
       },
       "actions": {
@@ -6203,9 +6687,9 @@
               "rollStats": [
                 "reason"
               ],
-              "tier1Dmg": 4,
+              "tier1Dmg": 5,
               "tier2Dmg": 7,
-              "tier3Dmg": 10
+              "tier3Dmg": 9
             }
           }
         },
@@ -6230,9 +6714,9 @@
               "rollStats": [
                 "reason"
               ],
-              "tier1Dmg": 3,
-              "tier2Dmg": 4,
-              "tier3Dmg": 6,
+              "tier1Dmg": 2,
+              "tier2Dmg": 3,
+              "tier3Dmg": 5,
               "tier3Effect": {
                 "type": "Condition",
                 "srcStats": [
@@ -6268,9 +6752,9 @@
                 "reason",
                 "willpower"
               ],
-              "tier1Dmg": 4,
+              "tier1Dmg": 5,
               "tier2Dmg": 7,
-              "tier3Dmg": 10
+              "tier3Dmg": 9
             }
           }
         },
@@ -6295,8 +6779,8 @@
                 "reason",
                 "willpower"
               ],
-              "tier1Dmg": 2,
-              "tier2Dmg": 3,
+              "tier1Dmg": 3,
+              "tier2Dmg": 4,
               "tier2Effect": {
                 "type": "Condition",
                 "srcStats": [
@@ -6309,7 +6793,7 @@
                 "strength": "average",
                 "duration": "turnEnd"
               },
-              "tier3Dmg": 5,
+              "tier3Dmg": 6,
               "tier3Effect": {
                 "type": "Condition",
                 "srcStats": [
@@ -6358,7 +6842,7 @@
           "actionCard": {
             "name": "Fireball",
             "type": "action",
-            "description": "Choose a target. The target must be a creature. Charge up a powerful concentration of flames that explodes in a 3x3 area once it hits its target dealing fire damage to all creatures in the area. The target is pushed away from the caster, but other creatures in the area are pushed away from the target. If you take at least 10 damage in one turn the explosive orb explodes prematurely on your location. In this case the push affecting you is changed to vertical push upwards. After the attack flames remain in the area for 1 minute",
+            "description": "Target a creature. Charge up a powerful concentration of flames that explodes in a 3x3 area once it hits its target dealing fire damage to all creatures in the area. The target is pushed away from the caster, but other creatures in the area are pushed away from the target. If you take at least 10 damage in one turn the explosive orb explodes prematurely on your location. After the attack flames remain in the area for 1 minute",
             "apCost": 2,
             "focusCost": 3,
             "mpCost": 10,
@@ -6476,19 +6960,19 @@
               "tier1Effect": {
                 "type": "ForcedMovement",
                 "effect": "push",
-                "distance": 1
+                "distance": 2
               },
               "tier2Dmg": 6,
               "tier2Effect": {
                 "type": "ForcedMovement",
                 "effect": "push",
-                "distance": 2
+                "distance": 3
               },
               "tier3Dmg": 8,
               "tier3Effect": {
                 "type": "ForcedMovement",
                 "effect": "push",
-                "distance": 3
+                "distance": 4
               }
             }
           }
@@ -6514,9 +6998,9 @@
               "rollStats": [
                 "reason"
               ],
-              "tier1Dmg": 8,
-              "tier2Dmg": 11,
-              "tier3Dmg": 16
+              "tier1Dmg": 4,
+              "tier2Dmg": 7,
+              "tier3Dmg": 10
             }
           }
         },
@@ -6543,9 +7027,9 @@
                 "reason",
                 "willpower"
               ],
-              "tier1Dmg": 6,
-              "tier2Dmg": 9,
-              "tier3Dmg": 12
+              "tier1Dmg": 3,
+              "tier2Dmg": 5,
+              "tier3Dmg": 7
             }
           }
         },
@@ -6655,22 +7139,37 @@
         "knowledgeIsPower": {
           "name": "Knowledge is Power",
           "minLevel": 1,
-          "description": "When you take the Study action to learn a trait about a target you automatically gain the Skill bonus if you have the appropriate skill already without spending Inspiration."
+          "description": "When you take the Study action to learn a trait about a target you automatically gain the Skill bonus if you have the appropriate skill already without spending Inspiration. You gain one additional trained skill from Interpersonal or Lore (choose in character creation).",
+          "effects": [
+            {
+              "type": "GrantSkill",
+              "pickCount": 1,
+              "skillBuckets": [
+                "interpersonal",
+                "lore"
+              ],
+              "distinctPicks": true
+            }
+          ]
         },
         "goodMemory": {
           "name": "Good Memory",
           "minLevel": 1,
           "description": "You have very good memory of events that have happened in the past week. 3 times per long Rest you may request specific information from the DM regarding something your character may have noticed at the time but that you the player or player character may not remember currently such as the color of a shopkeeper's earrings."
         },
-        "greatMind": {
-          "name": "Great Mind",
+        "grizzledExperience": {
+          "name": "Grizzled Experience",
           "minLevel": 3,
-          "description": "Increase your max Mana by 10 and gain 1 Lore skill (add Lore on your sheet if you do not already have it).",
+          "description": "Increase your max Mana by 5 and gain Immunity to the Frightened condition",
           "effects": [
             {
               "type": "StatChange",
               "stat": "maxMP",
-              "value": "10"
+              "value": "5"
+            },
+            {
+              "type": "Immunity",
+              "stat": "frightened"
             }
           ]
         },
@@ -6704,7 +7203,7 @@
           "actionCard": {
             "name": "Battle Cry",
             "type": "action",
-            "description": "Release a battle cry to encourage your allies within 8 tiles. They deal additional damage this round equal to your Presence modifier.",
+            "description": "Release a battle cry to encourage your allies within 8 tiles. They deal additional damage this round equal to half your Presence modifier (round up)",
             "apCost": 2,
             "focusCost": 0,
             "mpCost": 0,
@@ -6794,7 +7293,7 @@
           "actionCard": {
             "name": "I got you",
             "type": "action",
-            "description": "You and all adjacent allies gain Stability equal to your half your Presence modifier (min 1).",
+            "description": "You and all adjacent allies gain Stability equal to your half your Presence modifier (round up, min 1)",
             "apCost": 1,
             "focusCost": 3,
             "mpCost": 0,
@@ -6828,7 +7327,7 @@
           "actionCard": {
             "name": "Now's your chance",
             "type": "action",
-            "description": "Choose a target. All allies within 2 tiles of the target can make an Opportunity attack against them as free Reaction.",
+            "description": "Choose a target. All allies within 2 tiles of the target can make an Opportunity attack against them as free Reaction. They can use a ranged Opportunity Attack instead with a ranged weapon using half weapon damage (round up)",
             "apCost": 2,
             "focusCost": 5,
             "mpCost": 0,
@@ -6844,7 +7343,7 @@
           "actionCard": {
             "name": "Take a Breather",
             "type": "action",
-            "description": "You strike a target to distract them, giving you team time to recover. You and all allies adjacent to the target gain 10 Barrier",
+            "description": "You strike a target to distract them, giving you team time to recover. You and all allies adjacent to the target gain 6 Barrier",
             "apCost": 2,
             "focusCost": 5,
             "mpCost": 0,
@@ -6873,7 +7372,7 @@
           "actionCard": {
             "name": "Advanced Targeting",
             "type": "action",
-            "description": "Choose some un-marked targets. They are now Marked. If an ally attacks a Marked target with a non-Area attack that doesn't have Multi you may spend 1 Focus to add Multi (2) to",
+            "description": "Choose some un-marked targets. They are now Marked. If an ally attacks a Marked target with a non-Area attack that doesn't have Multi you may spend 1 Focus to add Multi (2) to it",
             "apCost": 2,
             "focusCost": 5,
             "mpCost": 0,
@@ -6972,7 +7471,7 @@
           "type": "Reaction",
           "level": 1,
           "trigger": "The target you marked takes damage from an ally",
-          "description": "You can increase the damage dealt by your Presence modifier."
+          "description": "You can increase the damage dealt by half your Presence modifier (round up)."
         },
         {
           "id": "tacticalRetreat",
@@ -7008,65 +7507,20 @@
           "minLevel": 1,
           "description": "Choose a melee weapon you are wielding. You bond to that weapon, ignoring the Weakened effect and dealing +1 damage for attacks using that weapon. You can change your bonded weapon after a Long Rest."
         },
-        "flourish": {
-          "name": "Flourish",
-          "minLevel": 1,
-          "description": "When attacking one or more targets you may spend 1 Focus each to forgo the damage and effects and replace it with the following effect:",
-          "powerRoll": {
-            "rollStats": [
-              "might",
-              "dexterity"
-            ],
-            "tier1Effect": {
-              "type": "Condition",
-              "srcStats": [
-                "might",
-                "dexterity"
-              ],
-              "targetStats": [
-                "dexterity"
-              ],
-              "effect": "weakened",
-              "strength": "weak",
-              "duration": "turnEnd"
-            },
-            "tier2Effect": {
-              "type": "Condition",
-              "srcStats": [
-                "might",
-                "dexterity"
-              ],
-              "targetStats": [
-                "dexterity"
-              ],
-              "effect": "weakened",
-              "strength": "average",
-              "duration": "turnEnd"
-            },
-            "tier3Effect": {
-              "type": "Condition",
-              "srcStats": [
-                "might",
-                "dexterity"
-              ],
-              "targetStats": [
-                "dexterity"
-              ],
-              "effect": "weakened",
-              "strength": "strong",
-              "duration": "turnEnd"
-            }
-          }
-        },
         "bladestorm": {
           "name": "Bladestorm",
+          "minLevel": 1,
+          "description": "Can add multi (2) to melee attack by spending 5 mana. If it already has multi (2) change it to multi (3). This attack cannot have Delay."
+        },
+        "exploitWeakness": {
+          "name": "Exploit Weakness",
           "minLevel": 3,
-          "description": "You can add multi(2) to any melee attack by spending 5 Mana. If it already has multi(2) then it is upgraded to multi(3). This attack cannot have Delay."
+          "description": "The minimum damage for a melee physical attack is increased from 1 to 2."
         },
         "focusedStrikes": {
           "name": "Focused Strikes",
           "minLevel": 5,
-          "description": "You may instead choose to use all of your hits from multi on a single target. If you do so then you still only roll once, but each hit is treated as a separate attack meaning each hit is still affected by defense and can trigger a reaction. However other effects like forced movement and status effect application only triggers once at the end. This costs 1 Focus."
+          "description": "You may convert all your multi on a melee weapon attack to repeat instead at will. This costs 1 Focus."
         }
       },
       "actions": {
@@ -7192,7 +7646,7 @@
           "actionCard": {
             "name": "Twin Strike",
             "type": "action",
-            "description": "Feint as you attack your target. Your next melee weapon attack this turn against that target gains a Boon.",
+            "description": "Attack your target. If this is not your first attack on the target this round then this gains a Boon.",
             "apCost": 2,
             "focusCost": 1,
             "mpCost": 0,
@@ -7216,19 +7670,20 @@
             }
           }
         },
-        "skyStrike": {
+        "sweeper": {
           "minLevel": 1,
           "actionCard": {
-            "name": "Sky Strike",
+            "name": "Sweeper",
             "type": "action",
-            "description": "Warp up to half your Speed (round down) as you leap 5 tiles into the air and strike your target on the way down. You do not take fall damage from this, but you cannot use this ability if there isn't enough space.",
+            "description": "Shift 1 and swing your weapon at your target. If their shield is raised before damage applies then the shield is brought down before calculating damage",
             "apCost": 2,
             "focusCost": 3,
             "mpCost": 0,
             "range": "Wpn",
             "tags": [
               "Melee",
-              "Weapon"
+              "Weapon",
+              "2H"
             ],
             "source": "weaponmaster",
             "powerRoll": {
@@ -7240,12 +7695,7 @@
               "tier2Dmg": 4,
               "tier2Wpn": true,
               "tier3Dmg": 6,
-              "tier3Wpn": true,
-              "tier3Effect": {
-                "type": "ForcedMovement",
-                "effect": "vertical push",
-                "distance": 2
-              }
+              "tier3Wpn": true
             }
           }
         },
@@ -7475,12 +7925,12 @@
             }
           }
         },
-        "bladeWaltz": {
+        "longThrust": {
           "minLevel": 5,
           "actionCard": {
-            "name": "Blade Waltz",
+            "name": "Long Thrust",
             "type": "action",
-            "description": "Quickly dash and strike several targets in range in quick succession before returning to your original position.",
+            "description": "Thrust in a straight line, dealing damage in a 1xX area extending from you where X is your melee range",
             "apCost": 3,
             "focusCost": 7,
             "mpCost": 0,
@@ -7488,19 +7938,19 @@
             "tags": [
               "Melee",
               "Weapon",
-              "Multi(3)",
-              "Penetrate(2)"
+              "Extend",
+              "Area"
             ],
             "source": "weaponmaster",
             "powerRoll": {
               "rollStats": [
                 "dexterity"
               ],
-              "tier1Dmg": 3,
+              "tier1Dmg": 4,
               "tier1Wpn": true,
-              "tier2Dmg": 5,
+              "tier2Dmg": 7,
               "tier2Wpn": true,
-              "tier3Dmg": 7,
+              "tier3Dmg": 10,
               "tier3Wpn": true
             }
           }
@@ -7510,15 +7960,14 @@
           "actionCard": {
             "name": "Sword Dance",
             "type": "action",
-            "description": "Quickly dash and strike several targets in range in quick succession before returning to your original position.",
+            "description": "You may shift 2 as part of this attack. Unleash an elegant onslaught of attacks on your opponent. If you are using a 1H weapon then you gain 3 Def until the start of your next turn.",
             "apCost": 2,
             "focusCost": 7,
             "mpCost": 0,
             "range": "Wpn",
             "tags": [
               "Melee",
-              "Weapon",
-              "Multi(3)"
+              "Weapon"
             ],
             "source": "weaponmaster",
             "powerRoll": {
@@ -7552,6 +8001,7 @@
           "level": 3,
           "trigger": "You are attacked by a melee attack",
           "chargeStat": "dexterity",
+          "chargeReset": ["endOfCombat"],
           "description": "You gain Parry charges equal to your Dexterity modifier. You may spend a Parry charge to reduce the incoming damage by 5 as a free Reaction. If you are dual wielding or wielding a 2H weapon you reduce the damage by 6 instead. Your Parry charges reset at the end of combat. You must have a melee weapon equipped."
         }
       ]
@@ -7586,10 +8036,10 @@
           "minLevel": 1,
           "description": "After a Long Rest you may make a Power Roll. Take note of the result. Until your next Long Rest you may replace one of either you or another party member's Power Roll result with the number you rolled. This can be done after they roll but before any effects such as damage are applied."
         },
-        "strongFundamentals": {
-          "name": "Strong Fundamentals",
+        "magicalPressure": {
+          "name": "Magical Pressure",
           "minLevel": 3,
-          "description": "You may double the range of a spell by doubling the mana cost."
+          "description": "Whenever you deal damage with a spell you may spend additional Mana. The target loses mana equal to half of the additional amount (round down). They cannot go into negative mana."
         },
         "levitation": {
           "name": "Levitation",
@@ -7683,7 +8133,7 @@
             "type": "action",
             "description": "Generate a small vortex around your target to deal air damage",
             "apCost": 2,
-            "focusCost": 0,
+            "focusCost": 3,
             "mpCost": 5,
             "range": "10",
             "tags": [
@@ -7699,13 +8149,31 @@
               "tier1Dmg": 1,
               "tier2Dmg": 2,
               "tier2Effect": {
-                "type": "Special",
-                "effect": "M < [R or W average] vertical push 2"
+                "type": "ForcedMovement",
+                "srcStats": [
+                  "reason",
+                  "willpower"
+                ],
+                "targetStats": [
+                  "willpower"
+                ],
+                "effect": "verticalpush",
+                "strength": "average",
+                "distance": 2
               },
               "tier3Dmg": 3,
               "tier3Effect": {
-                "type": "Special",
-                "effect": "M < [R or W strong] vertical push 2"
+                "type": "ForcedMovement",
+                "srcStats": [
+                  "reason",
+                  "willpower"
+                ],
+                "targetStats": [
+                  "willpower"
+                ],
+                "effect": "verticalpush",
+                "strength": "strong",
+                "distance": 2
               }
             }
           }
@@ -7715,7 +8183,7 @@
           "actionCard": {
             "name": "Warp",
             "type": "action",
-            "description": "Warp up to your Speed to an unoccupied tile",
+            "description": "Warp up to your Reason or Willpower modifier to an unoccupied tile",
             "apCost": 2,
             "focusCost": 1,
             "mpCost": 8,
@@ -7731,7 +8199,7 @@
           "actionCard": {
             "name": "Imprison",
             "type": "action",
-            "description": "Attempt to restrain your target, dealing dark damage. When applying a slow if the target is already slowed then they are restrained instead",
+            "description": "Attempt to restrain your target, dealing dark damage. When applying a slow if the target is already slowed then they are restrained instead\n\n5 Focus: This attack gains Repeat(2)",
             "apCost": 2,
             "focusCost": 1,
             "mpCost": 8,
@@ -7782,8 +8250,8 @@
             "type": "action",
             "description": "Deploy a magical 2x2 glowing circle on the ground near you. While a creature stands on the magic circle its Power Rolls to cast spells gain a Boon. You may only have one of these active at once and the bonuses do not stack with other magic circles. If you cast this spell while you already have a magic circle deployed the old one disappears and a new one is created.",
             "apCost": 1,
-            "focusCost": 1,
-            "mpCost": 2,
+            "focusCost": 0,
+            "mpCost": 5,
             "range": "2",
             "tags": [
               "Ranged",
@@ -7931,7 +8399,7 @@
           "actionCard": {
             "name": "Gravity Well",
             "type": "action",
-            "description": "Manipulate the forces of gravity in a 5x5 area to deal dark damage to all creatures in the area.\n\nMaintain: You may spend 1 Focus and 5 Mana at the Start Phase to Maintain this spell and retrigger the effect during the End Phase.",
+            "description": "Manipulate the forces of gravity in a 5x5 area to deal dark damage to all creatures in the area.\n\nMaintain: You may spend 1 Focus and 5 Mana at the Start Phase to Maintain this spell and retrigger the effect during the End Phase of that round.",
             "apCost": 3,
             "focusCost": 7,
             "mpCost": 13,
@@ -7943,7 +8411,42 @@
               "Maintain"
             ],
             "source": "wizard",
-            "duration": "6 seconds"
+            "duration": "6 seconds",
+            "powerRoll": {
+              "rollStats": [
+                "reason",
+                "willpower"
+              ],
+              "tier1Dmg": 4,
+              "tier2Dmg": 7,
+              "tier2Effect": {
+                "type": "Condition",
+                "srcStats": [
+                  "reason",
+                  "willpower"
+                ],
+                "targetStats": [
+                  "reason"
+                ],
+                "effect": "slowed",
+                "strength": "average",
+                "duration": "roundEnd"
+              },
+              "tier3Dmg": 10,
+              "tier3Effect": {
+                "type": "Condition",
+                "srcStats": [
+                  "reason",
+                  "willpower"
+                ],
+                "targetStats": [
+                  "reason"
+                ],
+                "effect": "slowed",
+                "strength": "strong",
+                "duration": "roundEnd"
+              }
+            }
           }
         },
         "nullZone": {
@@ -7951,7 +8454,7 @@
           "actionCard": {
             "name": "Null Zone",
             "type": "action",
-            "description": "Suppress spellcasting in a 5x5 area. No spells can be cast while in this area.\n\nMaintain: You may spend 1 Focus and 8 Mana at the Start Phase to Maintain this spell and keep the field active for this round too.",
+            "description": "Suppress spellcasting in a 5x5 area. No spells can be cast nor mana spent while in this area.\n\nMaintain: You may spend 1 Focus and 8 Mana at the Start Phase to Maintain this spell and keep the field active for this round too.",
             "apCost": 3,
             "focusCost": 7,
             "mpCost": 15,
@@ -7981,7 +8484,52 @@
               "Spell",
               "Area"
             ],
-            "source": "wizard"
+            "source": "wizard",
+            "powerRoll": {
+              "rollStats": [
+                "reason",
+                "willpower"
+              ],
+              "tier1Dmg": 3,
+              "tier1Effect": {
+                "type": "ForcedMovement",
+                "srcStats": [
+                  "willpower"
+                ],
+                "targetStats": [
+                  "might"
+                ],
+                "effect": "push",
+                "strength": "weak",
+                "distance": 3
+              },
+              "tier2Dmg": 5,
+              "tier2Effect": {
+                "type": "ForcedMovement",
+                "srcStats": [
+                  "willpower"
+                ],
+                "targetStats": [
+                  "might"
+                ],
+                "effect": "push",
+                "strength": "average",
+                "distance": 4
+              },
+              "tier3Dmg": 7,
+              "tier3Effect": {
+                "type": "ForcedMovement",
+                "srcStats": [
+                  "willpower"
+                ],
+                "targetStats": [
+                  "might"
+                ],
+                "effect": "push",
+                "strength": "strong",
+                "distance": 6
+              }
+            }
           }
         }
       },
@@ -8020,23 +8568,33 @@
                 "reason",
                 "willpower"
               ],
-              "tier1Effect": 3,
-              "tier2Dmg": 4,
+              "tier1Effect": {
+                "type": "Special",
+                "effect": "Refund 2 Mana"
+              },
               "tier2Effect": {
                 "type": "Special",
                 "srcStats": [
-                  "willpower"
-                ],
-                "targetStats": [
+                  "willpower",
                   "presence"
                 ],
-                "effect": "restrained",
-                "strength": "weak"
+                "targetStats": [
+                  "willpower"
+                ],
+                "effect": "Transform Shaken into Dazed. Transform Dazed into Stunned",
+                "strength": "average"
               },
-              "tier3Dmg": 6,
               "tier3Effect": {
                 "type": "Special",
-                "effect": "R < 2 poisoned [round ends]"
+                "srcStats": [
+                  "willpower",
+                  "presence"
+                ],
+                "targetStats": [
+                  "willpower"
+                ],
+                "effect": "Transform Shaken into Dazed. Transform Dazed into Stunned",
+                "strength": "strong"
               }
             }
           }
@@ -8549,6 +9107,11 @@
             }
           ]
         },
+        "grassrunner_smallStature": {
+          "name": "Small Stature",
+          "type": "innate",
+          "description": "You have a noticeably lower vertical placement in the world. Your size is 1S"
+        },
         "grassrunner_chaotic": {
           "name": "Chaotic",
           "type": "innate",
@@ -8763,7 +9326,7 @@
       "type": "weapon",
       "damage": 2,
       "damageType": "slashing",
-      "range": 1,
+      "range": 2,
       "attributes": [
         "dexterity"
       ],
@@ -8893,6 +9456,34 @@
       ],
       "actionIDs": [
         "equipment/whack"
+      ]
+    },
+    "wp_robot_tail": {
+      "name": "Robot Tail",
+      "quantity": 1,
+      "description": "A mechanical tail that deals crushing damage and can be used for Brawling attacks",
+      "value": 0,
+      "allowedSlots": [
+        "rightHand",
+        "leftHand"
+      ],
+      "tags": [
+        "melee",
+        "brawling",
+        "1h",
+        "light",
+        "specialInvention"
+      ],
+      "type": "weapon",
+      "damage": 0,
+      "damageType": "crushing",
+      "range": 2,
+      "attributes": [
+        "might",
+        "dexterity"
+      ],
+      "actionIDs": [
+        "equipment/swing"
       ]
     },
     "wp_shortSword": {
@@ -9073,7 +9664,32 @@
       "name": "Sword",
       "quantity": 1,
       "description": "",
-      "value": 50,
+      "value": 60,
+      "allowedSlots": [
+        "rightHand",
+        "leftHand"
+      ],
+      "tags": [
+        "melee",
+        "1h",
+        "martial"
+      ],
+      "type": "weapon",
+      "damage": 4,
+      "damageType": "slashing",
+      "range": 1,
+      "attributes": [
+        "might"
+      ],
+      "actionIDs": [
+        "equipment/swing"
+      ]
+    },
+    "wp_battleAxe": {
+      "name": "Battle Axe",
+      "quantity": 1,
+      "description": "",
+      "value": 30,
       "allowedSlots": [
         "rightHand",
         "leftHand"
@@ -9110,9 +9726,9 @@
         "reach"
       ],
       "type": "weapon",
-      "damage": 4,
+      "damage": 3,
       "damageType": "piercing",
-      "range": 1,
+      "range": 2,
       "attributes": [
         "might"
       ],
@@ -9258,17 +9874,44 @@
       "tags": [
         "melee",
         "2h",
-        "reach"
+        "reach",
+        "heavy"
       ],
       "type": "weapon",
       "damage": 6,
       "damageType": "piercing",
-      "range": 1,
+      "range": 2,
       "attributes": [
         "might"
       ],
       "actionIDs": [
         "equipment/stab"
+      ]
+    },
+    "wp_halberd": {
+      "name": "Halberd",
+      "quantity": 1,
+      "description": "",
+      "value": 170,
+      "allowedSlots": [
+        "rightHand",
+        "leftHand"
+      ],
+      "tags": [
+        "melee",
+        "2h",
+        "reach",
+        "heavy"
+      ],
+      "type": "weapon",
+      "damage": 6,
+      "damageType": "slashing",
+      "range": 2,
+      "attributes": [
+        "might"
+      ],
+      "actionIDs": [
+        "equipment/swing"
       ]
     },
     "wp_greatsword": {
@@ -9346,6 +9989,44 @@
       ],
       "actionIDs": [
         "equipment/whack"
+      ]
+    },
+    "wp_potion_launcher": {
+      "name": "Potion Launcher",
+      "quantity": 1,
+      "description": "2H ranged weapon that fires potions, increasing your potion throwing range to 10. It also acts as an Implement. If there is enough vertical overhead, then the potions may also ignore cover. The potion gains the area effect in a 2x2 area if it didn’t already have it when launched this way. If it already had an area effect then the area increases by 1 in each dimension. So a 2x2 would become a 3x3.",
+      "value": 0,
+      "allowedSlots": [
+        "rightHand",
+        "leftHand"
+      ],
+      "tags": [
+        "ranged",
+        "2h",
+        "specialInvention"
+      ],
+      "type": "weapon",
+      "range": 10,
+      "attributes": [
+        "dexterity"
+      ]
+    },
+    "instrument": {
+      "name": "Instrument",
+      "quantity": 1,
+      "description": "Any instrument of your choice",
+      "value": 100,
+      "allowedSlots": [
+        "rightHand",
+        "leftHand"
+      ],
+      "tags": [
+        "2h"
+      ],
+      "type": "weapon",
+      "damage": 0,
+      "attributes": [
+        "presence"
       ]
     },
     "arm_clothes": {
@@ -9740,6 +10421,75 @@
       "allowedSlots": [
         "waist",
         "back"
+      ]
+    },
+    "gear_extra_large_alchemy_satchel": {
+      "name": "Extra-Large Alchemy Satchel",
+      "quantity": 1,
+      "description": "A large satchel for potions and consumables. Holds up to 6 consumable items",
+      "tags": ["specialInvention"],
+      "value": 0,
+      "type": "container",
+      "containerCapacity": 6,
+      "containerAllowedTypes": [
+        "consumable"
+      ],
+      "allowedSlots": [
+        "waist",
+        "back"
+      ]
+    },
+    "acc_trap_dispenser_belt": {
+      "name": "Trap Dispenser Belt",
+      "quantity": 1,
+      "description": "When using actions with the Deployable tag you can do so twice as fast, allowing you to create and deploy twice in the same action by spending twice as much IP.",
+      "value": 0,
+      "allowedSlots": [
+        "waist"
+      ],
+      "tags": ["specialInvention"],
+      "type": "misc"
+    },
+    "arm_artificer_armor": {
+      "name": "Artificer's Armor",
+      "quantity": 1,
+      "description": "Modular armor equivalent to chain mail (Defense 4). Bane on Stealth. Configure two invention modules when chosen.",
+      "value": 0,
+      "allowedSlots": [
+        "armor"
+      ],
+      "tags": [
+        "martial",
+        "specialInvention"
+      ],
+      "type": "armor",
+      "defense": {
+        "value": 4
+      },
+      "stability": 0,
+      "inventionModulePool": [
+        "hoverBoots",
+        "heatGoggles",
+        "miningLight",
+        "rollerblades",
+        "robotTail"
+      ]
+    },
+    "gear_support_backpack": {
+      "name": "Support Backpack",
+      "quantity": 1,
+      "description": "A general-purpose support backpack with configurable invention modules. No item capacity limit.",
+      "value": 0,
+      "allowedSlots": [
+        "back"
+      ],
+      "tags": ["specialInvention"],
+      "type": "container",
+      "inventionModulePool": [
+        "backSupport",
+        "mechanicalArm",
+        "manaTank",
+        "weaponInfusion"
       ]
     },
     "herb_travelers_grass": {
@@ -10175,7 +10925,7 @@
     },
     "feat/protect": {
       "name": "Protect",
-      "type": "reaction",
+      "type": "freeReaction",
       "description": "You have 3 charges of Protect. Expend one to use this free Reaction to have your companion try to block the attack for you to reduce the incoming damage by 3. Once all charges are consumed the companion can no longer be used until after a Short Rest where you spend at least one Respite.",
       "apCost": 0,
       "focusCost": 0,
@@ -10183,7 +10933,9 @@
       "range": "Self",
       "tags": [],
       "source": "feat",
-      "trigger": "You are attacked"
+      "trigger": "You are attacked",
+      "fixedMaxCharges": 3,
+      "chargeReset": ["shortRest"]
     },
     "monster/clayFist": {
       "name": "Clay Fist",
@@ -11031,7 +11783,7 @@
     "fairy/gigaDrain": {
       "name": "Giga Drain",
       "type": "action",
-      "description": "Dryad absorbs energy from your target to deal nature damage, healing you equal to half the damage dealt (round down).",
+      "description": "Dryad absorbs energy from your target to deal nature damage, healing you equal to half the damage dealt (round up).",
       "apCost": 2,
       "focusCost": 3,
       "mpCost": 8,
@@ -11055,11 +11807,11 @@
     "fairy/lavaSpout": {
       "name": "Lava Spout",
       "type": "action",
-      "description": "Carbuncle transforms into a 3x3 pool of lava that expands during the Start Phase of each round until it becomes a 9x9 area. Lava deals 12 fire damage if you start your turn in it.",
+      "description": "Carbuncle transforms into a 3x3 pool of lava that expands outward during the Start Phase of each round until it becomes a 9x9 area. Lava deals 12 fire damage if you start your turn in it",
       "apCost": 2,
       "focusCost": 7,
-      "mpCost": 8,
-      "range": "12",
+      "mpCost": 12,
+      "range": "8",
       "tags": [
         "Ranged",
         "Spell",
@@ -11133,20 +11885,10 @@
         "tier1Effect": {
           "type": "ForcedMovement",
           "effect": "pull",
-          "distance": 1
+          "distance": 3
         },
         "tier2Dmg": 4,
-        "tier1Effect": {
-          "type": "ForcedMovement",
-          "effect": "pull",
-          "distance": 2
-        },
-        "tier3Dmg": 6,
-        "tier1Effect": {
-          "type": "ForcedMovement",
-          "effect": "pull",
-          "distance": 3
-        }
+        "tier3Dmg": 6
       }
     },
     "fairy/hail": {
@@ -11183,66 +11925,92 @@
     }
   },
   "passives": {
-    "statBuffTest": {
-      "name": "Stat Buff Test",
+    "invention_hoverBoots": {
+      "name": "Hover Boots",
       "minLevel": 1,
-      "description": "Increase Max HP by 5 and Speed by 1",
+      "description": "Spend 2 Mana on use and during the Start Phase to have flying speed equal to your Speed for that round."
+    },
+    "invention_heatGoggles": {
+      "name": "Heat Goggles (Low-light vision)",
+      "minLevel": 1,
+      "description": "You can see through most obscuring vision like fog or smoke. You gain low-light vision.",
       "effects": [
         {
-          "type": "StatChange",
-          "stat": "maxHP",
-          "value": "5"
-        },
+          "type": "GrantSight",
+          "stat": "low-light"
+        }
+      ]
+    },
+    "invention_miningLight": {
+      "name": "Mining Light",
+      "minLevel": 1,
+      "description": "A bright headlamp for working in dark spaces."
+    },
+    "invention_rollerblades": {
+      "name": "Rollerblades",
+      "minLevel": 1,
+      "description": "Built-in wheels grant +2 Speed while this armor is equipped.",
+      "effects": [
         {
           "type": "StatChange",
           "stat": "speed",
-          "value": "1"
-        }
-      ]
-    },
-    "statBuffTest2": {
-      "name": "Stat Buff Test 2",
-      "minLevel": 1,
-      "description": "Decrease Max MP by 3 and increase Dexterity and Presence by 2",
-      "effects": [
-        {
-          "type": "StatChange",
-          "stat": "maxMP",
-          "value": "-3"
-        },
-        {
-          "type": "StatChange",
-          "stat": "dexterity",
-          "value": "2"
-        },
-        {
-          "type": "StatChange",
-          "stat": "presence",
           "value": "2"
         }
       ]
     },
-    "statBuffTest3": {
-      "name": "Stat Buff Test 3",
+    "invention_robotTail": {
+      "name": "Robot Tail",
       "minLevel": 1,
-      "description": "Increase max IP by 3 and def and stability by 1",
+      "description": "Grants the robot tail weapon while this armor module is active."
+    },
+    "invention_backSupport": {
+      "name": "Back Support",
+      "minLevel": 1,
+      "description": "+1 Stability while this backpack is equipped.",
       "effects": [
-        {
-          "type": "StatChange",
-          "stat": "maxIP",
-          "value": "3"
-        },
-        {
-          "type": "StatChange",
-          "stat": "defense",
-          "value": "1"
-        },
         {
           "type": "StatChange",
           "stat": "stability",
           "value": "1"
         }
       ]
+    },
+    "invention_mechanicalArm": {
+      "name": "Mechanical Arm",
+      "minLevel": 1,
+      "description": "You gain a small mechanical arm that is attached to your belt. The arm cannot wield weapons or attack, but your first Interact action each turn costs 0 AP. It can hold 1H objects like a torch."
+    },
+    "invention_manaTank": {
+      "name": "Mana Tank",
+      "minLevel": 1,
+      "description": "+10 Max MP while this backpack is equipped.",
+      "effects": [
+        {
+          "type": "StatChange",
+          "stat": "maxMP",
+          "value": "10"
+        }
+      ]
+    },
+    "invention_weaponInfusion_volt": {
+      "name": "Weapon Infusion (Volt)",
+      "minLevel": 1,
+      "description": "While this backpack is equipped you may enable an infusion for your weapon with an Interact action. You may also disable it with an Interact action. This infusion cannot be overridden"
+    },
+    "invention_weaponInfusion_water": {
+      "name": "Weapon Infusion (Water)",
+      "minLevel": 1,
+      "description": "While this backpack is equipped you may enable an infusion for your weapon with an Interact action. You may also disable it with an Interact action. This infusion cannot be overridden"
+    },
+    "invention_weaponInfusion_fire": {
+      "name": "Weapon Infusion (Fire)",
+      "minLevel": 1,
+      "description": "While this backpack is equipped you may enable an infusion for your weapon with an Interact action. You may also disable it with an Interact action. This infusion cannot be overridden"
+    },
+    "invention_weaponInfusion_earth": {
+      "name": "Weapon Infusion (Earth)",
+      "minLevel": 1,
+      "description": "While this backpack is equipped you may enable an infusion for your weapon with an Interact action. You may also disable it with an Interact action. This infusion cannot be overridden"
     }
   },
   "bestiary": {
@@ -11344,8 +12112,7 @@
           "beast",
           "plant"
         ],
-        "actionIDs": [
-        ]
+        "actionIDs": []
       },
       "fairySylph": {
         "name": "Sylph",
@@ -12414,6 +13181,10 @@
           "name": "Bleeding",
           "description": "You lose 2 HP for each AP you spend up to 3 AP. It is removed after you receive any healing. Does not stack."
         },
+        "blinded": {
+          "name": "Blinded",
+          "description": "Other creatures are treated as being Concealed for the duration."
+        },
         "charmed": {
           "name": "Charmed",
           "description": "The target treats you as a close friend and will act reasonably to help you. The effect ends prematurely if they take damage. You may treat Charmed characters and the charmer as if there was a mutual Bond of Affection between them."
@@ -12428,7 +13199,7 @@
         },
         "grabbed": {
           "name": "Grabbed",
-          "description": "Your Speed is 0. If you are the one grabbing, and you are ever separated by more than 1 tile from the grabbed target, this effect ends."
+          "description": "Your Speed is 0 and you move along with the grabber. If you are the one grabbing, and you are ever separated by more than 1 tile from the grabbed target, this effect ends. You can only grab one creature at a time"
         },
         "poisoned": {
           "name": "Poisoned",
@@ -12436,7 +13207,7 @@
         },
         "prone": {
           "name": "Prone",
-          "description": "Lying flat on the ground. The prone creature's own attacks take a bane. Melee attacks against it take a bane. Ranged attacks against it take a bane. Movement costs are doubled. You can stand up with the Change Posture action."
+          "description": "Lying flat on the ground. The prone creature's own attacks take a bane. Melee attacks against it gain a boon. Ranged attacks against it take a bane. Movement costs are doubled. You can stand up with the Change Posture action."
         },
         "restrained": {
           "name": "Restrained",
@@ -12568,6 +13339,10 @@
           "name": "Ranged (X)",
           "description": "This is a ranged attack and can be used up to the range of the action if included. Otherwise if this is used with a weapon then use the weapon's range."
         },
+        "repeatX": {
+          "name": "Repeat (X)",
+          "description": "You may repeat this action up to X times at no additional cost, keeping the same result tier. You may choose different targets each time"
+        },
         "shiftX": {
           "name": "Shift X",
           "description": "Move X tiles. Does not trigger Opportunity Attacks. If you try to shift into or while within difficult terrain it would be treated as normal movement."
@@ -12594,7 +13369,7 @@
         },
         "throwing": {
           "name": "Throwing",
-          "description": "This action can also be performed with a weapon with the Throwing tag."
+          "description": "This action can also be performed with a weapon with the Throwing tag. Throwing distance is your half your Might score (round down)"
         },
         "weapon": {
           "name": "Weapon",
@@ -12640,7 +13415,11 @@
         },
         "throwing": {
           "name": "Throwing",
-          "description": "This weapon can be thrown"
+          "description": "This weapon can be thrown. Throwing distance is your half your Might score (round down)"
+        },
+        "specialInvention": {
+          "name": "Special Invention",
+          "description": "This can only be obtained via Artificer's Special Invention passive"
         }
       },
       "creatureTags": {
@@ -12658,7 +13437,7 @@
         },
         "concealed": {
           "name": "Concealed",
-          "description": "If a creature is invisible or line of sight is otherwise obscured they are considered Concealed. Attacking a Concealed creature causes your attack to automatically have a Bane while they get a Boon when attacking you."
+          "description": "If a creature is invisible or line of sight is otherwise obscured they are considered Concealed. Attacking a Concealed creature causes your attack to automatically have a Bane while they get a Boon when attacking you. A Concealed creature does not trigger an opportunity attack when leaving your melee range"
         },
         "metaphysical": {
           "name": "Metaphysical",

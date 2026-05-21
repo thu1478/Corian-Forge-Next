@@ -25,6 +25,8 @@ export function hydrateItemData(rawCharacter: CharacterSaveData | null, rules: a
                 customName: custom || undefined,
                 quantity: entry.quantity ?? itemDef?.quantity ?? 1,
                 containerId: entry.containerId ?? null,
+                inventionModules: entry.inventionModules,
+                inventionModuleConfig: entry.inventionModuleConfig,
                 // Fallbacks to prevent UI crashes if itemDef is missing
                 name: custom || ruleName,
                 description: itemDef?.description ?? ""
@@ -34,23 +36,30 @@ export function hydrateItemData(rawCharacter: CharacterSaveData | null, rules: a
         // 2. Hydrate the Equipment slots using the new fullInventory
         const equipment = rawCharacter.equipment;
         const hydratedEquipment = {
-            activeWeapon: fullInventory.find(i => i.uid === equipment.activeWeapon) as WeaponItem || null,
-            offhand: fullInventory.find(i => i.uid === equipment.offhand) as (WeaponItem | ShieldItem) || null,
-            armor: fullInventory.find(i => i.uid === equipment.armor) as ArmorItem || null,
+            activeWeapon: (() => {
+                const i = fullInventory.find((x) => x.uid === equipment.activeWeapon);
+                if (!i) return null;
+                if (i.type === "weapon" || i.type === "shield") return i as WeaponItem | ShieldItem;
+                return null;
+            })(),
+            offhand:
+                (fullInventory.find((i) => i.uid === equipment.offhand) as WeaponItem | ShieldItem | undefined) ??
+                null,
+            armor: (fullInventory.find((i) => i.uid === equipment.armor) as ArmorItem | undefined) ?? null,
             accessories: Object.fromEntries(
-                Object.entries(equipment.accessories).map(([slot, uid]) => [
+                Object.entries(equipment.accessories ?? {}).map(([slot, uid]) => [
                     slot,
-                    fullInventory.find(i => i.uid === uid) as MiscItem || null
-                ])
-            )
+                    (fullInventory.find((i) => i.uid === uid) as MiscItem | undefined) ?? null,
+                ]),
+            ),
         };
 
         return {
             resistances: [], vulnerabilities: {},
             ...rawCharacter,
             inventory: fullInventory,
-            equipment: hydratedEquipment
-        };
+            equipment: hydratedEquipment,
+        } as unknown as HydratedCharacter;
     }, [rawCharacter, rules]);
 
     return { character: hydratedCharacter };

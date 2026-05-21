@@ -19,6 +19,7 @@ import {
 } from "lucide-react"
 import {Button} from "@/components/ui/button"
 import {Input} from "@/components/ui/input"
+import { statDeltaTextClass } from "@/lib/stat-delta-display"
 
 interface ResourceBarProps {
     label: string
@@ -293,7 +294,9 @@ export function ResourceBars({
 }
 
 interface CombatStatsPanelProps {
-    defense: number
+    baseDefense: number
+    defenseDelta: number
+    onDefenseDeltaChange: (delta: number) => void
     stability: number
     speed: number
     resistances: string[]
@@ -314,7 +317,9 @@ function useConflictingDamageTypes(
 }
 
 export function CombatStatsPanel({
-    defense,
+    baseDefense,
+    defenseDelta,
+    onDefenseDeltaChange,
     stability,
     speed,
     resistances,
@@ -323,18 +328,56 @@ export function CombatStatsPanel({
     specialSight,
 }: CombatStatsPanelProps) {
     const conflictingTypes = useConflictingDamageTypes(resistances, vulnerabilities)
+    const effectiveDefense = baseDefense + defenseDelta
 
     return (
         <div className="p-4 bg-card rounded-xl border border-border">
             <h3 className="text-base font-semibold uppercase tracking-wider text-primary mb-4">Combat Stats</h3>
 
             <div className="grid grid-cols-3 gap-3 mb-4">
-                <div className="text-center p-3 bg-muted/30 rounded-lg border border-border">
+                <div className="text-center p-3 bg-muted/30 rounded-lg border border-border flex flex-col">
                     <div className="flex justify-center mb-2">
                         <Swords className="w-5 h-5 text-primary"/>
                     </div>
-                    <div className="text-2xl font-bold text-foreground">{defense}</div>
-                    <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Defense</div>
+                    <div
+                        className={cn(
+                            "text-2xl font-bold tabular-nums",
+                            statDeltaTextClass(effectiveDefense, baseDefense) || "text-foreground"
+                        )}
+                    >
+                        {effectiveDefense}
+                    </div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium mt-1">
+                        Defense
+                    </div>
+                    <div className="flex items-center justify-center gap-1 mt-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="h-7 w-7"
+                            aria-label="Decrease defense"
+                            onClick={() => onDefenseDeltaChange(defenseDelta - 1)}
+                        >
+                            <Minus className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="h-7 w-7"
+                            aria-label="Increase defense"
+                            onClick={() => onDefenseDeltaChange(defenseDelta + 1)}
+                        >
+                            <Plus className="h-3.5 w-3.5" />
+                        </Button>
+                    </div>
+                    {defenseDelta !== 0 ? (
+                        <p className="text-[10px] text-muted-foreground mt-1 tabular-nums">
+                            Base {baseDefense}
+                            {defenseDelta > 0 ? ` (+${defenseDelta})` : ` (${defenseDelta})`}
+                        </p>
+                    ) : null}
                 </div>
 
                 <div className="text-center p-3 bg-muted/30 rounded-lg border border-border">

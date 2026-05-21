@@ -120,7 +120,7 @@ export function ShortRestPanel({
 
             <div className="p-4 space-y-4">
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                    Focus and barrier reset to 0. Spend respites to recover{" "}
+                    Focus and barrier reset to 0; combat defense adjustment resets. Spend respites to recover{" "}
                     <span className="font-semibold text-foreground">1/3 max HP</span> and{" "}
                     <span className="font-semibold text-foreground">1/2 max MP</span> each (round down).
                 </p>

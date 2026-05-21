@@ -1,16 +1,24 @@
 "use client"
 
+import { ChargePips } from "@/components/character-sheet/charge-pips"
+import {
+    lookupChargeDefinition,
+    resolveCurrentCharges,
+    resolveMaxCharges,
+    type RulesWithCharges,
+} from "@/lib/charge-helpers"
 import {getAttributeModifier} from "@/lib/character-data"
 import {ChevronDown, Droplets, Lock, Plus, Target, Wrench, Zap} from "lucide-react"
 import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger} from "@/components/ui/dropdown-menu";
 import {Button} from "@/components/ui/button";
 import {cn} from "@/lib/utils";
-import {FocusFeature, Reaction} from "@/lib/rules"
+import {FocusFeature, Reaction, type ActionCard} from "@/lib/rules"
 import type {InventoryItem} from "@/lib/equipment-data"
 import {
     ActionCardComponent,
     type ActionCostBudget,
     type ActionSpendResourceKind,
+    type CombatRuleContext,
 } from "@/components/character-sheet/combatPage/action-card-manager";
 import { unwrapEmbeddedActionCard } from "@/lib/embedded-action-card";
 import { hydrateActionCardById } from "@/lib/action-hydrate";
@@ -173,6 +181,7 @@ interface FocusReactionsPanelProps {
     onAddCatalogReaction?: (id: string) => void;
     currentWeapon?: InventoryItem | null;
     offhandWeapon?: InventoryItem | null;
+    combatRuleContext?: CombatRuleContext;
 }
 
 export function FocusReactionsPanel({
@@ -189,6 +198,7 @@ export function FocusReactionsPanel({
                                         onAddCatalogReaction,
                                         currentWeapon = null,
                                         offhandWeapon = null,
+                                        combatRuleContext,
                                     }: FocusReactionsPanelProps) {
     // Get the default focus feat start of turn
     const globalFocus = rules?.system?.defaults?.focusFeat
@@ -338,41 +348,40 @@ export function FocusReactionsPanel({
                     {[0, 1].map((slotIndex) => {
                         const currentReaction = knownReactions.find(f => f.slotIndex === slotIndex);
 
-                        const statKey = currentReaction?.chargeStat;
-                        const hasStatCharges = Boolean(statKey && statKey.trim() !== "");
-                        const fixedRaw = (currentReaction as { fixedMaxCharges?: number })?.fixedMaxCharges;
-                        const fixedMax =
-                            typeof fixedRaw === "number" && Number.isFinite(fixedRaw)
-                                ? Math.max(0, Math.floor(fixedRaw))
-                                : null;
-
-                        const maxCharges =
-                            fixedMax != null && fixedMax > 0
-                                ? fixedMax
-                                : hasStatCharges
-                                  ? Math.max(0, getAttributeModifier(attributes[statKey!] || 10))
-                                  : 0;
-                        const rawCh = currentReaction?.charges
-                        const resolvedCh =
-                            rawCh == null || rawCh < 0 ? maxCharges : rawCh
-                        const currentCharges = Math.min(Math.max(0, resolvedCh), maxCharges);
-                        const showChargePips = maxCharges > 0;
+                        const chargeDef = currentReaction?.id
+                            ? lookupChargeDefinition(
+                                  "reaction",
+                                  currentReaction.id,
+                                  rules as RulesWithCharges
+                              )
+                            : undefined
+                        const maxCharges = resolveMaxCharges(chargeDef, attributes as Record<string, number>)
+                        const currentCharges = resolveCurrentCharges(
+                            currentReaction?.charges,
+                            maxCharges
+                        )
+                        const showChargePips = maxCharges > 0
+                        const statKey = chargeDef?.chargeStat ?? currentReaction?.chargeStat
+                        const fixedMax = chargeDef?.fixedMaxCharges
+                        const reactionChargesDepleted = showChargePips && currentCharges <= 0
 
                         // 3. Extract action card data (embedded class wrapper, or global card by id e.g. feat/protect)
-                        const actionCardData = currentReaction?.actionCard
-                            ? (unwrapEmbeddedActionCard(
-                                  currentReaction.actionCard as Record<string, unknown>
-                              ) as Record<string, unknown> | null)
-                            : currentReaction?.id
-                              ? (hydrateActionCardById(currentReaction.id, rules as any) as Record<
-                                    string,
-                                    unknown
-                                > | null)
-                              : null;
+                        let actionCardData: ActionCard | null = null
+                        if (currentReaction?.actionCard) {
+                            const unwrapped = unwrapEmbeddedActionCard(
+                                currentReaction.actionCard as unknown as Record<string, unknown>,
+                            )
+                            actionCardData = unwrapped ? (unwrapped as unknown as ActionCard) : null
+                        } else if (currentReaction?.id) {
+                            actionCardData = hydrateActionCardById(currentReaction.id, rules as any)
+                        }
 
                         const resourceCostsInline = currentReaction
-                            ? getReactionResourceCostsForInlineRow(currentReaction, actionCardData)
-                            : null;
+                            ? getReactionResourceCostsForInlineRow(
+                                  currentReaction,
+                                  actionCardData ? (actionCardData as unknown as Record<string, unknown>) : null,
+                              )
+                            : null
 
                         return (
                             <div key={slotIndex}
@@ -407,39 +416,23 @@ export function FocusReactionsPanel({
                                 {currentReaction && (
                                     <div className="space-y-2 border-t border-orange-200 dark:border-orange-800 pt-2">
                                         {/* CHARGE PIPS */}
-                                        {showChargePips && (
-                                            <div
-                                                className="flex items-center justify-between bg-white/40 dark:bg-black/20 p-2 rounded border border-orange-200 dark:border-orange-800">
-                            <span className="text-[10px] font-bold uppercase text-orange-800 dark:text-orange-400">
-                                {fixedMax != null ? "Charges" : `${statKey} Charges`}
-                            </span>
-                                                <div className="flex gap-1.5">
-                                                    {Array.from({length: maxCharges}).map((_, i) => {
-                                                        const isFilled = i < currentCharges;
-                                                        const isLastFilled = i === currentCharges - 1;
-
-                                                        return (
-                                                            <button
-                                                                key={i}
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    // If clicking the last filled pip, decrease by 1 (toggle off)
-                                                                    // Otherwise, set charges to the clicked index + 1
-                                                                    const newVal = isLastFilled ? i : i + 1;
-                                                                    onUpdateReactionCharges(currentReaction.id, newVal);
-                                                                }}
-                                                                className={cn(
-                                                                    "w-4 h-4 rounded-full border-2 transition-all hover:scale-110 active:scale-95",
-                                                                    isFilled
-                                                                        ? "bg-amber-400 border-amber-600 shadow-sm"
-                                                                        : "bg-muted/30 border-dashed border-muted-foreground/30 hover:border-amber-400/50"
-                                                                )}
-                                                            />
-                                                        );
-                                                    })}
-                                                </div>
-                                            </div>
-                                        )}
+                                        {showChargePips && currentReaction ? (
+                                            <ChargePips
+                                                className="bg-white/40 dark:bg-black/20 p-2 rounded border border-orange-200 dark:border-orange-800"
+                                                maxCharges={maxCharges}
+                                                currentCharges={currentCharges}
+                                                label={
+                                                    fixedMax != null
+                                                        ? "Charges"
+                                                        : statKey
+                                                          ? `${statKey} Charges`
+                                                          : "Charges"
+                                                }
+                                                onChange={(newVal) =>
+                                                    onUpdateReactionCharges(currentReaction.id, newVal)
+                                                }
+                                            />
+                                        ) : null}
                                         <p className="text-sm font-medium text-amber-700 dark:text-amber-400 px-2 py-1 bg-amber-50 dark:bg-amber-900/30 rounded border border-amber-200 dark:border-amber-700/40 whitespace-pre-line">
                                             Trigger: {currentReaction.trigger}
                                         </p>
@@ -462,10 +455,12 @@ export function FocusReactionsPanel({
                                                     action={actionCardData}
                                                     attributes={attributes as any}
                                                     forceCollapsed={false}
+                                                    disabled={reactionChargesDepleted}
                                                     actionCostBudget={actionCostBudget}
                                                     onSpendActionCost={onSpendActionCost}
                                                     currentWeapon={currentWeapon}
                                                     offhandWeapon={offhandWeapon}
+                                                    combatRuleContext={combatRuleContext}
                                                 />
                                             </div>
                                         )}

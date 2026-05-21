@@ -32,10 +32,14 @@ export function formatTraitEffectChoiceLabel(
     rules?: { actionCards?: Record<string, { name?: string }> }
 ): string {
     switch (effect.type) {
-        case "StatChange":
-            return effect.stat
+        case "StatChange": {
+            const base = effect.stat
                 ? `${effect.stat} +${effect.value ?? "0"}`
                 : `+${effect.value ?? "0"}`
+            const when = (effect as { when?: string }).when?.trim()
+            if (when === "dualWielding") return `${base} (while dual wielding)`
+            return base
+        }
         case "AttributeChange": {
             const parts = [effect.stat, effect.value].filter(
                 (x) => x != null && String(x).trim() !== ""
@@ -66,12 +70,27 @@ export function formatTraitEffectChoiceLabel(
             if (v === "necromancy") return "Necromancy";
             return v || "Summon school";
         }
+        case "GrantSkill": {
+            const sid = String(effect.skillId ?? "").trim()
+            const rAny = rules as { skills?: Record<string, { name?: string }>; system?: { skills?: Record<string, { name?: string }> } } | undefined
+            const cat = rAny?.skills ?? rAny?.system?.skills
+            if (sid) {
+                const nm = cat?.[sid]?.name?.trim()
+                return nm ? `Skill: ${nm}` : `Skill: ${sid}`
+            }
+            const n = Math.max(0, Math.floor(Number(effect.pickCount) || 0))
+            const buckets = effect.skillBuckets?.filter(Boolean).join(", ")
+            if (n > 0 && buckets) return `Choose ${n} skill${n !== 1 ? "s" : ""} (${buckets})`
+            if (n > 0) return `Choose ${n} skill${n !== 1 ? "s" : ""}`
+            return "Grant skill"
+        }
         default:
-            return effect.type;
+            return (effect as { type?: string }).type ?? "effect";
     }
 }
 
 export function vulnerabilityDamageType(effect: TraitEffect): string | null {
+    if (effect.type === "GrantSkill") return null;
     const stat = effect.stat?.trim();
     const val = effect.value?.trim() ?? "";
     if (stat) return stat;
@@ -81,6 +100,7 @@ export function vulnerabilityDamageType(effect: TraitEffect): string | null {
 
 /** VU amount: uses numeric `value` when `stat` is set; otherwise defaults to 2 for type-only legacy rows. */
 export function vulnerabilityAmount(effect: TraitEffect): number {
+    if (effect.type === "GrantSkill") return 0;
     if (effect.stat?.trim()) {
         return parseInt(effect.value ?? "0", 10) || 0;
     }

@@ -10,6 +10,7 @@ import {
     type PowerRollAttributes,
     type PowerRollDisplayMode,
 } from "@/components/power-roll/power-roll-tier-row"
+import type { TraitRef } from "@/lib/baseRefs"
 import { resolveWeaponForActionPowerRoll } from "@/lib/weapon-power-roll"
 
 const TRAIT_BADGE = "bg-violet-200 text-violet-950 dark:bg-violet-900/80 dark:text-violet-100"
@@ -33,6 +34,8 @@ type TraitPowerRollCollapsibleProps = {
     className?: string
     /** Increment (e.g. library "Collapse all") to collapse tier rows. */
     collapseAllSignal?: number
+    /** For 1H/2H action matching (e.g. Tight Grip). */
+    traitRefs?: readonly TraitRef[]
 }
 
 export function TraitPowerRollCollapsible({
@@ -45,6 +48,7 @@ export function TraitPowerRollCollapsible({
     powerRollDisplayMode = "simple",
     className,
     collapseAllSignal,
+    traitRefs,
 }: TraitPowerRollCollapsibleProps) {
     const [open, setOpen] = useState(defaultExpanded)
 
@@ -59,9 +63,10 @@ export function TraitPowerRollCollapsible({
                 actionTags,
                 roll.rollStats,
                 currentWeapon,
-                offhandWeapon
+                offhandWeapon,
+                { traits: traitRefs }
             ),
-        [actionTags, roll.rollStats, currentWeapon, offhandWeapon]
+        [actionTags, roll.rollStats, currentWeapon, offhandWeapon, traitRefs]
     )
 
     if (!isValidPowerRoll(roll)) return null

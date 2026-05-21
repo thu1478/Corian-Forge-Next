@@ -1,5 +1,7 @@
 import type { ArmorItem, InventoryItem, ShieldItem, WeaponItem } from "@/lib/equipment-data"
 import { actionTagsIncludeCanonical } from "@/lib/action-tag-utils"
+import type { WeaponBondContext } from "@/lib/weapon-bond"
+import { getEffectiveWeaponDamage, parseWeaponBaseDamage } from "@/lib/weapon-bond"
 
 function martialSuffix(tags: string[] | undefined): string {
   return tags && actionTagsIncludeCanonical(tags, "martial") ? " · Martial" : ""
@@ -17,6 +19,29 @@ function fmtAttrName(attr: string): string {
   return attr.charAt(0).toUpperCase() + attr.slice(1)
 }
 
+/** First letter of each weapon roll attribute (e.g. might → M). */
+function weaponRollStatLetter(attr: string): string {
+  const t = attr.trim()
+  if (!t) return ""
+  return t.charAt(0).toUpperCase()
+}
+
+/** Weapon power-roll stats (`attributes` on catalog items). Empty list = any stat. */
+export function formatWeaponRollStats(attributes: readonly string[] | undefined | null): string {
+  const attrs = (attributes ?? []).filter((a): a is string => typeof a === "string" && a.trim().length > 0)
+  if (attrs.length === 0) return "Any"
+  return attrs.map(weaponRollStatLetter).join(" or ")
+}
+
+/** Compact label for UI/detail rows, e.g. `Attrib - M or D`. */
+export function formatWeaponAttribLabel(attributes: readonly string[] | undefined | null): string {
+  return `Attrib - ${formatWeaponRollStats(attributes)}`
+}
+
+function rollStatsSuffix(attributes: readonly string[] | undefined | null): string {
+  return ` · Attrib - ${formatWeaponRollStats(attributes)}`
+}
+
 /** Human-readable armor defense (base + optional attribute cap). */
 export function formatArmorDefenseValue(defense: ArmorItem["defense"]): string {
   const v = defense?.value ?? 0
@@ -29,14 +54,15 @@ export function formatArmorDefenseValue(defense: ArmorItem["defense"]): string {
   return String(v)
 }
 
-export function weaponStatSummary(item: WeaponItem): string {
-  const dmg = item.damage ?? 0
+export function weaponStatSummary(item: WeaponItem, bondCtx?: WeaponBondContext): string {
+  const baseDmg = parseWeaponBaseDamage(item)
+  const dmg = bondCtx ? getEffectiveWeaponDamage(item, bondCtx) : baseDmg
   const dt = typeof item.damageType === "string" && item.damageType.trim() ? item.damageType.trim() : null
   const rng = item.range ?? 0
   const m = martialSuffix(item.tags)
   const h = weaponHandsSuffix(item.tags)
   const base = dt != null ? `Damage ${dmg} (${dt}) · Range ${rng}` : `Damage ${dmg} · Range ${rng}`
-  return base + m + h
+  return base + rollStatsSuffix(item.attributes) + m + h
 }
 
 export function armorStatSummary(item: ArmorItem): string {
@@ -86,8 +112,11 @@ export function equipmentStatSummaryFromDef(def: Record<string, unknown>): strin
     const rng = typeof def.range === "number" ? def.range : 0
     const rawDt = def.damageType
     const dt = typeof rawDt === "string" && rawDt.trim() ? rawDt.trim() : null
+    const attrs = Array.isArray(def.attributes)
+      ? def.attributes.filter((a): a is string => typeof a === "string" && a.trim().length > 0)
+      : []
     const base = dt != null ? `Damage ${dmg} (${dt}) · Range ${rng}` : `Damage ${dmg} · Range ${rng}`
-    return base + martialSuffix(tags) + weaponHandsSuffix(tags)
+    return base + rollStatsSuffix(attrs) + martialSuffix(tags) + weaponHandsSuffix(tags)
   }
   if (t === "armor" && def.defense != null && typeof def.defense === "object") {
     const d = def.defense as Record<string, unknown>

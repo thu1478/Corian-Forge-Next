@@ -101,9 +101,20 @@ import {
 import {
   equipmentStatSummaryFromDef,
   equipmentStatSummaryLine,
+  formatWeaponAttribLabel,
 } from "@/lib/equipment-stats-display"
 import { ProficiencyAlert } from "@/components/character-sheet/trackingPage/equipment-panel"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { Switch } from "@/components/ui/switch"
+import type { TraitRef } from "@/lib/baseRefs"
+import {
+  buildWeaponBondContext,
+  getEffectiveWeaponDamage,
+  hasWeaponBondPassive,
+  isMeleeWeapon,
+  parseWeaponBaseDamage,
+} from "@/lib/weapon-bond"
+import { statDeltaTextClass } from "@/lib/stat-delta-display"
 
 interface InventoryPanelProps {
   inventory: InventoryItem[]
@@ -135,6 +146,9 @@ interface InventoryPanelProps {
   onSetInventoryItemCustomName: (uid: string, customName: string) => void
   /** Turn a nested `container` item into a new named bag (same as adding a new container). */
   onUnpackItemContainer: (itemUid: string) => void
+  traits?: TraitRef[]
+  bondedWeaponUids?: string[]
+  onToggleWeaponBond?: (uid: string, bonded: boolean) => void
 }
 
 const FILTER_TABS: { id: InventoryKindFilter; label: string }[] = [
@@ -804,6 +818,9 @@ function InventoryItemDetailSheet({
   onSetCustomName,
   onUnpackItemContainer,
   isCatalogPreview = false,
+  traits,
+  bondedWeaponUids,
+  onToggleWeaponBond,
 }: {
   item: InventoryItem | null
   open: boolean
@@ -817,7 +834,46 @@ function InventoryItemDetailSheet({
   onUnpackItemContainer?: (uid: string) => void
   /** Rules catalog preview: hide character-only controls (e.g. rename). */
   isCatalogPreview?: boolean
+  traits?: TraitRef[]
+  bondedWeaponUids?: string[]
+  onToggleWeaponBond?: (uid: string, bonded: boolean) => void
 }) {
+  const weaponBondPassive = hasWeaponBondPassive(traits)
+  const bondCtx = buildWeaponBondContext(traits, bondedWeaponUids ?? [])
+  const showWeaponBondRow =
+    !isCatalogPreview &&
+    weaponBondPassive &&
+    !!item &&
+    item.type === "weapon" &&
+    isMeleeWeapon(item) &&
+    !!onToggleWeaponBond
+
+  useEffect(() => {
+    if (!open || !item || item.type !== "weapon") return
+    // #region agent log
+    fetch("http://127.0.0.1:7550/ingest/244c033b-3205-4e88-b1a7-446a0537a4c2", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "f4e9fe" },
+      body: JSON.stringify({
+        sessionId: "f4e9fe",
+        runId: "pre-fix",
+        hypothesisId: "D",
+        location: "inventory-panel.tsx:weaponBondConditions",
+        message: "Weapon bond row eligibility",
+        data: {
+          itemUid: item.uid,
+          showWeaponBondRow,
+          isCatalogPreview,
+          weaponBondPassive,
+          isMelee: isMeleeWeapon(item),
+          hasHandler: !!onToggleWeaponBond,
+          tags: (item as WeaponItem).tags,
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {})
+    // #endregion
+  }, [open, item, showWeaponBondRow, isCatalogPreview, weaponBondPassive, onToggleWeaponBond])
   const traitBlocks = useMemo(
     () => (item ? buildItemInventoryTraitBlocks(item, rules) : []),
     [item, rules]
@@ -910,9 +966,87 @@ function InventoryItemDetailSheet({
                   Combat
                 </p>
                 <div className="rounded-lg border border-border/60 bg-muted/10 p-3 text-sm space-y-2">
+                  {showWeaponBondRow ? (
+                    <div className="flex items-center justify-between gap-3 pb-2 border-b border-border/50">
+                      <label
+                        htmlFor={`weapon-bond-${item.uid}`}
+                        className="min-w-0 flex-1 cursor-pointer"
+                      >
+                        <p className="font-medium text-foreground">Weapon bond</p>
+                        <p className="text-xs text-muted-foreground">+1 damage with this weapon</p>
+                      </label>
+                      <div
+                        className="shrink-0"
+                        ref={(el: HTMLDivElement | null) => {
+                          if (!el) return
+                          const sw = el.querySelector('[data-slot="switch"]') as HTMLElement | null
+                          const r = sw?.getBoundingClientRect()
+                          const cs = sw ? getComputedStyle(sw) : null
+                          // #region agent log
+                          fetch("http://127.0.0.1:7550/ingest/244c033b-3205-4e88-b1a7-446a0537a4c2", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "f4e9fe" },
+                            body: JSON.stringify({
+                              sessionId: "f4e9fe",
+                              runId: "post-fix",
+                              hypothesisId: "A",
+                              location: "inventory-panel.tsx:weaponBondSwitchRef",
+                              message: "Switch mount geometry",
+                              data: {
+                                switchFound: !!sw,
+                                width: r?.width ?? 0,
+                                height: r?.height ?? 0,
+                                display: cs?.display,
+                                visibility: cs?.visibility,
+                                opacity: cs?.opacity,
+                                wrapperWidth: el.offsetWidth,
+                              },
+                              timestamp: Date.now(),
+                            }),
+                          }).catch(() => {})
+                          // #endregion
+                        }}
+                      >
+                        <Switch
+                          id={`weapon-bond-${item.uid}`}
+                          checked={(bondedWeaponUids ?? []).includes(item.uid)}
+                          className="h-6 w-11 shrink-0 border border-border/80 data-[state=unchecked]:bg-muted-foreground/25"
+                          onCheckedChange={(on) => {
+                            // #region agent log
+                            fetch("http://127.0.0.1:7550/ingest/244c033b-3205-4e88-b1a7-446a0537a4c2", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "f4e9fe" },
+                              body: JSON.stringify({
+                                sessionId: "f4e9fe",
+                                runId: "pre-fix",
+                                hypothesisId: "E",
+                                location: "inventory-panel.tsx:weaponBondToggle",
+                                message: "Switch toggled",
+                                data: { uid: item.uid, bonded: on },
+                                timestamp: Date.now(),
+                              }),
+                            }).catch(() => {})
+                            // #endregion
+                            onToggleWeaponBond(item.uid, on)
+                          }}
+                          aria-label="Weapon bond"
+                        />
+                      </div>
+                    </div>
+                  ) : null}
                   <p>
                     <span className="font-medium text-foreground">Damage: </span>
-                    <span className="tabular-nums font-mono">{(item as WeaponItem).damage}</span>
+                    <span
+                      className={cn(
+                        "tabular-nums font-mono",
+                        statDeltaTextClass(
+                          getEffectiveWeaponDamage(item as WeaponItem, bondCtx),
+                          parseWeaponBaseDamage(item as WeaponItem)
+                        )
+                      )}
+                    >
+                      {getEffectiveWeaponDamage(item as WeaponItem, bondCtx)}
+                    </span>
                   </p>
                   <p>
                     <span className="font-medium text-foreground">Damage type: </span>
@@ -922,14 +1056,9 @@ function InventoryItemDetailSheet({
                     <span className="font-medium text-foreground">Range: </span>
                     <span className="tabular-nums">{(item as WeaponItem).range}</span>
                   </p>
-                  {(item as WeaponItem).attributes?.length ? (
-                    <p>
-                      <span className="font-medium text-foreground">Attributes: </span>
-                      <span className="text-muted-foreground">
-                        {(item as WeaponItem).attributes.join(", ")}
-                      </span>
-                    </p>
-                  ) : null}
+                  <p className="text-muted-foreground">
+                    {formatWeaponAttribLabel((item as WeaponItem).attributes)}
+                  </p>
                 </div>
               </div>
             )}
@@ -1171,6 +1300,9 @@ export function InventoryPanel({
   onSetItemQuantity,
   onSetInventoryItemCustomName,
   onUnpackItemContainer,
+  traits,
+  bondedWeaponUids,
+  onToggleWeaponBond,
 }: InventoryPanelProps) {
   const [detailUid, setDetailUid] = useState<string | null>(null)
   const [catalogDetailId, setCatalogDetailId] = useState<string | null>(null)
@@ -1847,6 +1979,9 @@ export function InventoryPanel({
         onSetCustomName={onSetInventoryItemCustomName}
         onUnpackItemContainer={onUnpackItemContainer}
         isCatalogPreview={catalogDetailId != null}
+        traits={traits}
+        bondedWeaponUids={bondedWeaponUids}
+        onToggleWeaponBond={onToggleWeaponBond}
       />
     </div>
   )

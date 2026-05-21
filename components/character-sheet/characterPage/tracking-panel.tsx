@@ -26,6 +26,15 @@ import {
 } from "@/lib/bonds"
 import {getDeityPassiveEntries} from "@/lib/priest-deities"
 import type {InventoryItem} from "@/lib/equipment-data"
+import { ChargePips } from "@/components/character-sheet/charge-pips"
+import {
+    hasChargeTracking,
+    lookupChargeDefinition,
+    resolveCurrentCharges,
+    resolveMaxCharges,
+    type RulesWithCharges,
+} from "@/lib/charge-helpers"
+import rulesData from "@/lib/rules.json"
 
 interface ClassesPanelProps {
     classes: { id: string; level: number }[]; // Character's specific data
@@ -96,6 +105,7 @@ interface TraitsPanelProps {
     /** For trait power rolls with +Wpn (same resolution as combat action cards). */
     activeWeapon?: InventoryItem | null
     offhandWeapon?: InventoryItem | null
+    onUpdateTraitCharges?: (traitId: string, newCount: number) => void
 }
 
 type TraitSource = "all" | "racial" | "feat" | "class" | "background" | "other"
@@ -117,7 +127,13 @@ const sourceFilterColors: Record<string, string> = {
     other: "bg-slate-600 text-white"
 }
 
-export function TraitsPanel({traits, attributes, activeWeapon = null, offhandWeapon = null}: TraitsPanelProps) {
+export function TraitsPanel({
+    traits,
+    attributes,
+    activeWeapon = null,
+    offhandWeapon = null,
+    onUpdateTraitCharges,
+}: TraitsPanelProps) {
     const [filter, setFilter] = useState<TraitSource>("all")
 
     // Get unique sources from traits
@@ -155,7 +171,15 @@ export function TraitsPanel({traits, attributes, activeWeapon = null, offhandWea
             </div>
 
             <div className="space-y-3 max-h-[65vh] overflow-y-auto pr-1">
-                {filteredTraits.map((trait) => (
+                {filteredTraits.map((trait) => {
+                    const chargeDef = hasChargeTracking(trait)
+                        ? trait
+                        : lookupChargeDefinition("trait", trait.uid, rulesData as RulesWithCharges)
+                    const maxCharges = resolveMaxCharges(chargeDef, attributes)
+                    const currentCharges = resolveCurrentCharges(trait.charges, maxCharges)
+                    const showChargePips = maxCharges > 0 && Boolean(onUpdateTraitCharges)
+
+                    return (
                     <div
                         key={trait.uid}
                         className="p-3 rounded-lg bg-muted/10 border border-border/50"
@@ -167,6 +191,22 @@ export function TraitsPanel({traits, attributes, activeWeapon = null, offhandWea
                 {trait.source}
               </span>
                         </div>
+                        {showChargePips ? (
+                            <div className="mb-3">
+                                <ChargePips
+                                    maxCharges={maxCharges}
+                                    currentCharges={currentCharges}
+                                    label={
+                                        chargeDef?.fixedMaxCharges != null
+                                            ? "Charges"
+                                            : chargeDef?.chargeStat
+                                              ? `${chargeDef.chargeStat} Charges`
+                                              : "Charges"
+                                    }
+                                    onChange={(n) => onUpdateTraitCharges?.(trait.uid, n)}
+                                />
+                            </div>
+                        ) : null}
                         <p className="text-base text-foreground/80 leading-relaxed whitespace-pre-line">{trait.description}</p>
                         {trait.powerRoll && (
                             <TraitPowerRollCollapsible
@@ -177,7 +217,8 @@ export function TraitsPanel({traits, attributes, activeWeapon = null, offhandWea
                             />
                         )}
                     </div>
-                ))}
+                    )
+                })}
 
                 {filteredTraits.length === 0 && (
                     <p className="text-sm text-muted-foreground text-center py-4">No traits found</p>

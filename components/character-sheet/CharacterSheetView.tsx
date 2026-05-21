@@ -5,6 +5,7 @@ import {
     ActionCardComponent,
     type ActionCostBudget,
     type ActionSpendResourceKind,
+    type CombatRuleContext,
 } from "@/components/character-sheet/combatPage/action-card-manager"
 import {FocusTracker} from "@/components/character-sheet/combatPage/focus-tracker"
 import {CombatStatsPanel, OtherStats, ResourceBars} from "@/components/character-sheet/combatPage/resource-bars"
@@ -51,6 +52,7 @@ import {
     Moon,
     Package,
     Plus,
+    Shield,
     Sparkles,
     Swords,
     Trash2,
@@ -63,13 +65,27 @@ import {makeContainerId, makeInventoryUid} from "@/lib/inventory-filters"
 import {unequipInventoryUids} from "@/lib/inventory-helpers"
 import { itemStackQuantity, sumDirectChildQuantities } from "@/lib/inventory-container-rules"
 import rulesData from "@/lib/rules.json";
+import {traitRefsIncludeId} from "@/lib/trait-helpers";
 import {actionTagMatchesFilterChip, actionTagMatchesSearchQuery} from "@/lib/action-tag-utils";
 import {Equipment, EQUIPMENT_RULES, type InventoryContainer} from "@/lib/equipment-data";
 import {useDataLoader} from "@/components/character-sheet/hooks/DataLoader";
 import {CharacterClass} from "@/lib/rules";
-import {restoreReactionCharges} from "@/lib/rest-helpers";
+import {
+    applyRestChargeEffects,
+    initialChargesForNewEntry,
+    isChargesDepleted,
+    lookupChargeDefinition,
+} from "@/lib/charge-helpers";
+import {applyEndOfCombatEffects} from "@/lib/rest-helpers";
 import {listCatalogActionCardIds, listCatalogReactionCardIds} from "@/lib/generic-catalog";
 import {collectClassProficiencies, martialProficiencyDeficitMessage} from "@/lib/equipment-proficiency";
+import {
+    buildWeaponBondContext,
+    getEffectiveWeaponDamage,
+    parseWeaponBaseDamage,
+} from "@/lib/weapon-bond";
+import {statDeltaTextClass} from "@/lib/stat-delta-display";
+import type {WeaponItem} from "@/lib/equipment-data";
 import {ProficienciesPanel} from "@/components/character-sheet/characterPage/proficiencies-panel";
 import {CreaturesPanel} from "@/components/character-sheet/characterPage/creatures-panel";
 import {
@@ -88,6 +104,31 @@ function weaponRangeLabel(weapon: unknown): string | null {
     if (r === undefined || r === null) return null
     const s = typeof r === "number" ? (Number.isFinite(r) ? String(r) : "") : String(r).trim()
     return s.length > 0 ? s : null
+}
+
+function weaponDamageChip(
+    weapon: { type?: string; damage?: unknown; uid?: string } | null | undefined,
+    bondCtx: ReturnType<typeof buildWeaponBondContext>,
+    className?: string,
+) {
+    if (!weapon || weapon.type !== "weapon" || weapon.damage == null || String(weapon.damage) === "0") {
+        return null
+    }
+    const w = weapon as WeaponItem
+    const base = parseWeaponBaseDamage(w)
+    const effective = getEffectiveWeaponDamage(w, bondCtx)
+    return (
+        <span
+            className={cn(
+                "flex items-center gap-1 text-xs font-mono bg-muted px-1.5 py-0.5 rounded border border-border",
+                statDeltaTextClass(effective, base) || "text-muted-foreground",
+                className,
+            )}
+        >
+            <Swords className="w-3 h-3 shrink-0"/>
+            {effective}
+        </span>
+    )
 }
 
 export function CharacterSheetView() {
@@ -254,19 +295,56 @@ export function CharacterSheetView() {
     const offhandWeapon =
         character.inventory.find((item: any) => item.uid === character.offhandUid) || null;
 
+    const equippedArmor =
+        (character as { equipment?: { armor?: unknown } }).equipment?.armor ??
+        character.inventory.find((item: any) => item.uid === (character as { activeArmorUid?: string }).activeArmorUid) ??
+        null;
+
+    const bondedWeaponUids = character.bondedWeaponUids ?? []
+    const combatDefenseDelta = character.combatDefenseDelta ?? 0
+    const baseDefense = derived.defense
+    const effectiveDefense = baseDefense + combatDefenseDelta
+
+    const combatRuleContext: CombatRuleContext = {
+        traits: ((character as { traitRefs?: unknown }).traitRefs ?? character.traits) as CombatRuleContext["traits"],
+        activeWeapon: currentWeapon,
+        offhandWeapon,
+        equippedArmor: equippedArmor as CombatRuleContext["equippedArmor"],
+        creatureGrantedActionIds,
+        bondedWeaponUids,
+    };
+
+    const weaponBondCtx = buildWeaponBondContext(combatRuleContext.traits, bondedWeaponUids)
+
+    const hasShieldMaster = traitRefsIncludeId(
+        combatRuleContext.traits,
+        "shieldMaster",
+    )
+
     const activeWeaponRangeLabel = weaponRangeLabel(currentWeapon)
 
     const availableWeapons = [
-        ...character.inventory
-            .filter((item: any) => item.type === "weapon")
-            .map((item: any) => ({
-                uid: item.uid,
-                name: item.name,
-                damage: item.damage || "0",
-                range: item.range,
-            })),
-        {uid: "empty", name: "Empty", damage: "0" as const},
+        ...character.inventory.filter(
+            (item: any) => item.type === "weapon" || (hasShieldMaster && item.type === "shield"),
+        ),
+        {uid: "empty", name: "Empty", type: "misc"} as any,
     ];
+
+    const handleDefenseDeltaChange = (delta: number) => {
+        setCharacter((prev) => ({...prev, combatDefenseDelta: delta}))
+    }
+
+    const handleToggleWeaponBond = (uid: string, bonded: boolean) => {
+        setCharacter((prev) => {
+            const list = prev.bondedWeaponUids ?? []
+            if (bonded) {
+                if (list.includes(uid)) return prev
+                return {...prev, bondedWeaponUids: [...list, uid]}
+            }
+            const next = list.filter((u) => u !== uid)
+            return {...prev, bondedWeaponUids: next}
+        })
+    }
 
     const handleAddInventoryItem = (itemId: string) => {
         const uid = makeInventoryUid(itemId);
@@ -521,12 +599,12 @@ export function CharacterSheetView() {
 
             const existingIdx = next.findIndex((r: { id: string }) => r.id === newID)
             if (existingIdx < 0) {
-                const card = (rulesData as any).actionCards?.[newID]
-                const fixed = card?.fixedMaxCharges
-                const charges =
-                    typeof fixed === "number" && Number.isFinite(fixed)
-                        ? Math.max(0, Math.floor(fixed))
-                        : -1
+                const chargeDef = lookupChargeDefinition(
+                    "reaction",
+                    newID,
+                    rulesData as import("@/lib/charge-helpers").RulesWithCharges
+                )
+                const charges = initialChargesForNewEntry(chargeDef, derived.attributes)
                 next.push({id: newID, slotIndex: index, charges})
             } else {
                 next[existingIdx] = {...next[existingIdx], slotIndex: index}
@@ -550,16 +628,28 @@ export function CharacterSheetView() {
             const actions = prev.actions || [];
             const has = actions.some((a: any) => (typeof a === "string" ? a : a?.id) === id);
             if (has) return prev;
-            return {...prev, actions: [...actions, {id}]};
+            const chargeDef = lookupChargeDefinition(
+                "action",
+                id,
+                rulesData as import("@/lib/charge-helpers").RulesWithCharges
+            )
+            const charges = initialChargesForNewEntry(chargeDef, derived.attributes)
+            return {...prev, actions: [...actions, {id, charges}]};
         });
     };
     const handleAddCatalogReaction = (id: string) => {
         setCharacter((prev: any) => {
             const reactions = prev.reactions || [];
             if (reactions.some((r: any) => r.id === id)) return prev;
+            const chargeDef = lookupChargeDefinition(
+                "reaction",
+                id,
+                rulesData as import("@/lib/charge-helpers").RulesWithCharges
+            )
+            const charges = initialChargesForNewEntry(chargeDef, derived.attributes)
             return {
                 ...prev,
-                reactions: [...reactions, {id, slotIndex: -1, charges: -1}],
+                reactions: [...reactions, {id, slotIndex: -1, charges}],
             };
         });
     };
@@ -570,13 +660,31 @@ export function CharacterSheetView() {
         }));
     };
 
-    const handleEndOfCombat = () => {
+    const handleUpdateTraitCharges = (traitId: string, newCount: number) => {
         setCharacter((prev: any) => ({
             ...prev,
-            focus: 0,
-            barrier: 0,
-            reactions: restoreReactionCharges(prev.reactions || [], derived.attributes, rulesData),
-        }));
+            traits: (prev.traits || []).map((t: any) => {
+                const id = typeof t === "object" && t?.id ? t.id : t
+                return id === traitId ? {...(typeof t === "object" ? t : {id: t}), id: traitId, charges: newCount} : t
+            }),
+        }))
+    }
+
+    const handleUpdateActionCharges = (actionId: string, newCount: number) => {
+        setCharacter((prev: any) => ({
+            ...prev,
+            actions: (prev.actions || []).map((a: any) => {
+                const id = typeof a === "string" ? a : a?.id
+                if (id !== actionId) return a
+                return typeof a === "object" ? {...a, id: actionId, charges: newCount} : {id: actionId, charges: newCount}
+            }),
+        }))
+    }
+
+    const handleEndOfCombat = () => {
+        setCharacter((prev: any) =>
+            applyEndOfCombatEffects(prev, derived.attributes, rulesData as import("@/lib/charge-helpers").RulesWithCharges)
+        );
     };
 
     const handleShortRestApply = (respitesSpent: number) => {
@@ -588,10 +696,17 @@ export function CharacterSheetView() {
                 derived.maxRespite
             );
             const s = Math.min(Math.max(0, Math.floor(respitesSpent)), pool);
+            const withCharges = applyRestChargeEffects(
+                prev,
+                "shortRest",
+                derived.attributes,
+                rulesData as import("@/lib/charge-helpers").RulesWithCharges
+            )
             return {
-                ...prev,
+                ...withCharges,
                 focus: 0,
                 barrier: 0,
+                combatDefenseDelta: 0,
                 respite: pool - s,
                 hp: Math.min(Math.max(prev.hp + s * hpPer, derived.deathThreshold), derived.maxHP),
                 mp: Math.min(Math.max(prev.mp + s * mpPer, 0), derived.maxMP),
@@ -600,16 +715,26 @@ export function CharacterSheetView() {
     };
 
     const handleLongRestConfirm = () => {
-        setCharacter((prev: any) => ({
-            ...prev,
-            focus: 0,
-            barrier: 0,
-            reactions: restoreReactionCharges(prev.reactions || [], derived.attributes, rulesData),
-            hp: derived.maxHP,
-            mp: derived.maxMP,
-            respite: derived.maxRespite,
-            victories: 0,
-        }));
+        setCharacter((prev: any) => {
+            let next = applyEndOfCombatEffects(
+                prev,
+                derived.attributes,
+                rulesData as import("@/lib/charge-helpers").RulesWithCharges
+            )
+            next = applyRestChargeEffects(
+                next,
+                "longRest",
+                derived.attributes,
+                rulesData as import("@/lib/charge-helpers").RulesWithCharges
+            )
+            return {
+                ...next,
+                hp: derived.maxHP,
+                mp: derived.maxMP,
+                respite: derived.maxRespite,
+                victories: 0,
+            }
+        });
         setLongRestDialogOpen(false);
     };
     // </editor-fold>
@@ -746,11 +871,17 @@ export function CharacterSheetView() {
                                     onOpenDamageCalculator={() => setShowDamageCalculator(true)}
                                     attributes={derived.attributes} knownClasses={character.classes}
                                 />
-                                <CombatStatsPanel defense={derived.defense} stability={derived.stability}
-                                                  speed={derived.speed} resistances={derived.resistances}
-                                                  vulnerabilities={derived.vulnerabilities}
-                                                  conditionImmunities={derived.conditionImmunities}
-                                                  specialSight={derived.specialSight}/>
+                                <CombatStatsPanel
+                                    baseDefense={baseDefense}
+                                    defenseDelta={combatDefenseDelta}
+                                    onDefenseDeltaChange={handleDefenseDeltaChange}
+                                    stability={derived.stability}
+                                    speed={derived.speed}
+                                    resistances={derived.resistances}
+                                    vulnerabilities={derived.vulnerabilities}
+                                    conditionImmunities={derived.conditionImmunities}
+                                    specialSight={derived.specialSight}
+                                />
                                 <OtherStats
                                     xp={Math.max(0, Math.floor(Number(character.xp ?? 0) || 0))}
                                     inspiration={character.inspiration}
@@ -854,11 +985,13 @@ export function CharacterSheetView() {
                                                     >
                             <span className="flex items-center gap-2 flex-wrap justify-end">
                                 {currentWeapon ? currentWeapon.name : "Empty"}
-                                {(currentWeapon as any)?.damage && (currentWeapon as any).damage !== "0" && (
+                                {weaponDamageChip(currentWeapon, weaponBondCtx)}
+                                {currentWeapon?.type === "shield" &&
+                                    typeof (currentWeapon as { defense?: number }).defense === "number" && (
                                     <span
                                         className="flex items-center gap-1 text-xs text-muted-foreground font-mono bg-muted px-1.5 py-0.5 rounded border border-border">
-                                        <Swords className="w-3 h-3 shrink-0"/>
-                                        {(currentWeapon as any).damage}
+                                        <Shield className="w-3 h-3 shrink-0"/>
+                                        {(currentWeapon as { defense: number }).defense} Def
                                     </span>
                                 )}
                                 {activeWeaponRangeLabel != null && (
@@ -878,16 +1011,23 @@ export function CharacterSheetView() {
                                                     {availableWeapons.map((weapon) => (
                                                         <DropdownMenuItem
                                                             key={weapon.uid}
-                                                            onClick={() => handleEquipmentChange("activeWeapon", weapon)}
+                                                            onClick={() =>
+                                                                handleEquipmentChange(
+                                                                    "activeWeapon",
+                                                                    weapon.uid === "empty" ? null : weapon,
+                                                                )
+                                                            }
                                                             className="justify-between"
                                                         >
                                                             <span className="font-medium">{weapon.name}</span>
                                                             <div className="flex items-center gap-1 shrink-0">
-                                                                {weapon.damage !== "0" && (
+                                                                {weaponDamageChip(weapon, weaponBondCtx, "border-0 bg-transparent px-0 py-0")}
+                                                                {weapon.type === "shield" &&
+                                                                    typeof weapon.defense === "number" && (
                                                                     <div
                                                                         className="flex items-center gap-1 text-xs text-muted-foreground font-mono">
-                                                                        <Swords className="w-3 h-3 opacity-70"/>
-                                                                        {weapon.damage}
+                                                                        <Shield className="w-3 h-3 opacity-70"/>
+                                                                        {weapon.defense} Def
                                                                     </div>
                                                                 )}
                                                                 {weaponRangeLabel(weapon) != null && (
@@ -966,13 +1106,26 @@ export function CharacterSheetView() {
                                                     key={action.id}
                                                     action={action}
                                                     attributes={derived.attributes}
-                                                    disabled={(action.focusCost || 0) > character.focus}
+                                                    disabled={
+                                                        (action.focusCost || 0) > character.focus ||
+                                                        isChargesDepleted(
+                                                            "action",
+                                                            action.id,
+                                                            action.charges,
+                                                            derived.attributes,
+                                                            rulesData as import("@/lib/charge-helpers").RulesWithCharges
+                                                        )
+                                                    }
                                                     currentWeapon={currentWeapon}
                                                     offhandWeapon={offhandWeapon}
                                                     forceCollapsed={allCollapsed}
                                                     actionCostBudget={actionCostBudget}
                                                     onSpendActionCost={handleSpendActionCost}
                                                     powerRollDisplayMode={powerRollShowFormula ? "formula" : "simple"}
+                                                    combatRuleContext={combatRuleContext}
+                                                    onUpdateCharges={(n) =>
+                                                        handleUpdateActionCharges(action.id, n)
+                                                    }
                                                 />
                                             ))}
                                         </div>
@@ -996,6 +1149,7 @@ export function CharacterSheetView() {
                                     onAddCatalogReaction={handleAddCatalogReaction}
                                     currentWeapon={currentWeapon}
                                     offhandWeapon={offhandWeapon}
+                                    combatRuleContext={combatRuleContext}
                                 />
                             </div>
                         </div>
@@ -1008,6 +1162,9 @@ export function CharacterSheetView() {
                                 equipment={character.equipment}
                                 inventory={character.inventory}
                                 martialProficiencyIds={classProficiencies}
+                                shieldMaster={hasShieldMaster}
+                                traits={character.traits}
+                                bondedWeaponUids={bondedWeaponUids}
                                 onAccessoryChange={handleAccessoryChange}
                                 onEquipmentChange={handleEquipmentChange}
                             />
@@ -1032,6 +1189,9 @@ export function CharacterSheetView() {
                                 onSetItemQuantity={handleSetItemQuantity}
                                 onSetInventoryItemCustomName={handleSetInventoryItemCustomName}
                                 onUnpackItemContainer={handleUnpackItemContainer}
+                                traits={character.traits}
+                                bondedWeaponUids={bondedWeaponUids}
+                                onToggleWeaponBond={handleToggleWeaponBond}
                             />
                         </div>
                     </TabsContent>
@@ -1070,6 +1230,7 @@ export function CharacterSheetView() {
                                     attributes={derived.attributes}
                                     activeWeapon={currentWeapon}
                                     offhandWeapon={offhandWeapon}
+                                    onUpdateTraitCharges={handleUpdateTraitCharges}
                                 />
                             </div>
                             <div className="space-y-4 min-w-0">
@@ -1120,7 +1281,8 @@ export function CharacterSheetView() {
             <DamageCalculator
                 isOpen={showDamageCalculator}
                 onClose={() => setShowDamageCalculator(false)}
-                defense={derived.defense}
+                baseDefense={baseDefense}
+                effectiveDefense={effectiveDefense}
                 hp={{current: character.hp, max: derived.maxHP}}
                 barrier={character.barrier}
                 onApplyDamage={handleApplyDamage}
@@ -1186,7 +1348,7 @@ export function CharacterSheetView() {
                         <AlertDialogTitle>Take a long rest?</AlertDialogTitle>
                         <AlertDialogDescription className="text-left space-y-2">
                             <span className="block">
-                                This will apply end-of-combat effects (focus and barrier cleared; reaction charges restored), then set HP and MP to maximum, restore all respites, and set victories to 0.
+                                This will apply end-of-combat effects (focus and barrier cleared; combat defense adjustment reset), restore charges tagged for end of combat and long rest, then set HP and MP to maximum, restore all respites, and set victories to 0.
                             </span>
                             <span className="block font-medium text-foreground">Only confirm if you intend a full long rest.</span>
                         </AlertDialogDescription>

@@ -1,6 +1,7 @@
 import type { ActionCard } from "@/lib/rules"
 import type { InventoryItem } from "@/lib/equipment-data"
 import { hydrateActionCardById } from "@/lib/action-hydrate"
+import { resolveInventionModulePassiveIds } from "@/lib/trait-helpers"
 
 export function resolvePassiveById(traitId: string, rules: any): Record<string, unknown> | null {
   const p = rules.passives?.[traitId]
@@ -63,7 +64,15 @@ export type ItemTraitDetailBlock = {
 }
 
 export function buildItemInventoryTraitBlocks(item: InventoryItem, rules: any): ItemTraitDetailBlock[] {
-  const entries = flattenItemTraitEntries((item as any).traits)
+  const catalogTraits = flattenItemTraitEntries((item as any).traits)
+  const modulePassiveIds = resolveInventionModulePassiveIds(
+    item.id,
+    item.inventionModules,
+    item.inventionModuleConfig,
+    rules
+  )
+  const moduleTraits = flattenItemTraitEntries(modulePassiveIds)
+  const entries = [...catalogTraits, ...moduleTraits]
   const blocks: ItemTraitDetailBlock[] = []
 
   for (const { id: traitId, inline } of entries) {

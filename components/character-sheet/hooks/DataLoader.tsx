@@ -4,10 +4,12 @@ import {hydrateItemData} from "@/hooks/ItemLoader";
 import {useDerivedStats} from "@/components/character-sheet/hooks/statCalculator";
 import {useActions} from "@/hooks/ActionCardLoader";
 import {Reaction} from "@/lib/rules";
-import {ReactionRef} from "@/lib/baseRefs";
+import {ReactionRef, TraitRef} from "@/lib/baseRefs";
 import {HydratedCharacter} from "@/lib/HydratedChar";
+import { mergeActionChargeState } from "@/lib/charge-helpers";
 import {buildReactionLibrary} from "@/lib/rest-helpers";
 import {getDeployedCreatureActionRefs, getInjectedCompanionReactionRefs} from "@/lib/creature-roster";
+import { resolveInventionModulePassiveIds } from "@/lib/trait-helpers";
 
 export function useDataLoader(rulesDataParam: any) {
     // 1. Core Data IO (The source of truth)
@@ -70,12 +72,14 @@ export function useDataLoader(rulesDataParam: any) {
             if (!rule && ref.itemId) {
                 const item = hydratedItemsChar?.inventory?.find((i: any) => i.uid === ref.itemId);
                 const nested = item?.traits?.find((t: any) => typeof t === 'object' && t[ref.id]);
-                if (nested) rule = nested[ref.id];
+                if (nested && typeof nested === "object" && nested !== null) {
+                    rule = (nested as Record<string, unknown>)[ref.id];
+                }
             }
 
             return rule?.effects?.find((e: any) => e.type === "GrantActionCard")?.value;
         }).filter(Boolean);
-    }, [traitRefs, rulesDataParam]);
+    }, [traitRefs, rulesDataParam, hydratedItemsChar]);
 
     const creatureActionRefs = useMemo(
         () => getDeployedCreatureActionRefs(rawCharacter, rulesDataParam),
@@ -110,6 +114,7 @@ export function useDataLoader(rulesDataParam: any) {
         ],
         handSlotUids,
         creatureGrantedActionIds,
+        traitRefs as TraitRef[] | undefined,
     );
 
     // 5. Final Object Assembly
@@ -128,10 +133,18 @@ export function useDataLoader(rulesDataParam: any) {
                 ? fullyHydrated.respite
                 : 4
 
+        const actionRefs = rawCharacter?.actions ?? []
+        const actionsWithCharges = mergeActionChargeState(
+            hydratedActions,
+            actionRefs,
+            fullyHydrated.attributes ?? rawCharacter?.attributes ?? {},
+            rulesDataParam
+        )
+
         return {
             ...fullyHydrated,
             respite,
-            actions: hydratedActions,
+            actions: actionsWithCharges,
             traitRefs,
             // Mapping UIDs back for components that need to identify "active" items
             activeWeaponUid: rawCharacter?.equipment?.activeWeapon,
@@ -258,6 +271,20 @@ export function discoverAllTraitRefs(character: any, rulesData?: any) {
                     itemId: targetUid,
                     inlineDefinition: typeof traitEntry === 'object' ? traitEntry[id] : null
                 });
+            });
+        }
+
+        const inventionPassiveIds = resolveInventionModulePassiveIds(
+            String(item?.id ?? ""),
+            item?.inventionModules,
+            item?.inventionModuleConfig,
+            rulesData
+        );
+        for (const passiveId of inventionPassiveIds) {
+            traitMap.set(passiveId, {
+                id: passiveId,
+                source: "equipment",
+                itemId: targetUid,
             });
         }
     });

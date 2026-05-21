@@ -1,4 +1,6 @@
 import { CharAttribute, type PowerRoll } from "@/lib/rules"
+import { traitRefsIncludeId } from "@/lib/trait-helpers"
+import type { InventionModuleConfig } from "@/lib/character-data"
 
 export const EQUIPMENT_RULES = {
     getNewState: (slot: string, item: any, prev: any) => {
@@ -41,7 +43,8 @@ export const EQUIPMENT_RULES = {
                 invItem?.type === "shield" ||
                 (typeof slotUid === "string" && slotUid.includes("shield"));
 
-            updates[otherKey] = isShield ? null : currentSlotValue;
+            const shieldMaster = traitRefsIncludeId(prev.traits, "shieldMaster");
+            updates[otherKey] = isShield && !shieldMaster ? null : currentSlotValue;
         }
 
         // 4. Return the nested structure to match your "FULL EQUIPMENT DUMP2"
@@ -68,6 +71,9 @@ export interface InventoryEntry {
     containerId?: string | null;
     /** Local display name only; does not change rules catalog. */
     customName?: string;
+    /** Active invention modules on this instance (Modular Armor / Support Backpack). */
+    inventionModules?: string[];
+    inventionModuleConfig?: InventionModuleConfig;
 }
 
 interface BaseItem {
@@ -86,6 +92,8 @@ interface BaseItem {
     actionIDs?: string[];
     /** Rule ids and/or inline `{ traitId: passive }` objects from catalog. */
     traits?: Array<string | Record<string, unknown>>;
+    inventionModules?: string[];
+    inventionModuleConfig?: InventionModuleConfig;
     /** Optional item effect table (e.g. consumables, coatings); not merged into combat actions. */
     powerRoll?: PowerRoll;
 }

@@ -21,6 +21,16 @@ import { hydrateTraitRefs } from "@/components/character-sheet/hooks/statCalcula
 import { TraitPowerRollCollapsible } from "@/components/power-roll/trait-power-roll-collapsible";
 import type { PowerRoll } from "@/lib/rules";
 import { ChevronLeftIcon, DownloadIcon, RotateCcwIcon, Heart, Droplets, Footprints, Swords } from "lucide-react";
+import {
+  applySpecialInventionGrants,
+  artificerHasSpecialInventionPassive,
+  specialInventionIncompleteMessage,
+} from "@/lib/creator-import";
+import {
+  initialChargesForNewEntry,
+  lookupChargeDefinition,
+  type RulesWithCharges,
+} from "@/lib/charge-helpers";
 
 type AttributeKey = "might" | "dexterity" | "reason" | "willpower" | "presence";
 
@@ -37,6 +47,7 @@ interface CharacterReviewProps {
   selectedFeats: Partial<Record<number, FeatLevelPick>>;
   selectedSkillIds: string[];
   occupationLanguages: string[];
+  skillGrantsComplete?: boolean;
   onUpdateField: (field: string, value: string | number) => void;
   onStartOver: () => void;
   onBack: () => void;
@@ -58,6 +69,7 @@ export function CharacterReview({
   selectedFeats,
   selectedSkillIds,
   occupationLanguages,
+  skillGrantsComplete = true,
   onUpdateField,
   onStartOver,
   onBack
@@ -105,10 +117,10 @@ export function CharacterReview({
     return [...innateRefs, ...charData.traits, ...classTraits, ...featTraits];
   }, [charData.race, charData.traits, classSelections, selectedFeats]);
 
-  const charForDerivedStats = useMemo(
-    () => ({ ...charData, traits: traitsAlignedWithExport }),
-    [charData, traitsAlignedWithExport]
-  );
+  const charForDerivedStats = useMemo(() => {
+    const base = { ...charData, traits: traitsAlignedWithExport };
+    return applySpecialInventionGrants(base);
+  }, [charData, traitsAlignedWithExport]);
 
   const creaturesPreview = useMemo(
     () =>
@@ -125,7 +137,18 @@ export function CharacterReview({
     []
   );
 
+  const specialInventionNeeded = artificerHasSpecialInventionPassive(
+    classSelections,
+    charData.classes
+  );
+  const specialInventionBlockMessage = specialInventionIncompleteMessage(
+    charData.specialInvention,
+    specialInventionNeeded
+  );
+  const exportReady = skillGrantsComplete && !specialInventionBlockMessage;
+
   const exportCharacter = () => {
+    if (!exportReady) return;
     const raceData = (rulesData.races as Record<string, any>)[charData.race];
     const raceKey = charData.race?.toLowerCase?.();
     const innateTraitRefs =
@@ -134,9 +157,25 @@ export function CharacterReview({
             .filter(([, passive]: [string, any]) => passive.type === "innate")
             .map(([id]) => ({ id, source: "racial" as const }))
         : [];
-    const classTraits: { id: string; source: string; selectedEffectIndices?: number[] }[] = [];
-    const actions: { id: string }[] = [];
+    const attrsForCharges = finalAttributes;
+    const classTraits: { id: string; source: string; selectedEffectIndices?: number[]; charges?: number }[] = [];
+    const actions: { id: string; charges?: number }[] = [];
     const reactions: { id: string; slotIndex: number; charges: number }[] = [];
+    const pushAction = (id: string) => {
+      const def = lookupChargeDefinition("action", id, rulesData as RulesWithCharges);
+      const ch = initialChargesForNewEntry(def, attrsForCharges);
+      actions.push(ch >= 0 ? { id, charges: ch } : { id });
+    };
+    const pushReaction = (id: string) => {
+      const def = lookupChargeDefinition("reaction", id, rulesData as RulesWithCharges);
+      const ch = initialChargesForNewEntry(def, attrsForCharges);
+      reactions.push({ id, slotIndex: -1, charges: ch });
+    };
+    const pushTrait = (row: { id: string; source: string; selectedEffectIndices?: number[] }) => {
+      const def = lookupChargeDefinition("trait", row.id, rulesData as RulesWithCharges);
+      const ch = initialChargesForNewEntry(def, attrsForCharges);
+      classTraits.push(ch >= 0 ? { ...row, charges: ch } : row);
+    };
     classSelections.forEach((sel) => {
       const classData = (rulesData.classes as Record<string, any>)[sel.source];
       if (classData?.passives?.[sel.id]) {
@@ -145,9 +184,9 @@ export function CharacterReview({
           source: "class",
         };
         if (sel.selectedEffectIndices?.length) row.selectedEffectIndices = sel.selectedEffectIndices;
-        classTraits.push(row);
+        pushTrait(row);
       }
-      if (classData?.actions?.[sel.id]) actions.push({ id: sel.id });
+      if (classData?.actions?.[sel.id]) pushAction(sel.id);
       if (
         sel.source === "fairytamer" &&
         sel.fairySpellSlot != null &&
@@ -157,25 +196,30 @@ export function CharacterReview({
         const cardType =
           typeof card?.type === "string" ? String(card.type).toLowerCase() : "";
         if (cardType === "reaction") {
-          reactions.push({ id: sel.id, slotIndex: -1, charges: 0 });
+          pushReaction(sel.id);
         } else {
-          actions.push({ id: sel.id });
+          pushAction(sel.id);
         }
       }
       if ((classData?.reactions || []).some((r: any) => r.id === sel.id)) {
-        reactions.push({ id: sel.id, slotIndex: -1, charges: 0 });
+        pushReaction(sel.id);
       }
     });
 
     const featTraits = Object.entries(selectedFeats)
       .filter(([, p]) => p?.id)
-      .map(([_, p]) => ({
-        id: p!.id,
-        source: "feat" as const,
-        ...(p!.selectedEffectIndices?.length
-          ? { selectedEffectIndices: p!.selectedEffectIndices }
-          : {}),
-      }));
+      .map(([_, p]) => {
+        const row = {
+          id: p!.id,
+          source: "feat" as const,
+          ...(p!.selectedEffectIndices?.length
+            ? { selectedEffectIndices: p!.selectedEffectIndices }
+            : {}),
+        };
+        const def = lookupChargeDefinition("trait", row.id, rulesData as RulesWithCharges);
+        const ch = initialChargesForNewEntry(def, attrsForCharges);
+        return ch >= 0 ? { ...row, charges: ch } : row;
+      });
 
     const skillCounts: Record<string, number> = {};
     selectedSkillIds.forEach((skillId) => {
@@ -185,7 +229,6 @@ export function CharacterReview({
       const skill = (rulesData.system.skills as Record<string, any>)[id];
       return {
         name: skill?.name ?? id,
-        attribute: "reason",
         hasExpertise: count > 1
       };
     });
@@ -194,18 +237,34 @@ export function CharacterReview({
       .map((id) => (rulesData.system.languages as Record<string, any>)[id]?.name ?? id)
       .filter(Boolean);
 
-    const allExportTraits = [...innateTraitRefs, ...charData.traits, ...classTraits, ...featTraits];
-    const output = {
+    const allExportTraits = [
+      ...innateTraitRefs.map((t) => {
+        const def = lookupChargeDefinition("trait", t.id, rulesData as RulesWithCharges);
+        const ch = initialChargesForNewEntry(def, attrsForCharges);
+        return ch >= 0 ? { ...t, charges: ch } : t;
+      }),
+      ...charData.traits.map((t) => {
+        const def = lookupChargeDefinition("trait", t.id, rulesData as RulesWithCharges);
+        const ch = initialChargesForNewEntry(def, attrsForCharges);
+        return ch >= 0 ? { ...t, charges: ch } : t;
+      }),
+      ...classTraits,
+      ...featTraits,
+    ];
+    const withInvention = applySpecialInventionGrants({
       ...charData,
+      attributes: finalAttributes,
+      attributeLevelBonuses: levelBonuses,
+      traits: allExportTraits,
+    });
+    const output = {
+      ...withInvention,
       occupation: charData.occupation ?? null,
       theme: charData.background,
       race: raceData?.name ?? charData.race,
-      attributes: finalAttributes,
-      attributeLevelBonuses: levelBonuses,
       xp: (rulesData.system.startingXPPerLvl as Record<string, number>)[String(adventurerLevel)] ?? charData.xp,
       actions,
       reactions,
-      traits: allExportTraits,
       conjurerSummonTemplateIds: charData.conjurerSummonTemplateIds ?? [],
       creatures: reconcileCreatureRoster(charData.creatures ?? [], allExportTraits, rulesData as any, {
         classes: charData.classes,
@@ -359,11 +418,25 @@ export function CharacterReview({
             <button type="button" onClick={onStartOver} className="flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-lg font-bold">
               <RotateCcwIcon className="w-4 h-4" /> Start Over
             </button>
-            <button type="button" onClick={exportCharacter} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-bold">
+            <button
+              type="button"
+              disabled={!exportReady}
+              title={specialInventionBlockMessage ?? undefined}
+              onClick={exportCharacter}
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none"
+            >
               <DownloadIcon className="w-4 h-4" /> Export JSON
             </button>
           </div>
         </div>
+        {specialInventionBlockMessage ? (
+          <p className="text-sm text-amber-700 dark:text-amber-400">{specialInventionBlockMessage}</p>
+        ) : null}
+        {!skillGrantsComplete ? (
+          <p className="text-sm text-amber-700 dark:text-amber-400">
+            Complete required skill grant picks before exporting.
+          </p>
+        ) : null}
       </header>
 
       <div className="flex-1 min-h-0 overflow-y-auto py-6">

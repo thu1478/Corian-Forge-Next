@@ -3,6 +3,7 @@ import rulesData from '@/lib/rules.json';
 import {ActionCard} from "@/lib/rules";
 import { hydrateActionCardById } from "@/lib/action-hydrate";
 import { actionTagsIncludeCanonical } from "@/lib/action-tag-utils";
+import type { TraitRef } from "@/lib/baseRefs"
 import {
     hasBrawlingWeaponInHands,
     hasEquippedWeaponForWeaponAction,
@@ -24,6 +25,8 @@ export function useActions(
     /** Main hand and offhand equipment UIDs (in order) for weapon-action eligibility; omit for legacy attribute-only check. */
     handSlotUids?: [string | null, string | null] | null,
     creatureGrantedActionIds?: readonly string[] | null,
+    /** Character traits (e.g. Shield Master) for equipment eligibility. */
+    traitRefs?: readonly TraitRef[] | null,
 ): ActionCard[] {
     return useMemo(() => {
         const creatureGranted = new Set(
@@ -85,6 +88,7 @@ export function useActions(
                     rollStats,
                     activeHandItem,
                     offhandItem,
+                    { traits: traitRefs ?? undefined },
                 );
             }
 
@@ -92,5 +96,5 @@ export function useActions(
             return rollStats.some((stat) => activeWeaponAttributes.includes(stat));
         });
 
-    }, [inventory, equippedUids, classNames, actionRefs, handSlotUids, creatureGrantedActionIds]);
+    }, [inventory, equippedUids, classNames, actionRefs, handSlotUids, creatureGrantedActionIds, traitRefs]);
 }

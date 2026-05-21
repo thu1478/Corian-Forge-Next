@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import rulesData from "@/lib/rules.json";
 import { CharacterSaveData } from "@/lib/character-data";
 import { FeatLevelPick } from "@/lib/baseRefs";
@@ -24,9 +24,23 @@ import {
     resolveOccupationLanguagePicks,
     resolveOccupationSkillsCount,
 } from "@/lib/occupation";
+import {
+    allSkillChooserPicksComplete,
+    isClassStepSkillRequirementKey,
+    isFeatStepSkillRequirementKey,
+    listAutoGrantedSkillIds,
+    listSkillChooserRequirements,
+    pruneSkillGrantPicks,
+    requirementKeys,
+    type ListSkillGrantsContext,
+} from "@/lib/grant-skill-effects";
 import { UploadIcon } from "lucide-react";
 import { RaceSelection } from "./steps/RaceSelection";
 import ClassSelection, { type ClassOptionPick } from "@/components/character-creator/steps/ClassSelection";
+import {
+    artificerHasSpecialInventionPassive,
+    sanitizeSpecialInvention,
+} from "@/lib/creator-import";
 import { AbilityScores } from "@/components/character-creator/steps/AbilityScores";
 import { CultureStep } from "@/components/character-creator/steps/CultureStep";
 import { OccupationStep } from "@/components/character-creator/steps/OccupationStep";
@@ -178,7 +192,57 @@ export default function CharacterCreator() {
         return a;
     }, [charData.attributes, levelBonuses]);
 
-    const combinedSkillIds = useMemo(() => [...cultureSkills, ...occupationSkills], [cultureSkills, occupationSkills]);
+    const grantSkillContext: ListSkillGrantsContext = useMemo(
+        () => ({
+            classes: charData.classes,
+            classSelections,
+            racialTraitRefs: charData.traits.filter((t) => t.source === "racial"),
+            raceKey: charData.race || null,
+            selectedFeats,
+            rules: rulesData as ListSkillGrantsContext["rules"],
+        }),
+        [charData.classes, charData.traits, charData.race, classSelections, selectedFeats]
+    );
+
+    const skillGrantRequirements = useMemo(
+        () => listSkillChooserRequirements(grantSkillContext),
+        [grantSkillContext]
+    );
+
+    const skillGrantStableKey = useMemo(
+        () =>
+            [...skillGrantRequirements.map((r) => r.key)].sort((a, b) => a.localeCompare(b)).join("\0"),
+        [skillGrantRequirements]
+    );
+
+    useEffect(() => {
+        const valid = requirementKeys(skillGrantRequirements);
+        setCharData((prev) => {
+            const nextMap = pruneSkillGrantPicks(prev.creatorSkillGrantPicks ?? {}, valid);
+            const prevJson = JSON.stringify(prev.creatorSkillGrantPicks ?? {});
+            const nextJson = JSON.stringify(nextMap);
+            if (prevJson === nextJson) return prev;
+            return { ...prev, creatorSkillGrantPicks: nextMap };
+        });
+    }, [skillGrantStableKey]);
+
+    const autoGrantedSkillIds = useMemo(
+        () => listAutoGrantedSkillIds(grantSkillContext),
+        [grantSkillContext]
+    );
+
+    const grantChosenSkillIds = useMemo(() => {
+        const keys = [...skillGrantRequirements.map((r) => r.key)].sort((a, b) =>
+            a.localeCompare(b)
+        );
+        return keys.flatMap((k) => charData.creatorSkillGrantPicks?.[k] ?? []);
+    }, [skillGrantRequirements, charData.creatorSkillGrantPicks]);
+
+    const combinedSkillIds = useMemo(
+        () => [...cultureSkills, ...occupationSkills, ...grantChosenSkillIds, ...autoGrantedSkillIds],
+        [cultureSkills, occupationSkills, grantChosenSkillIds, autoGrantedSkillIds]
+    );
+
     const skillCounts = useMemo(() => {
         const counts: Record<string, number> = {};
         combinedSkillIds.forEach((id) => {
@@ -186,6 +250,42 @@ export default function CharacterCreator() {
         });
         return counts;
     }, [combinedSkillIds]);
+
+    const skillGrantsComplete = useMemo(
+        () => allSkillChooserPicksComplete(skillGrantRequirements, charData.creatorSkillGrantPicks ?? {}),
+        [skillGrantRequirements, charData.creatorSkillGrantPicks]
+    );
+
+    const classStepSkillRequirements = useMemo(
+        () => skillGrantRequirements.filter((r) => isClassStepSkillRequirementKey(r.key)),
+        [skillGrantRequirements]
+    );
+
+    const classStepSkillGrantsComplete = useMemo(
+        () =>
+            classStepSkillRequirements.length === 0 ||
+            allSkillChooserPicksComplete(classStepSkillRequirements, charData.creatorSkillGrantPicks ?? {}),
+        [classStepSkillRequirements, charData.creatorSkillGrantPicks]
+    );
+
+    const featStepSkillRequirements = useMemo(
+        () => skillGrantRequirements.filter((r) => isFeatStepSkillRequirementKey(r.key)),
+        [skillGrantRequirements]
+    );
+
+    const featStepSkillGrantsComplete = useMemo(
+        () =>
+            featStepSkillRequirements.length === 0 ||
+            allSkillChooserPicksComplete(featStepSkillRequirements, charData.creatorSkillGrantPicks ?? {}),
+        [featStepSkillRequirements, charData.creatorSkillGrantPicks]
+    );
+
+    const handleSkillGrantPicksChange = useCallback((key: string, ids: string[]) => {
+        setCharData((prev) => ({
+            ...prev,
+            creatorSkillGrantPicks: {...(prev.creatorSkillGrantPicks ?? {}), [key]: ids},
+        }));
+    }, []);
 
     return (
         <div className="w-full max-w-7xl mx-auto px-8 py-8 min-h-screen text-slate-900 dark:text-slate-100">
@@ -305,10 +405,26 @@ export default function CharacterCreator() {
                             }
                             const fairySynced = syncFairyTamerContractSpellsFromPicks(fairySan, nextOptions)
                             classOptsAfterFairy = nextOptions
-                            return { ...next, conjurerSummonTemplateIds: ids, fairyTamerContracts: fairySynced }
+                            const needsInvention = artificerHasSpecialInventionPassive(
+                                nextOptions,
+                                classes
+                            )
+                            const invention = needsInvention
+                                ? sanitizeSpecialInvention(prev.specialInvention) ?? prev.specialInvention
+                                : undefined
+                            return {
+                                ...next,
+                                conjurerSummonTemplateIds: ids,
+                                fairyTamerContracts: fairySynced,
+                                specialInvention: invention,
+                            }
                         })
                         setClassSelections(classOptsAfterFairy)
                     }}
+                    specialInvention={charData.specialInvention}
+                    onSpecialInventionChange={(save) =>
+                        setCharData((prev) => ({ ...prev, specialInvention: save }))
+                    }
                     conjurerSummonTemplateIds={charData.conjurerSummonTemplateIds ?? []}
                     onConjurerSummonsChange={(ids) =>
                         setCharData((prev) => ({ ...prev, conjurerSummonTemplateIds: ids }))
@@ -322,6 +438,11 @@ export default function CharacterCreator() {
                             return stripped
                         })
                     }}
+                    skillGrantRequirements={classStepSkillRequirements}
+                    creatorSkillGrantPicks={charData.creatorSkillGrantPicks ?? {}}
+                    skillGrantsComplete={classStepSkillGrantsComplete}
+                    onSkillGrantPicksChange={handleSkillGrantPicksChange}
+                    grantPickerSkillCounts={skillCounts}
                     onBack={handleBack}
                     onNext={handleNext}
                 />
@@ -439,6 +560,11 @@ export default function CharacterCreator() {
                     classSelections={classSelections}
                     characterTraits={charData.traits}
                     attributes={effectiveAttributes}
+                    featSkillGrantRequirements={featStepSkillRequirements}
+                    creatorSkillGrantPicks={charData.creatorSkillGrantPicks ?? {}}
+                    skillGrantsComplete={featStepSkillGrantsComplete}
+                    onSkillGrantPicksChange={handleSkillGrantPicksChange}
+                    grantPickerSkillCounts={skillCounts}
                     onSelectFeat={(level, pick) =>
                         setSelectedFeats((prev) => {
                             if (!pick) {
@@ -463,6 +589,7 @@ export default function CharacterCreator() {
                     selectedFeats={selectedFeats}
                     selectedSkillIds={combinedSkillIds}
                     occupationLanguages={occupationLanguages}
+                    skillGrantsComplete={skillGrantsComplete}
                     onUpdateField={(field, value) => {
                         setCharData((prev) => ({ ...prev, [field]: value }));
                     }}

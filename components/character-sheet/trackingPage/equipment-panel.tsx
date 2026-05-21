@@ -26,6 +26,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 import {ArmorItem, Equipment, InventoryItem, MiscItem, ShieldItem, WeaponItem} from "@/lib/equipment-data";
 import {armorStatSummary, shieldStatSummary, weaponStatSummary} from "@/lib/equipment-stats-display";
+import type { TraitRef } from "@/lib/baseRefs";
+import { buildWeaponBondContext } from "@/lib/weapon-bond";
 import { martialProficiencyDeficitMessage } from "@/lib/equipment-proficiency";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -51,7 +53,7 @@ export function ProficiencyAlert({ message }: { message: string | null }) {
 
 interface EquipmentPanelProps {
     equipment: {
-        activeWeapon: WeaponItem | null;
+        activeWeapon: WeaponItem | ShieldItem | null;
         offhand: WeaponItem | ShieldItem | null;
         armor: ArmorItem | null;
         accessories: Record<string, MiscItem | null>;
@@ -61,6 +63,10 @@ interface EquipmentPanelProps {
     onEquipmentChange: (slot: "activeWeapon" | "offhand" | "armor", item: any) => void;
     /** When set, martial-tagged gear without matching class proficiency shows a warning. */
     martialProficiencyIds?: ReadonlySet<string> | null;
+    /** When true, shields may be equipped in the main hand (Guardian Shield Master). */
+    shieldMaster?: boolean;
+    traits?: TraitRef[];
+    bondedWeaponUids?: string[];
 }
 
 const accessorySlots: { key: keyof Equipment["accessories"]; label: string; icon: React.ReactNode }[] = [
@@ -82,8 +88,12 @@ export function EquipmentPanel({
     onAccessoryChange,
     onEquipmentChange,
     martialProficiencyIds = null,
+    shieldMaster = false,
+    traits,
+    bondedWeaponUids,
 }: EquipmentPanelProps) {
     const [showEquipped, setShowEquipped] = useState<"all" | "equipped" | "empty">("all")
+    const weaponBondCtx = buildWeaponBondContext(traits, bondedWeaponUids ?? [])
 
     const activeProfWarn =
         martialProficiencyIds != null
@@ -108,7 +118,10 @@ export function EquipmentPanel({
     // Get items from inventory that can be equipped to a specific slot
     const getItemsForSlot = (slot: string) => {
         if (slot === "activeWeapon") {
-            return inventory.filter((item): item is WeaponItem => item.type === "weapon");
+            return inventory.filter(
+                (item): item is WeaponItem | ShieldItem =>
+                    item.type === "weapon" || (shieldMaster && item.type === "shield"),
+            );
         }
         if (slot === "offhand") {
             return inventory.filter(
@@ -185,15 +198,21 @@ export function EquipmentPanel({
                                     <span className="text-muted-foreground italic">Unequip</span>
                                 </DropdownMenuItem>
 
-                                {(getItemsForSlot("activeWeapon") as WeaponItem[]).map((item) => (
+                                {(getItemsForSlot("activeWeapon") as (WeaponItem | ShieldItem)[]).map((item) => (
                                     <DropdownMenuItem
                                         key={item.uid}
                                         onClick={() => onEquipmentChange?.("activeWeapon", item)}
-                                        className="flex flex-col items-start gap-0.5"
+                                        className="flex flex-col items-start gap-0.5 py-2"
                                     >
-                                        <span className="font-medium text-sm">{item.name}</span>
+                                        <div className="flex items-center gap-2">
+                                            {item.type === "weapon" ? <Sword className="w-3 h-3 opacity-50"/> :
+                                                <Shield className="w-3 h-3 opacity-50"/>}
+                                            <span className="font-medium text-sm">{item.name}</span>
+                                        </div>
                                         <span className="text-[10px] font-mono tabular-nums text-muted-foreground leading-snug">
-                                            {weaponStatSummary(item)}
+                                            {item.type === "weapon"
+                                                ? weaponStatSummary(item, weaponBondCtx)
+                                                : shieldStatSummary(item)}
                                         </span>
                                     </DropdownMenuItem>
                                 ))}
@@ -201,7 +220,9 @@ export function EquipmentPanel({
                         </DropdownMenu>
                         {equipment.activeWeapon ? (
                             <p className="mt-2 text-[10px] font-mono tabular-nums text-muted-foreground truncate">
-                                {weaponStatSummary(equipment.activeWeapon)}
+                                {equipment.activeWeapon.type === "weapon"
+                                    ? weaponStatSummary(equipment.activeWeapon, weaponBondCtx)
+                                    : shieldStatSummary(equipment.activeWeapon)}
                             </p>
                         ) : null}
                     </div>
@@ -250,7 +271,7 @@ export function EquipmentPanel({
 
                                         <span className="text-[10px] font-mono tabular-nums text-muted-foreground leading-snug">
                                             {item.type === "weapon"
-                                                ? weaponStatSummary(item)
+                                                ? weaponStatSummary(item, weaponBondCtx)
                                                 : shieldStatSummary(item)}
                                         </span>
                                     </DropdownMenuItem>
@@ -260,7 +281,7 @@ export function EquipmentPanel({
                         {equipment.offhand ? (
                             <p className="mt-2 text-[10px] font-mono tabular-nums text-muted-foreground truncate">
                                 {equipment.offhand.type === "weapon"
-                                    ? weaponStatSummary(equipment.offhand)
+                                    ? weaponStatSummary(equipment.offhand, weaponBondCtx)
                                     : shieldStatSummary(equipment.offhand)}
                             </p>
                         ) : null}

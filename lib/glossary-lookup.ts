@@ -1,4 +1,6 @@
 import rulesData from "@/lib/rules.json"
+import { getPowerRollPotencyBadgeAndDuration } from "@/lib/potency-display"
+import type { PotencyEffect } from "@/lib/rules"
 import {
   stripNumericParentheticals,
   stripTrailingParameterDigits,
@@ -96,5 +98,34 @@ export function findEffectGlossaryEntry(tag: string): GlossaryTerm | null {
     }
   }
 
+  return null
+}
+
+/**
+ * Resolve glossary text for a power-roll potency (conditions, forced movement, special text).
+ * Tries the same `effectDictionary` sections as {@link findEffectGlossaryEntry}.
+ */
+export function findPotencyEffectGlossaryEntry(potency: PotencyEffect): GlossaryTerm | null {
+  if (potency.type === "Condition") {
+    return findEffectGlossaryEntry(String(potency.effect))
+  }
+  if (potency.type === "ForcedMovement") {
+    const raw = String(potency.effect ?? "").trim()
+    if (!raw) return null
+    const spaced = raw.replace(/([a-z])([A-Z])/g, "$1 $2")
+    return findEffectGlossaryEntry(raw) ?? (spaced !== raw ? findEffectGlossaryEntry(spaced) : null)
+  }
+  if (potency.type === "Special") {
+    const { badge } = getPowerRollPotencyBadgeAndDuration(potency)
+    const trimmed = badge.trim()
+    if (!trimmed) return null
+    let e = findEffectGlossaryEntry(trimmed)
+    if (e) return e
+    const first = trimmed.split(/[\s,/;(]+/).find((t) => t.length > 0)
+    if (first && first !== trimmed) {
+      e = findEffectGlossaryEntry(first)
+      if (e) return e
+    }
+  }
   return null
 }

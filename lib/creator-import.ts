@@ -5,11 +5,18 @@ import {
     type OccupationRule,
     resolveOccupationSkillsCount,
 } from "@/lib/occupation";
-import { CharacterSaveData } from "@/lib/character-data";
+import {
+    CharacterSaveData,
+    type InventionModuleConfig,
+    type InventionVariant,
+    type SpecialInventionSave,
+    type WeaponInfusionDamageType,
+} from "@/lib/character-data";
 import { emptyFairyTamerContracts, type FairyTamerContractsSave } from "@/lib/fairy-tamer";
 import type { InventoryEntry } from "@/lib/equipment-data";
 import { FeatLevelPick, TraitRef } from "@/lib/baseRefs";
 import { CharAttribute } from "@/lib/rules";
+import { makeInventoryUid } from "@/lib/inventory-filters";
 
 /** Baseline character used when starting the creator or after full reset. */
 export function createEmptyCreatorCharacter(): CharacterSaveData {
@@ -74,6 +81,7 @@ export function createEmptyCreatorCharacter(): CharacterSaveData {
         creatures: [],
         conjurerSummonTemplateIds: [],
         fairyTamerContracts: emptyFairyTamerContracts(),
+        creatorSkillGrantPicks: {},
     };
 }
 
@@ -103,6 +111,43 @@ function parseFairyTamerContractsFromImport(raw: unknown): FairyTamerContractsSa
         level5Mode,
         upgradedSlotIndex,
     }
+}
+
+function sanitizeBondedWeaponUids(raw: unknown): string[] {
+    if (!Array.isArray(raw)) return []
+    const out: string[] = []
+    for (const x of raw) {
+        const uid = String(x ?? "").trim()
+        if (uid && !out.includes(uid)) out.push(uid)
+    }
+    return out
+}
+
+function sanitizeCombatDefenseDelta(raw: unknown): number {
+    const n = Number(raw)
+    if (!Number.isFinite(n)) return 0
+    return Math.floor(n)
+}
+
+function sanitizeCreatorSkillGrantPicks(raw: unknown): Record<string, string[]> {
+    if (raw == null || typeof raw !== "object" || Array.isArray(raw)) return {};
+    const out: Record<string, string[]> = {};
+    for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+        if (!k || typeof v !== "object" || v === null || !Array.isArray(v)) continue;
+        const ids = v.map((x) => String(x ?? "").trim()).filter(Boolean);
+        out[k] = ids;
+    }
+    return out;
+}
+
+function sanitizeSkillsFromImport(skillsRaw: unknown): CharacterSaveData["skills"] {
+    if (!Array.isArray(skillsRaw)) return [];
+    return skillsRaw
+        .filter((x) => x && typeof x === "object")
+        .map((s: Record<string, unknown>) => ({
+            name: String(s.name ?? ""),
+            hasExpertise: Boolean(s.hasExpertise),
+        }));
 }
 
 type AttributeKey = "might" | "dexterity" | "reason" | "willpower" | "presence";
@@ -190,7 +235,28 @@ function normalizeTraitRef(t: any): TraitRef {
     if (Array.isArray(t.selectedEffectIndices) && t.selectedEffectIndices.length > 0) {
         ref.selectedEffectIndices = t.selectedEffectIndices;
     }
+    const ch = sanitizeRefCharges(t.charges);
+    if (ch !== undefined) ref.charges = ch;
     return ref;
+}
+
+function normalizeActionRef(a: unknown): { id: string; charges?: number } {
+    if (typeof a === "string") return { id: a };
+    const o = a as Record<string, unknown>;
+    const row: { id: string; charges?: number } = { id: String(o.id ?? "") };
+    const ch = sanitizeRefCharges(o.charges);
+    if (ch !== undefined) row.charges = ch;
+    return row;
+}
+
+function normalizeReactionRef(r: unknown): { id: string; slotIndex: number; charges: number } {
+    const o = (r ?? {}) as Record<string, unknown>;
+    const ch = sanitizeRefCharges(o.charges);
+    return {
+        id: String(o.id ?? ""),
+        slotIndex: Number(o.slotIndex ?? -1),
+        charges: ch !== undefined ? ch : -1,
+    };
 }
 
 function adventurerLevelFromXp(xp: number | undefined, starting: Record<string, number>): number {
@@ -401,9 +467,14 @@ function mergeImportedCharData(json: any, empty: CharacterSaveData): CharacterSa
         inspiration: Number(json.inspiration ?? empty.inspiration),
         victories: Number(json.victories ?? empty.victories),
         focusFeatures: Array.isArray(json.focusFeatures) ? json.focusFeatures : empty.focusFeatures,
-        reactions: Array.isArray(json.reactions) ? json.reactions : empty.reactions,
-        actions: Array.isArray(json.actions) ? json.actions : empty.actions,
-        skills: Array.isArray(json.skills) ? json.skills : empty.skills,
+        reactions: Array.isArray(json.reactions)
+            ? (json.reactions as unknown[]).map(normalizeReactionRef)
+            : empty.reactions,
+        actions: Array.isArray(json.actions)
+            ? (json.actions as unknown[]).map(normalizeActionRef)
+            : empty.actions,
+        skills: sanitizeSkillsFromImport(Array.isArray(json.skills) ? json.skills : empty.skills),
+        creatorSkillGrantPicks: sanitizeCreatorSkillGrantPicks(json.creatorSkillGrantPicks),
         money: Number(json.money ?? empty.money),
         ip: Number(json.ip ?? empty.ip),
         inventory: Array.isArray(json.inventory)
@@ -419,6 +490,13 @@ function mergeImportedCharData(json: any, empty: CharacterSaveData): CharacterSa
                           row.containerId = entry.containerId === null ? null : String(entry.containerId);
                       if (typeof entry.customName === "string" && entry.customName.trim())
                           row.customName = entry.customName.trim();
+                      if (Array.isArray(entry.inventionModules)) {
+                          row.inventionModules = entry.inventionModules
+                              .map((x: unknown) => String(x ?? "").trim())
+                              .filter(Boolean);
+                      }
+                      const imc = sanitizeInventionModuleConfig(entry.inventionModuleConfig);
+                      if (imc) row.inventionModuleConfig = imc;
                       return row;
                   })
                   .filter(Boolean) as InventoryEntry[])
@@ -512,6 +590,9 @@ function mergeImportedCharData(json: any, empty: CharacterSaveData): CharacterSa
                       }
                   })
             : empty.creatures ?? [],
+        bondedWeaponUids: sanitizeBondedWeaponUids(json.bondedWeaponUids),
+        combatDefenseDelta: sanitizeCombatDefenseDelta(json.combatDefenseDelta),
+        specialInvention: sanitizeSpecialInvention(json.specialInvention),
     };
 }
 
@@ -558,5 +639,228 @@ export function parseCreatorImportJson(
         occupationSkills,
         occupationLanguages: languageIdsFromImport(json.languages),
         selectedFeats: inferSelectedFeats(traitsRaw),
+    };
+}
+
+export type SpecialInventionRulesConfig = {
+    variants?: Record<
+        string,
+        {
+            grants?: string[];
+            modulePick?: number;
+            moduleItemId?: string;
+        }
+    >;
+    weaponInfusionDamageTypes?: string[];
+    modules?: Record<
+        string,
+        { passiveId?: string; passiveIdPrefix?: string; grantItemId?: string }
+    >;
+};
+
+export function sanitizeRefCharges(raw: unknown): number | undefined {
+    const n = Number(raw)
+    if (!Number.isFinite(n)) return undefined
+    return Math.max(-1, Math.floor(n))
+}
+
+function getArtificerSpecialInventionRules(rules?: {
+    classes?: { artificer?: { specialInvention?: SpecialInventionRulesConfig } };
+}): SpecialInventionRulesConfig {
+    const r = rules ?? rulesData;
+    return (r.classes as { artificer?: { specialInvention?: SpecialInventionRulesConfig } } | undefined)
+        ?.artificer?.specialInvention ?? {};
+}
+
+function getSpecialInventionRules(): SpecialInventionRulesConfig {
+    return getArtificerSpecialInventionRules();
+}
+
+function inventionModulePoolForItem(itemId: string): string[] {
+    const item = (rulesData.items as Record<string, { inventionModulePool?: string[] }>)[itemId];
+    return Array.isArray(item?.inventionModulePool) ? item.inventionModulePool : [];
+}
+
+function allowedModulesForVariant(variant: InventionVariant): string[] {
+    const cfg = getSpecialInventionRules().variants?.[variant];
+    const itemId = cfg?.moduleItemId;
+    return itemId ? inventionModulePoolForItem(itemId) : [];
+}
+
+export function formatWeaponInfusionDamageLabel(dt: WeaponInfusionDamageType): string {
+    return dt.charAt(0).toUpperCase() + dt.slice(1);
+}
+
+export function getWeaponInfusionDamageTypes(): WeaponInfusionDamageType[] {
+    const raw = getSpecialInventionRules().weaponInfusionDamageTypes ?? [];
+    const allowed = new Set(["volt", "water", "fire", "earth"]);
+    return raw.filter((d): d is WeaponInfusionDamageType => allowed.has(String(d)));
+}
+
+export function sanitizeInventionModuleConfig(raw: unknown): InventionModuleConfig | undefined {
+    if (raw == null || typeof raw !== "object" || Array.isArray(raw)) return undefined;
+    const wi = (raw as Record<string, unknown>).weaponInfusion;
+    if (wi == null || typeof wi !== "object" || Array.isArray(wi)) return undefined;
+    const dt = (wi as Record<string, unknown>).damageType;
+    if (
+        typeof dt !== "string" ||
+        !getWeaponInfusionDamageTypes().includes(dt as WeaponInfusionDamageType)
+    ) {
+        return undefined;
+    }
+    return { weaponInfusion: { damageType: dt as WeaponInfusionDamageType } };
+}
+
+export function sanitizeSpecialInvention(raw: unknown): SpecialInventionSave | undefined {
+    if (raw == null || typeof raw !== "object" || Array.isArray(raw)) return undefined;
+    const o = raw as Record<string, unknown>;
+    const variant = o.variant;
+    const variants = getSpecialInventionRules().variants ?? {};
+    if (typeof variant !== "string" || !variants[variant]) return undefined;
+
+    const pickModules = (arr: unknown, allowed: readonly string[]) => {
+        if (!Array.isArray(arr)) return undefined;
+        const out: string[] = [];
+        for (const x of arr) {
+            const id = String(x ?? "").trim();
+            if (allowed.includes(id) && !out.includes(id)) out.push(id);
+        }
+        return out.length ? out : undefined;
+    };
+
+    const v = variant as InventionVariant;
+    const armorModules =
+        v === "modularArmor" ? pickModules(o.armorModules, allowedModulesForVariant(v)) : undefined;
+    const backpackModules =
+        v === "supportBackpack"
+            ? pickModules(o.backpackModules, allowedModulesForVariant(v))
+            : undefined;
+
+    let weaponInfusionDamageType: WeaponInfusionDamageType | undefined;
+    const rawDt = o.weaponInfusionDamageType;
+    if (
+        typeof rawDt === "string" &&
+        getWeaponInfusionDamageTypes().includes(rawDt as WeaponInfusionDamageType)
+    ) {
+        weaponInfusionDamageType = rawDt as WeaponInfusionDamageType;
+    }
+
+    return {
+        variant: v,
+        armorModules,
+        backpackModules,
+        weaponInfusionDamageType,
+    };
+}
+
+export function artificerHasSpecialInventionPassive(
+    classSelections: readonly { id: string; source: string }[],
+    classes: readonly { id: string; level: number }[]
+): boolean {
+    const artificerLevel = classes.find((c) => c.id === "artificer")?.level ?? 0;
+    if (artificerLevel < 3) return false;
+    return classSelections.some((s) => s.source === "artificer" && s.id === "specialInvention");
+}
+
+export function isSpecialInventionSaveComplete(
+    save: SpecialInventionSave | undefined | null
+): boolean {
+    if (!save?.variant) return false;
+    const variantCfg = getSpecialInventionRules().variants?.[save.variant];
+    if (!variantCfg) return false;
+
+    const pickCount = variantCfg.modulePick ?? 0;
+    if (save.variant === "modularArmor") {
+        const mods = save.armorModules ?? [];
+        const allowed = allowedModulesForVariant("modularArmor");
+        if (mods.length !== pickCount) return false;
+        if (!mods.every((m) => allowed.includes(m))) return false;
+    }
+
+    if (save.variant === "supportBackpack") {
+        const mods = save.backpackModules ?? [];
+        const allowed = allowedModulesForVariant("supportBackpack");
+        if (mods.length !== pickCount) return false;
+        if (!mods.every((m) => allowed.includes(m))) return false;
+        if (mods.includes("weaponInfusion") && !save.weaponInfusionDamageType) return false;
+    }
+
+    return true;
+}
+
+export function specialInventionIncompleteMessage(
+    save: SpecialInventionSave | undefined | null,
+    needsPassive: boolean
+): string | null {
+    if (needsPassive && !save) {
+        return "Complete your Special Invention choice on the Classes step.";
+    }
+    if (!save) return null;
+    if (!isSpecialInventionSaveComplete(save)) {
+        if (save.variant === "modularArmor") {
+            return "Modular Armor requires exactly two module picks.";
+        }
+        if (save.variant === "supportBackpack") {
+            if ((save.backpackModules ?? []).includes("weaponInfusion") && !save.weaponInfusionDamageType) {
+                return "Weapon Infusion requires a damage type (volt, water, fire, or earth).";
+            }
+            return "Support Backpack requires exactly two module picks.";
+        }
+        return "Complete your Special Invention choice on the Classes step.";
+    }
+    return null;
+}
+
+function makeInventionInventoryEntry(
+    itemId: string,
+    extra?: Partial<InventoryEntry>
+): InventoryEntry {
+    return { id: itemId, uid: makeInventoryUid(itemId), ...extra };
+}
+
+/** Append invention items to inventory; does not duplicate ids already present. */
+export function applySpecialInventionGrants(char: CharacterSaveData): CharacterSaveData {
+    const save = char.specialInvention;
+    if (!save || !isSpecialInventionSaveComplete(save)) return char;
+
+    const variantCfg = getSpecialInventionRules().variants?.[save.variant];
+    const grantIds = variantCfg?.grants ?? [];
+    const siModules = getSpecialInventionRules().modules ?? {};
+
+    const existingIds = new Set((char.inventory ?? []).map((e) => e.id));
+    const toAdd: InventoryEntry[] = [];
+
+    const push = (itemId: string, extra?: Partial<InventoryEntry>) => {
+        if (existingIds.has(itemId)) return;
+        toAdd.push(makeInventionInventoryEntry(itemId, extra));
+        existingIds.add(itemId);
+    };
+
+    for (const itemId of grantIds) {
+        if (save.variant === "modularArmor" && itemId === "arm_artificer_armor") {
+            push(itemId, { inventionModules: [...(save.armorModules ?? [])] });
+        } else if (save.variant === "supportBackpack" && itemId === "gear_support_backpack") {
+            const config: InventionModuleConfig | undefined = save.weaponInfusionDamageType
+                ? { weaponInfusion: { damageType: save.weaponInfusionDamageType } }
+                : undefined;
+            push(itemId, {
+                inventionModules: [...(save.backpackModules ?? [])],
+                inventionModuleConfig: config,
+            });
+        } else {
+            push(itemId);
+        }
+    }
+
+    if (save.variant === "modularArmor" && (save.armorModules ?? []).includes("robotTail")) {
+        const tailId = siModules.robotTail?.grantItemId ?? "wp_robot_tail";
+        push(tailId);
+    }
+
+    if (!toAdd.length) return char;
+    return {
+        ...char,
+        specialInvention: save,
+        inventory: [...(char.inventory ?? []), ...toAdd],
     };
 }

@@ -19,6 +19,8 @@ import {
     vulnerabilityAmount,
     vulnerabilityDamageType,
 } from "@/lib/trait-selection";
+import {isGrantSkillEffect} from "@/lib/grant-skill-effects";
+import { isDualWielding, resolveEquippedHands } from "@/lib/dual-wield";
 import {useMemo} from "react";
 
 /** Hydrate trait refs into full Trait objects (shared with character creator review). */
@@ -99,6 +101,9 @@ export function useDerivedStats(character: any, rulesData: any) {
 
     const characterLevel = getCharacterLevelForStats(character.classes || []);
 
+    const { activeWeapon: handActive, offhandWeapon: handOff } = resolveEquippedHands(character);
+    const dualWielding = isDualWielding(handActive, handOff);
+
     // Attributes (Traits can buff the core attribute)
     const attributes = {
         might: character.attributes.might + sumTraitStatChangeEffects(activeTraits, "might") + sumGearStatBonus(character, "might"),
@@ -129,7 +134,7 @@ export function useDerivedStats(character: any, rulesData: any) {
     const armorItem = character.equipment.armor;
     const calculateArmorBase = () => {
         if (!armorItem || !armorItem.defense) return 0;
-        const { value, attribute, attrMax } = armorItem.defense;
+        const {value, attribute, attrMax} = armorItem.defense;
         const attrVal = attribute ? (attributes[attribute as keyof typeof attributes] ?? 0) : 0;
         return value + (attrMax ? Math.min(attrVal, attrMax) : attrVal);
     };
@@ -139,21 +144,23 @@ export function useDerivedStats(character: any, rulesData: any) {
         sumGearStatBonus(character, "defense") +
         sumTraitStatChangeEffects(activeTraits, "defense");
 
-    // STABILITY: Might + Willpower + Class Bonuses
+    // STABILITY: armor + class + gear + traits (e.g. Cross Block while dual wielding)
     const stability = (armorItem?.stability ?? 0) +
         sumClassStatBonus(character.classes || [], rulesData, "stability") +
         sumGearStatBonus(character, "stability") +
-        sumTraitStatChangeEffects(activeTraits, "stability");
+        sumTraitStatChangeEffects(activeTraits, "stability", { isDualWielding: dualWielding });
 
     const resistances = activeTraits
-        .flatMap(t => t.effects || [])
-        .filter(e => e.type === "Resistance")
-        .map(e => e.stat)
+        .flatMap((t) => t.effects || [])
+        .filter((e) => !isGrantSkillEffect(e))
+        .filter((e): e is typeof e & { type: "Resistance" } => e.type === "Resistance")
+        .map((e) => e.stat)
         .filter((stat): stat is string => !!stat);
 
     const vulnerabilities = activeTraits
-        .flatMap(t => t.effects || [])
-        .filter(e => e.type === "Vulnerability")
+        .flatMap((t) => t.effects || [])
+        .filter((e) => !isGrantSkillEffect(e))
+        .filter((e): e is typeof e & { type: "Vulnerability" } => e.type === "Vulnerability")
         .reduce((acc: Record<string, number>, effect) => {
             const type = vulnerabilityDamageType(effect);
             if (!type) return acc;
@@ -163,20 +170,22 @@ export function useDerivedStats(character: any, rulesData: any) {
         }, {});
 
     const grantedActionIds = activeTraits
-        .flatMap(t => t.effects || [])
-        .filter(e => e.type === "GrantActionCard")
-        .map(e => e.value)
+        .flatMap((t) => t.effects || [])
+        .filter((e) => !isGrantSkillEffect(e))
+        .filter((e): e is typeof e & { type: "GrantActionCard" } => e.type === "GrantActionCard")
+        .map((e) => e.value)
         .filter((v): v is string => typeof v === "string" && v.length > 0);
 
     const languages = activeTraits
-        .flatMap(t => t.effects || [])
-        .filter(e => e.type === "Language")
-        .map(e => e.value)
+        .flatMap((t) => t.effects || [])
+        .filter((e) => !isGrantSkillEffect(e))
+        .filter((e): e is typeof e & { type: "Language" } => e.type === "Language")
+        .map((e) => e.value)
         .filter((v): v is string => typeof v === "string" && v.length > 0)
-    
+
     // Also include legacy languages from save data (backward compatibility)
     const legacyLanguages = character?.languages || [];
-    
+
     const allLanguages = ["Common", ...languages, ...legacyLanguages].filter((v, i, a) => a.indexOf(v) === i);
 
     // console.log(
@@ -200,7 +209,7 @@ export function useDerivedStats(character: any, rulesData: any) {
         maxRespite:
             6 +
             sumTraitStatChangeEffects(activeTraits, "maxRespites") +
-            Math.min(2, Math.max(0, getAttributeModifier(attributes.might))),
+            Math.min(2, getAttributeModifier(attributes.might)),
         conditionImmunities: collectConditionImmunitiesFromTraits(activeTraits),
         specialSight: collectSpecialSightFromTraits(activeTraits),
         defense,
@@ -212,7 +221,7 @@ export function useDerivedStats(character: any, rulesData: any) {
         }),
         // UI/System Exports
         activeTraits,
-resistances,
+        resistances,
         vulnerabilities,
         grantedActionIds,
         languages: allLanguages
