@@ -5,6 +5,10 @@ import { ArrowLeftIcon, PlusIcon, MinusIcon, CheckCircleIcon, ChevronDown } from
 import { cn } from "@/lib/utils"
 import rulesData from "@/lib/rules.json"
 import { ActionCardComponent } from "@/components/character-sheet/combatPage/action-card-manager"
+import {
+    getReactionResourceCostsForInlineRow,
+    ReactionResourceCostBadges,
+} from "@/components/reaction-resource-cost-badges"
 import { TraitPowerRollCollapsible } from "@/components/power-roll/trait-power-roll-collapsible"
 import { unwrapEmbeddedActionCard } from "@/lib/embedded-action-card"
 import { getDeityPassiveEntries, resolveDeityBoonDisplay } from "@/lib/priest-deities"
@@ -433,6 +437,12 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
 
                         const isReaction = type === "reactions"
                         const showReactionRuleBlock = isReaction && cardData
+                        const reactionInlineCosts = isReaction
+                            ? getReactionResourceCostsForInlineRow(
+                                  talent as Record<string, unknown>,
+                                  cardData as Record<string, unknown> | null
+                              )
+                            : null
 
                         return (
                             <div key={id} className="relative h-full">
@@ -450,6 +460,12 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
                                                     <p className="text-sm font-medium text-amber-700 dark:text-amber-400 mb-2 whitespace-pre-line">
                                                         Trigger: {talent.trigger}
                                                     </p>
+                                                ) : null}
+                                                {reactionInlineCosts ? (
+                                                    <ReactionResourceCostBadges
+                                                        costs={reactionInlineCosts}
+                                                        className="mb-2"
+                                                    />
                                                 ) : null}
                                                 {talent.description ? (
                                                     <p className="text-sm text-muted-foreground leading-relaxed italic whitespace-pre-line">
@@ -471,6 +487,12 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
                                         <div className={cn("p-5 rounded-xl border-2 transition-all bg-card h-full", isSelected ? "border-primary" : "border-border hover:border-primary/40")}>
                                             <h4 className="font-bold text-sm uppercase mb-1">{talent.name}</h4>
                                             <p className="text-xs text-muted-foreground leading-relaxed italic mb-2 whitespace-pre-line">{talent.trigger}</p>
+                                            {reactionInlineCosts ? (
+                                                <ReactionResourceCostBadges
+                                                    costs={reactionInlineCosts}
+                                                    className="mb-2"
+                                                />
+                                            ) : null}
                                             <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-line">{talent.description}</p>
                                             {talent.powerRoll && (
                                                 <TraitPowerRollCollapsible roll={talent.powerRoll} attributes={attributes} />

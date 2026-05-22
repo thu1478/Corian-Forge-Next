@@ -29,6 +29,7 @@ import { formatFeatPrerequisiteLines } from "@/lib/feat-prereqs"
 import { compareFeatsAlphabetically } from "@/lib/feat-sort"
 import { buildItemInventoryTraitBlocks } from "@/lib/item-inventory-details"
 import { formatTraitEffectChoiceLabel } from "@/lib/trait-selection"
+import { buildGlossaryLibrarySections } from "@/lib/glossary-lookup"
 import {
     Select,
     SelectContent,
@@ -46,6 +47,7 @@ import {
     PawPrint,
     PanelLeftClose,
     PanelLeftOpen,
+    ScrollText,
     Swords,
     Users,
 } from "lucide-react"
@@ -500,6 +502,7 @@ export function RulesLibraryView() {
     const [skillSearch, setSkillSearch] = useState("")
     const [equipmentSearch, setEquipmentSearch] = useState("")
     const [creatureSearch, setCreatureSearch] = useState("")
+    const [glossarySearch, setGlossarySearch] = useState("")
     const [selectedClassId, setSelectedClassId] = useState<string>("")
     const [weaponPreview, setWeaponPreview] = useState<string>("__none__")
     const [collapseAllSignal, setCollapseAllSignal] = useState(0)
@@ -709,6 +712,20 @@ export function RulesLibraryView() {
             .map(([category, skills]) => ({ category, skills }))
     }, [filteredSkills])
 
+    const glossarySections = useMemo(() => {
+        const q = glossarySearch.trim().toLowerCase()
+        const sections = buildGlossaryLibrarySections()
+        if (!q) return sections
+        return sections
+            .map((section) => ({
+                ...section,
+                terms: section.terms.filter((t) =>
+                    matchesQuery([t.key, t.name, t.description].filter(Boolean).join(" "), q)
+                ),
+            }))
+            .filter((section) => section.terms.length > 0)
+    }, [glossarySearch])
+
     const classSectionIds = (classId: string) => ({
         passives: `lib-class-${tocSlug(classId)}-passives`,
         deities: `lib-class-${tocSlug(classId)}-deities`,
@@ -725,7 +742,7 @@ export function RulesLibraryView() {
                         <span>Rules library — preview action cards and catalog data from rules.json</span>
                     </div>
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                        <TabsList className="w-full sm:w-auto sm:flex-1 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1 h-auto min-h-10 py-1">
+                        <TabsList className="w-full sm:w-auto sm:flex-1 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-1 h-auto min-h-10 py-1">
                             <TabsTrigger value="classes" className="gap-2">
                                 <Swords className="w-4 h-4" />
                                 Classes
@@ -749,6 +766,10 @@ export function RulesLibraryView() {
                             <TabsTrigger value="creatures" className="gap-2">
                                 <PawPrint className="w-4 h-4" />
                                 Creatures
+                            </TabsTrigger>
+                            <TabsTrigger value="glossary" className="gap-2">
+                                <ScrollText className="w-4 h-4" />
+                                Glossary
                             </TabsTrigger>
                         </TabsList>
                         <Button
@@ -950,6 +971,33 @@ export function RulesLibraryView() {
                                                     >
                                                         <span className="font-medium">{type}</span>
                                                         <span className="text-muted-foreground"> ({rows.length})</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </>
+                                    ) : null}
+                                    {mainTab === "glossary" ? (
+                                        <>
+                                            <p className="px-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                                                Sections
+                                            </p>
+                                            <div className="space-y-0.5">
+                                                {glossarySections.map((section) => (
+                                                    <button
+                                                        key={section.sectionKey}
+                                                        type="button"
+                                                        onClick={() =>
+                                                            libraryScrollTo(
+                                                                `lib-glossary-${tocSlug(section.sectionKey)}`
+                                                            )
+                                                        }
+                                                        className="w-full rounded-md px-2 py-1.5 text-left text-xs hover:bg-muted"
+                                                    >
+                                                        <span className="font-medium">{section.label}</span>
+                                                        <span className="text-muted-foreground">
+                                                            {" "}
+                                                            ({section.terms.length})
+                                                        </span>
                                                     </button>
                                                 ))}
                                             </div>
@@ -1700,6 +1748,56 @@ export function RulesLibraryView() {
                                 </div>
                             </section>
                         ))}
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="glossary" className="mt-0 space-y-6">
+                    <div className="space-y-1.5 max-w-md">
+                        <Label htmlFor="lib-glossary-search">Search glossary</Label>
+                        <Input
+                            id="lib-glossary-search"
+                            placeholder="Term name, key, or description…"
+                            value={glossarySearch}
+                            onChange={(e) => setGlossarySearch(e.target.value)}
+                        />
+                    </div>
+                    <p className="text-sm text-muted-foreground max-w-2xl">
+                        Definitions from{" "}
+                        <span className="font-mono text-xs">rules.glossary.effectDictionary</span> — the same
+                        entries used when you click tags on action cards and equipment.
+                    </p>
+                    <div className="space-y-10">
+                        {glossarySections.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">No glossary terms match this search.</p>
+                        ) : (
+                            glossarySections.map((section) => (
+                                <section
+                                    key={section.sectionKey}
+                                    id={`lib-glossary-${tocSlug(section.sectionKey)}`}
+                                    className="scroll-mt-36 space-y-3"
+                                >
+                                    <h2 className="border-b border-border pb-1 text-lg font-bold">{section.label}</h2>
+                                    <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-2 md:gap-4">
+                                        {section.terms.map((term) => (
+                                            <div
+                                                key={`${section.sectionKey}-${term.key}`}
+                                                className="min-w-0 space-y-2 rounded-lg border border-border bg-card/40 p-4"
+                                            >
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    <span className="text-lg font-semibold">{term.name}</span>
+                                                    <Badge variant="outline" className="font-mono text-[10px]">
+                                                        {term.key}
+                                                    </Badge>
+                                                </div>
+                                                <p className="text-sm text-muted-foreground whitespace-pre-line">
+                                                    {term.description}
+                                                </p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </section>
+                            ))
+                        )}
                     </div>
                 </TabsContent>
 

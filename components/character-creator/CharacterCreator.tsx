@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import rulesData from "@/lib/rules.json";
-import { CharacterSaveData } from "@/lib/character-data";
+import { CharacterSaveData, getCharacterLevelForStats } from "@/lib/character-data";
 import { FeatLevelPick } from "@/lib/baseRefs";
 import { createEmptyCreatorCharacter, parseCreatorImportJson } from "@/lib/creator-import";
 import {
@@ -49,6 +49,34 @@ import { CharacterReview } from "@/components/character-creator/CharacterReview"
 import { StepProgress } from "@/components/character-creator/steps/StepProgress";
 
 type AttributeKey = "might" | "dexterity" | "reason" | "willpower" | "presence";
+
+/** Adventurer levels at which a +1 attribute pick is unlocked (must be <= current adventurer level). */
+const ATTRIBUTE_BONUS_MILESTONES = [3, 5, 7, 9, 10] as const;
+
+/** Adventurer levels at which a feat slot unlocks (must be <= current adventurer level). */
+const FEAT_LEVEL_MILESTONES = [1, 3, 5, 7, 9, 10] as const;
+
+function pruneLevelBonusesForAdventurerLevel(
+    bonuses: Partial<Record<number, AttributeKey>>,
+    adventurerLevel: number
+): Partial<Record<number, AttributeKey>> {
+    const next = { ...bonuses };
+    for (const milestone of ATTRIBUTE_BONUS_MILESTONES) {
+        if (milestone > adventurerLevel) delete next[milestone];
+    }
+    return next;
+}
+
+function pruneSelectedFeatsForAdventurerLevel(
+    feats: Partial<Record<number, FeatLevelPick>>,
+    adventurerLevel: number
+): Partial<Record<number, FeatLevelPick>> {
+    const next = { ...feats };
+    for (const milestone of FEAT_LEVEL_MILESTONES) {
+        if (milestone > adventurerLevel) delete next[milestone];
+    }
+    return next;
+}
 
 const STARTING_XP = rulesData.system.startingXPPerLvl as Record<string, number>;
 const OCCUPATION_RULES = (rulesData.system as { occupation?: Record<string, OccupationRule> }).occupation;
@@ -181,6 +209,24 @@ export default function CharacterCreator() {
             };
         });
     };
+
+    /** Highest class level from XP spent (matches sheet `getCharacterLevelForStats`). */
+    const effectiveAdventurerLevel = useMemo(
+        () => getCharacterLevelForStats(charData.classes ?? []),
+        [charData.classes]
+    );
+
+    useEffect(() => {
+        setLevelBonuses((prev) => pruneLevelBonusesForAdventurerLevel(prev, effectiveAdventurerLevel));
+        setSelectedFeats((prev) => pruneSelectedFeatsForAdventurerLevel(prev, effectiveAdventurerLevel));
+        setCharData((prev) => ({
+            ...prev,
+            attributeLevelBonuses: pruneLevelBonusesForAdventurerLevel(
+                prev.attributeLevelBonuses ?? {},
+                effectiveAdventurerLevel
+            ),
+        }));
+    }, [effectiveAdventurerLevel]);
 
     const effectiveAttributes = useMemo(() => {
         const a = { ...charData.attributes };
@@ -341,7 +387,16 @@ export default function CharacterCreator() {
                     }}
                     onUpdateLevel={(lvl) => {
                         setAdventurerLevel(lvl);
-                        setCharData((prev) => ({ ...prev, xp: STARTING_XP[String(lvl)] ?? prev.xp }));
+                        setLevelBonuses((prev) => pruneLevelBonusesForAdventurerLevel(prev, lvl));
+                        setSelectedFeats((prev) => pruneSelectedFeatsForAdventurerLevel(prev, lvl));
+                        setCharData((prev) => ({
+                            ...prev,
+                            xp: STARTING_XP[String(lvl)] ?? prev.xp,
+                            attributeLevelBonuses: pruneLevelBonusesForAdventurerLevel(
+                                prev.attributeLevelBonuses ?? {},
+                                lvl
+                            ),
+                        }));
                     }}
                     onUpdateClassData={(classes, options) => {
                         const hasPriest = classes.some((c) => c.id === "priest" && c.level > 0);
@@ -450,7 +505,7 @@ export default function CharacterCreator() {
 
             {currentStep === 2 && (
                 <AbilityScores
-                    adventurerLevel={adventurerLevel}
+                    adventurerLevel={effectiveAdventurerLevel}
                     scores={charData.attributes}
                     levelBonuses={levelBonuses}
                     onChangeScore={(ability, newScore) => {
@@ -555,7 +610,7 @@ export default function CharacterCreator() {
             {currentStep === 5 && (
                 <FeatsStep
                     selectedFeats={selectedFeats}
-                    adventurerLevel={adventurerLevel}
+                    adventurerLevel={effectiveAdventurerLevel}
                     classes={charData.classes}
                     classSelections={classSelections}
                     characterTraits={charData.traits}
@@ -583,7 +638,7 @@ export default function CharacterCreator() {
             {currentStep === 6 && (
                 <CharacterReview
                     charData={charData}
-                    adventurerLevel={adventurerLevel}
+                    adventurerLevel={effectiveAdventurerLevel}
                     levelBonuses={levelBonuses}
                     classSelections={classSelections}
                     selectedFeats={selectedFeats}

@@ -683,7 +683,7 @@
       "dualWielding": {
         "name": "Dual Wielding",
         "minLevel": 1,
-        "description": "If you have already attacked with a one-handed weapon this turn with an action then your next weapon attack this turn using a different one-handed weapon with an action has its AP cost reduced by 1. If both weapon are Light then its AP cost is reduced by 2 instead. Both attacks must have an original AP cost of no more than 2. This can only be used once per round."
+        "description": "If you have already attacked with a one-handed weapon this turn with an action then your next weapon attack this turn using a different one-handed weapon with an action has its AP cost reduced by 1. If both weapon are Light then its AP cost is reduced by 2 instead. Both attacks must have an original AP cost of no more than 2. This can only be used once per round and neither of these actions can be a spell."
       },
       "manaStrike": {
         "name": "Mana Strike",
@@ -721,7 +721,7 @@
       "dedicatedStrike": {
         "name": "Dedicated Strike",
         "minLevel": 1,
-        "description": "When you attack with a 2H non-Firearm weapon with an action that costs 2 AP or more  you may reduce your Stability by 1 (min 0) and cannot willing move for the rest of the round to deal +3 damage on this attack",
+        "description": "When you attack with a 2H non-Firearm weapon with an action that costs 2 AP or more you may reduce your Defense by 2 (min 0) and give up your step to deal +2 damage on this attack. These penalties last until the start of your next turn.",
         "prereqs": {
           "classes": {
             "1": [
@@ -945,7 +945,12 @@
       "spellblade": {
         "name": "Spellblade",
         "minLevel": 3,
-        "description": "If you cast a spell this turn then your next weapon attack this turn can be used with -1 AP cost as long as the weapon is not 2H, Heavy, or Firearm and neither the spell nor weapon attack has an original AP cost of more than 2. If you attack with a weapon this turn then your next spell this turn can be cast with -1 AP cost, but the original AP cost of both the weapon attack and spell must be at most 2. This can only be used once per round."
+        "description": "If you cast a spell this turn then your next weapon attack this turn can be used with -1 AP cost as long as the weapon is not 2H, Heavy, or Firearm and neither the spell nor weapon attack has an original AP cost of more than 2. If you attack with a weapon this turn then your next spell this turn can be cast with -1 AP cost, but the original AP cost of both the weapon attack and spell must be at most 2. This can only be used once per round.",
+        "prereqs": {
+          "other": [
+            "manaStrike"
+          ]
+        }
       },
       "trustyCompanion": {
         "name": "Trusty Companion",
@@ -1152,12 +1157,12 @@
       "tenacity": {
         "name": "Tenacity",
         "minLevel": 5,
-        "description": "You increase your Max HP by 12",
+        "description": "You increase your Max HP by 8",
         "effects": [
           {
             "type": "StatChange",
             "stat": "maxHP",
-            "value": "12"
+            "value": "8"
           }
         ],
         "prereqs": {
@@ -1302,6 +1307,26 @@
               "sorcerer"
             ]
           }
+        },
+        "prereqs": {
+          "any": [
+            {
+              "classes": {
+                "3": [
+                  "sorcerer"
+                ]
+              }
+            },
+            {
+              "classes": {
+                "5": [
+                  "conjurer",
+                  "fairytamer",
+                  "wizard"
+                ]
+              }
+            }
+          ]
         }
       },
       "extremeEvasion": {
@@ -1400,29 +1425,43 @@
           "potionLauncher": {
             "name": "Potion Launcher",
             "description": "Grants a potion launcher and an extra-large alchemy satchel.",
-            "grants": ["wp_potion_launcher", "gear_extra_large_alchemy_satchel"]
+            "grants": [
+              "wp_potion_launcher",
+              "gear_extra_large_alchemy_satchel"
+            ]
           },
           "trapBelt": {
             "name": "Trap Dispenser Belt",
             "description": "Deployable actions can be performed twice as fast at double IP cost.",
-            "grants": ["acc_trap_dispenser_belt"]
+            "grants": [
+              "acc_trap_dispenser_belt"
+            ]
           },
           "modularArmor": {
             "name": "Modular Armor",
             "description": "Artificer's armor (Defense 4, martial). Pick two invention modules.",
-            "grants": ["arm_artificer_armor"],
+            "grants": [
+              "arm_artificer_armor"
+            ],
             "modulePick": 2,
             "moduleItemId": "arm_artificer_armor"
           },
           "supportBackpack": {
             "name": "Support Backpack",
             "description": "Unlimited-capacity back container. Pick two invention modules.",
-            "grants": ["gear_support_backpack"],
+            "grants": [
+              "gear_support_backpack"
+            ],
             "modulePick": 2,
             "moduleItemId": "gear_support_backpack"
           }
         },
-        "weaponInfusionDamageTypes": ["volt", "water", "fire", "earth"],
+        "weaponInfusionDamageTypes": [
+          "volt",
+          "water",
+          "fire",
+          "earth"
+        ],
         "modules": {
           "hoverBoots": {
             "passiveId": "invention_hoverBoots",
@@ -3169,7 +3208,7 @@
             "name": "Keen Call",
             "type": "action",
             "description": "Choose an ally. Their next Power Roll gains double boon.",
-            "apCost": 2,
+            "apCost": 1,
             "focusCost": 5,
             "mpCost": 10,
             "range": "8",
@@ -3220,7 +3259,7 @@
           "actionCard": {
             "name": "Echo Strike",
             "type": "action",
-            "description": "Choose an ally. Once per round whenever the target makes a melee attack they may add Repeat(2) to that attack.\n\nMaintain: During the start phase you may spend 1 Focus and 5 Mana to maintain this ability. If you do so then the effect persists for this round as well",
+            "description": "Choose an ally. Once per round whenever the target makes a melee attack that is not an Opportunity attack they may add Repeat(2) to that attack.",
             "apCost": 2,
             "focusCost": 7,
             "mpCost": 13,
@@ -3237,12 +3276,13 @@
       },
       "reactions": [
         {
-          "id": "metamagicCurve",
-          "name": "Metamagic - Curve",
+          "id": "concentration",
+          "name": "Concentration",
           "type": "Reaction",
           "level": 1,
-          "trigger": "An ally attacks a target that has cover with ranged attack",
-          "description": "Allow that attack to ignore cover."
+          "trigger": "You take excessive damage that would disrupt your Maintain spell",
+          "description": "Your Maintain spell does not end",
+          "focusCost": 1
         },
         {
           "id": "mirageSwap",
@@ -3641,9 +3681,9 @@
           "actionCard": {
             "name": "Eye for an Eye",
             "type": "action",
-            "description": "Prepare a powerful attack. If you take any damage before the delay effect triggers then you may add your Might modifier to the damage. Once the delay effect triggers you may stride up to half your Speed (round up) before attacking.",
+            "description": "Prepare a powerful attack. If you take any damage before the delay effect triggers then you may add your Might modifier to the damage and stride up to half your Speed (round down) when the delay effect triggers. Once the delay effect triggers you may attack",
             "apCost": 2,
-            "focusCost": 1,
+            "focusCost": 3,
             "mpCost": 0,
             "range": "Wpn",
             "tags": [
@@ -4952,11 +4992,11 @@
               "rollStats": [
                 "dexterity"
               ],
-              "tier1Dmg": 2,
+              "tier1Dmg": 3,
               "tier1Wpn": true,
-              "tier2Dmg": 3,
+              "tier2Dmg": 4,
               "tier2Wpn": true,
-              "tier3Dmg": 4,
+              "tier3Dmg": 6,
               "tier3Wpn": true
             }
           }
@@ -5004,7 +5044,9 @@
           "level": 3,
           "trigger": "A hostile creature targets an ally within 10 tiles with a ranged attack",
           "chargeStat": "dexterity",
-          "chargeReset": ["endOfCombat"],
+          "chargeReset": [
+            "endOfCombat"
+          ],
           "description": "You have Crossfire charges equal to your Dexterity modifier. You may spend one of these charges to decrease the success tier of that ranged attack by 1. Doesn't work against critical hits. Charges reset at the end of combat."
         }
       ]
@@ -6575,7 +6617,7 @@
           "name": "Follow-Up Attack",
           "type": "Reaction",
           "level": 1,
-          "trigger": "An ally damages a hostile creature reachable within 3 tiles",
+          "trigger": "An ally besides you damages a hostile creature reachable within 3 tiles",
           "description": "If you have a 1H melee weapon equipped and are not wearing martial armor then you may shift 3 to any tile that puts them in your melee range. You must then make an Opportunity Attack on them.",
           "focusCost": 1
         },
@@ -6586,8 +6628,10 @@
           "level": 3,
           "trigger": "You are attacked and your Speed is at least 1",
           "chargeStat": "dexterity",
-          "chargeReset": ["endOfCombat"],
-          "description": "You gain Evasion charges equal to your Dexterity modifier. You may spend an Evasion charge to reduce the success tier of the attack by 1 only against you and shift 3 after the attack completes. Your Evasion charges reset at the end of combat."
+          "chargeReset": [
+            "endOfCombat"
+          ],
+          "description": "You gain Evasion charges equal to your Dexterity modifier. You may spend an Evasion charge to reduce the success tier of the attack by 1 and decrease damage by 2 only against you and shift 3 after the attack completes. Your Evasion charges reset at the end of combat."
         }
       ]
     },
@@ -7515,12 +7559,12 @@
         "exploitWeakness": {
           "name": "Exploit Weakness",
           "minLevel": 3,
-          "description": "The minimum damage for a melee physical attack is increased from 1 to 2."
+          "description": "The minimum damage for a melee physical attack that you add weapon damage to is 2."
         },
         "focusedStrikes": {
           "name": "Focused Strikes",
           "minLevel": 5,
-          "description": "You may convert all your multi on a melee weapon attack to repeat instead at will. This costs 1 Focus."
+          "description": "You may convert all your Multi on a melee weapon attack to Repeat instead by spending 1 Focus."
         }
       },
       "actions": {
@@ -7577,11 +7621,11 @@
                 "might",
                 "dexterity"
               ],
-              "tier1Dmg": 2,
+              "tier1Dmg": 1,
               "tier1Wpn": true,
-              "tier2Dmg": 3,
+              "tier2Dmg": 2,
               "tier2Wpn": true,
-              "tier3Dmg": 5,
+              "tier3Dmg": 3,
               "tier3Wpn": true
             }
           }
@@ -7908,7 +7952,7 @@
               "Melee",
               "Weapon",
               "Extend",
-              "Multi(5)"
+              "Multi(4)"
             ],
             "source": "weaponmaster",
             "powerRoll": {
@@ -7916,11 +7960,11 @@
                 "might",
                 "dexterity"
               ],
-              "tier1Dmg": 2,
+              "tier1Dmg": 1,
               "tier1Wpn": true,
-              "tier2Dmg": 3,
+              "tier2Dmg": 2,
               "tier2Wpn": true,
-              "tier3Dmg": 5,
+              "tier3Dmg": 3,
               "tier3Wpn": true
             }
           }
@@ -7992,7 +8036,8 @@
           "type": "Reaction",
           "level": 1,
           "trigger": "You take damage from an attack",
-          "description": "You may counterattack them with a melee attack. Make an Opportunity Attack against them."
+          "description": "You may counterattack them with a melee attack. Make an Opportunity Attack against them.",
+          "focusCost": 1
         },
         {
           "id": "parry",
@@ -8001,7 +8046,9 @@
           "level": 3,
           "trigger": "You are attacked by a melee attack",
           "chargeStat": "dexterity",
-          "chargeReset": ["endOfCombat"],
+          "chargeReset": [
+            "endOfCombat"
+          ],
           "description": "You gain Parry charges equal to your Dexterity modifier. You may spend a Parry charge to reduce the incoming damage by 5 as a free Reaction. If you are dual wielding or wielding a 2H weapon you reduce the damage by 6 instead. Your Parry charges reset at the end of combat. You must have a melee weapon equipped."
         }
       ]
@@ -8044,7 +8091,11 @@
         "levitation": {
           "name": "Levitation",
           "minLevel": 5,
-          "description": "Twice per long rest you may spend 5 Mana to begin flying, granting yourself Flight Speed equal to your Willpower modifier. This has a Maintain effect and costs 3 Mana to maintain. You may also move small objects that are not held or worn at a similar speed."
+          "description": "Twice per long rest you may spend 5 Mana to begin flying, granting yourself Flight Speed equal to your Willpower modifier. This has a Maintain effect and costs 3 Mana to maintain. You may also move small objects that are not held or worn at a similar speed.",
+          "fixedMaxCharges": 2,
+          "chargeReset": [
+            "longRest"
+          ]
         }
       },
       "freeFeaturesNote": "You can perceive Metaphysical beings. Wizard: When interacting with runes or other magical objects you can try to extract information about them (who made them, what they are, when they were made or last activated, etc.). You cannot cast Wizard spells while wearing martial armor. Elemental aspects for your spells: Air, Volt, Dark, Poison.",
@@ -8539,7 +8590,7 @@
           "name": "Abjuration",
           "type": "Reaction",
           "level": 1,
-          "trigger": "You are attacked by a ranged attack",
+          "trigger": "You are attacked",
           "description": "Throw up a quick magical shield against the attack, reducing the damage by 5.",
           "mpCost": 10
         },
@@ -8780,7 +8831,11 @@
           "name": "Water Walking",
           "type": "selectable",
           "ptCost": 1,
-          "description": "Once per long rest you are able to walk on water for 1 minute. Treat it as if you were walking on land. If you fall into the water or fall prone you are knocked into the water."
+          "description": "Twice per long rest you are able to walk on water for 1 minute. Treat it as if you were walking on land. If you fall into the water or fall prone you are knocked into the water.",
+          "fixedMaxCharges": 2,
+          "chargeReset": [
+            "longRest"
+          ]
         },
         "elf_elementalResistance": {
           "name": "Elemental Resistance",
@@ -8807,7 +8862,11 @@
           "name": "Deep Meditation",
           "type": "selectable",
           "ptCost": 2,
-          "description": "Once per long rest you may have one of your respites restore all of your mana instead of half"
+          "description": "Once per long rest you may have one of your respites restore all of your mana instead of half",
+          "fixedMaxCharges": 1,
+          "chargeReset": [
+            "longRest"
+          ]
         },
         "elf_vulnerability": {
           "name": "Vulnerability",
@@ -8879,7 +8938,11 @@
           "name": "Flight",
           "type": "selectable",
           "ptCost": 2,
-          "description": "Once per long rest you are able to fly. You gain a Flying Speed equal to your Speed."
+          "description": "Once per long rest you are able to fly for 1 minute. You gain a Flying Speed equal to your Speed.",
+          "fixedMaxCharges": 1,
+          "chargeReset": [
+            "longRest"
+          ]
         },
         "fayar_spikedTail": {
           "name": "Spiked Tail",
@@ -9196,7 +9259,11 @@
           "name": "Inner Spark",
           "type": "selectable",
           "ptCost": 1,
-          "description": "Once per long rest you can change the damage type of one weapon attack to magical light or dark damage"
+          "description": "Expend a charge to give one weapon attack light or dark infusion. Charges refill on a long rest.",
+          "fixedMaxCharges": 2,
+          "chargeReset": [
+            "longRest"
+          ]
         },
         "human_longHistory": {
           "name": "Long History",
@@ -9214,7 +9281,11 @@
           "name": "Defy Fate",
           "type": "selectable",
           "ptCost": 2,
-          "description": "Once per long rest you may reroll a Power Roll or saving throw"
+          "description": "Once per long rest you may reroll a Power Roll or saving throw",
+          "fixedMaxCharges": 1,
+          "chargeReset": [
+            "longRest"
+          ]
         },
         "human_bravery": {
           "name": "Bravery",
@@ -10111,6 +10182,24 @@
         "mp": 15
       }
     },
+    "arm_mana_coat": {
+      "name": "Mana Coat",
+      "quantity": 1,
+      "description": "+5 Max Mana",
+      "value": 250,
+      "allowedSlots": [
+        "armor"
+      ],
+      "tags": [],
+      "type": "armor",
+      "defense": {
+        "value": 2
+      },
+      "stability": 0,
+      "statBonuses": {
+        "mp": 5
+      }
+    },
     "arm_pocket_coat": {
       "name": "Pocket Coat",
       "quantity": 1,
@@ -10173,7 +10262,8 @@
       ],
       "tags": [
         "martial",
-        "heavy"
+        "heavy",
+        "slowStart"
       ],
       "type": "armor",
       "defense": {
@@ -10249,7 +10339,8 @@
       ],
       "tags": [
         "martial",
-        "heavy"
+        "heavy",
+        "slowStart"
       ],
       "type": "shield",
       "defense": 3,
@@ -10427,7 +10518,9 @@
       "name": "Extra-Large Alchemy Satchel",
       "quantity": 1,
       "description": "A large satchel for potions and consumables. Holds up to 6 consumable items",
-      "tags": ["specialInvention"],
+      "tags": [
+        "specialInvention"
+      ],
       "value": 0,
       "type": "container",
       "containerCapacity": 6,
@@ -10447,7 +10540,9 @@
       "allowedSlots": [
         "waist"
       ],
-      "tags": ["specialInvention"],
+      "tags": [
+        "specialInvention"
+      ],
       "type": "misc"
     },
     "arm_artificer_armor": {
@@ -10483,7 +10578,9 @@
       "allowedSlots": [
         "back"
       ],
-      "tags": ["specialInvention"],
+      "tags": [
+        "specialInvention"
+      ],
       "type": "container",
       "inventionModulePool": [
         "backSupport",
@@ -10935,7 +11032,9 @@
       "source": "feat",
       "trigger": "You are attacked",
       "fixedMaxCharges": 3,
-      "chargeReset": ["shortRest"]
+      "chargeReset": [
+        "shortRest"
+      ]
     },
     "monster/clayFist": {
       "name": "Clay Fist",
@@ -13305,7 +13404,7 @@
         },
         "maintain": {
           "name": "Maintain",
-          "description": "You may only have one Maintain effect active at once. If you take damage equal to or greater than your Willpower score in one turn the effect ends. If you don't pay the Maintain cost then the effect ends."
+          "description": "You may only have one Maintain effect active at once. If you take excessive damage (equal or greater than your Willpower score) in one turn the effect ends. If you don't pay the Maintain cost then the effect ends."
         },
         "manifest": {
           "name": "Manifest",
@@ -13412,6 +13511,10 @@
         "reach": {
           "name": "Reach",
           "description": "This melee weapon has a range of 2"
+        },
+        "slowStart": {
+          "name": "Slow Start",
+          "description": "During your first round of combat you must take your turn during the Slow Phase"
         },
         "throwing": {
           "name": "Throwing",

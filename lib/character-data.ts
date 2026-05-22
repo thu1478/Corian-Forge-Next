@@ -145,8 +145,7 @@ export const defaultCharacter: CharacterSaveData = {
     backstory: "",
 
     // Classes
-    classes: [
-    ],
+    classes: [],
 
     // Combat Resources
     hp: 1,
@@ -289,7 +288,10 @@ export interface ClassBonusRule {
     once?: boolean
 }
 
-function classStatBonusEntries(classRule: { statBonus?: ClassBonusRule; statBonuses?: ClassBonusRule[] } | undefined): ClassBonusRule[] {
+function classStatBonusEntries(classRule: {
+    statBonus?: ClassBonusRule;
+    statBonuses?: ClassBonusRule[]
+} | undefined): ClassBonusRule[] {
     if (!classRule) return []
     if (Array.isArray(classRule.statBonuses) && classRule.statBonuses.length > 0) {
         return classRule.statBonuses
@@ -406,9 +408,17 @@ export function computeMaxHP(params: {
     gearHpBonus: number;
     traitMaxHpBonus: number;
 }): number {
+    // return (
+    //     params.effectiveMight +
+    //     5 * params.characterLevel +
+    //     params.classHpBonus +
+    //     params.gearHpBonus +
+    //     params.traitMaxHpBonus
+    // );
     return (
-        params.effectiveMight +
-        5 * params.characterLevel +
+        Math.floor(params.effectiveMight / 2) +
+        2 * params.characterLevel +
+        7 +
         params.classHpBonus +
         params.gearHpBonus +
         params.traitMaxHpBonus

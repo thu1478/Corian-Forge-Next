@@ -15,6 +15,7 @@ function weaponAttributesCompatible(w: WeaponItem, rollStats: readonly string[])
 
 /**
  * Melee/ranged on the action must align with the weapon's tags (after normalization).
+ * Actions tagged Ranged + Throwing also accept throwable weapons (melee + throwing tag).
  * Actions with neither tag impose no range-style constraint (attribute match only).
  */
 function weaponMatchesActionKind(w: WeaponItem, actionTags: string[]): boolean {
@@ -25,10 +26,13 @@ function weaponMatchesActionKind(w: WeaponItem, actionTags: string[]): boolean {
   const wTags = w.tags || []
   const wMelee = actionTagsIncludeCanonical(wTags, "Melee")
   const wRanged = actionTagsIncludeCanonical(wTags, "Ranged")
+  const wThrowing = actionTagsIncludeCanonical(wTags, "Throwing")
+  const actionThrowing = actionTagsIncludeCanonical(actionTags, "Throwing")
+  const satisfiesRanged = wRanged || (actionThrowing && wThrowing)
 
-  if (wantsMelee && wantsRanged) return wMelee || wRanged
+  if (wantsMelee && wantsRanged) return wMelee || satisfiesRanged
   if (wantsMelee) return wMelee
-  if (wantsRanged) return wRanged
+  if (wantsRanged) return satisfiesRanged
   return true
 }
 

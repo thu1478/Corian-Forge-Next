@@ -9,7 +9,7 @@ import {
 export type GlossaryTerm = { name: string; description: string }
 
 /** Prefer action/equipment tag meanings before conditions, creature types, etc. */
-const EFFECT_DICTIONARY_SECTION_ORDER = [
+export const EFFECT_DICTIONARY_SECTION_ORDER = [
   "actionTags",
   "equipmentTags",
   "powerRoll",
@@ -18,6 +18,66 @@ const EFFECT_DICTIONARY_SECTION_ORDER = [
   "creatureTags",
   "creatureTypes",
 ] as const
+
+export type EffectDictionarySectionKey = (typeof EFFECT_DICTIONARY_SECTION_ORDER)[number]
+
+export const GLOSSARY_SECTION_LABELS: Record<EffectDictionarySectionKey, string> = {
+  actionTags: "Action tags",
+  equipmentTags: "Equipment tags",
+  powerRoll: "Power roll",
+  environmentalEffects: "Environmental effects",
+  negativeStatusEffects: "Negative status effects",
+  creatureTags: "Creature tags",
+  creatureTypes: "Creature types",
+}
+
+export type GlossaryLibraryTerm = {
+  key: string
+  name: string
+  description: string
+}
+
+export type GlossaryLibrarySection = {
+  sectionKey: string
+  label: string
+  terms: GlossaryLibraryTerm[]
+}
+
+/** All terms from `rules.glossary.effectDictionary`, grouped for the rules library. */
+export function buildGlossaryLibrarySections(): GlossaryLibrarySection[] {
+  const root = rulesData as {
+    glossary?: { effectDictionary?: Record<string, Record<string, unknown>> }
+  }
+  const dict = root.glossary?.effectDictionary
+  if (!dict) return []
+
+  const orderedKeys = [
+    ...EFFECT_DICTIONARY_SECTION_ORDER,
+    ...Object.keys(dict).filter(
+      (k) => !(EFFECT_DICTIONARY_SECTION_ORDER as readonly string[]).includes(k)
+    ),
+  ]
+
+  const sections: GlossaryLibrarySection[] = []
+  for (const sectionKey of orderedKeys) {
+    const section = dict[sectionKey]
+    if (!section || typeof section !== "object") continue
+    const terms: GlossaryLibraryTerm[] = []
+    for (const [key, value] of Object.entries(section)) {
+      if (!isGlossaryTerm(value)) continue
+      const name =
+        typeof value.name === "string" && value.name.trim() ? value.name : key
+      terms.push({ key, name, description: value.description })
+    }
+    if (terms.length === 0) continue
+    terms.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }))
+    const label =
+      (GLOSSARY_SECTION_LABELS as Record<string, string>)[sectionKey] ??
+      sectionKey.replace(/([A-Z])/g, " $1").replace(/^./, (c) => c.toUpperCase())
+    sections.push({ sectionKey, label, terms })
+  }
+  return sections
+}
 
 function isGlossaryTerm(v: unknown): v is GlossaryTerm {
   if (!v || typeof v !== "object") return false

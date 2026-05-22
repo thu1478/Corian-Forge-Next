@@ -77,6 +77,7 @@ import {
     lookupChargeDefinition,
 } from "@/lib/charge-helpers";
 import {applyEndOfCombatEffects} from "@/lib/rest-helpers";
+import {getCharacterLevelForStats} from "@/lib/character-data";
 import {listCatalogActionCardIds, listCatalogReactionCardIds} from "@/lib/generic-catalog";
 import {collectClassProficiencies, martialProficiencyDeficitMessage} from "@/lib/equipment-proficiency";
 import {
@@ -159,6 +160,11 @@ export function CharacterSheetView() {
         if (!Number.isFinite(r) || r <= max) return
         setCharacter((prev: any) => ({...prev, respite: max}))
     }, [character, character?.respite, derived.maxRespite, setCharacter])
+
+    const adventurerLevel = useMemo(
+        () => getCharacterLevelForStats(character?.classes ?? []),
+        [character?.classes]
+    )
 
     const rosterReconcileOpts = useMemo(
         () => ({
@@ -491,6 +497,10 @@ export function CharacterSheetView() {
         setCharacter(prev => ({...prev, mp: clampedMp}));
     };
     const updateFocus = (current: number) => setCharacter(prev => ({...prev, focus: current}));
+    const handleAddFocus = (amount: number) => {
+        if (amount <= 0) return;
+        setCharacter((prev: any) => ({...prev, focus: (prev.focus ?? 0) + amount}));
+    };
     const updateIp = (current: number) => {
         const clampedIp = Math.min(Math.max(current, 0), derived.maxIP);
         setCharacter(prev => ({...prev, ip: clampedIp}));
@@ -661,13 +671,49 @@ export function CharacterSheetView() {
     };
 
     const handleUpdateTraitCharges = (traitId: string, newCount: number) => {
-        setCharacter((prev: any) => ({
-            ...prev,
-            traits: (prev.traits || []).map((t: any) => {
+        // #region agent log
+        fetch("http://127.0.0.1:7550/ingest/244c033b-3205-4e88-b1a7-446a0537a4c2", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "f4e9fe" },
+            body: JSON.stringify({
+                sessionId: "f4e9fe",
+                runId: "post-fix",
+                hypothesisId: "D",
+                location: "CharacterSheetView.tsx:handleUpdateTraitCharges",
+                message: "trait charge update requested",
+                data: { traitId, newCount },
+                timestamp: Date.now(),
+            }),
+        }).catch(() => {});
+        // #endregion
+        setCharacter((prev: any) => {
+            const nextTraits = (prev.traits || []).map((t: any) => {
                 const id = typeof t === "object" && t?.id ? t.id : t
                 return id === traitId ? {...(typeof t === "object" ? t : {id: t}), id: traitId, charges: newCount} : t
-            }),
-        }))
+            })
+            // #region agent log
+            fetch("http://127.0.0.1:7550/ingest/244c033b-3205-4e88-b1a7-446a0537a4c2", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "f4e9fe" },
+                body: JSON.stringify({
+                    sessionId: "f4e9fe",
+                    runId: "post-fix",
+                    hypothesisId: "D",
+                    location: "CharacterSheetView.tsx:handleUpdateTraitCharges:after",
+                    message: "traits array after update",
+                    data: {
+                        traitId,
+                        traitsCharges: nextTraits.map((t: any) => ({
+                            id: typeof t === "object" ? t.id : t,
+                            charges: typeof t === "object" ? t.charges : undefined,
+                        })),
+                    },
+                    timestamp: Date.now(),
+                }),
+            }).catch(() => {});
+            // #endregion
+            return { ...prev, traits: nextTraits }
+        })
     }
 
     const handleUpdateActionCharges = (actionId: string, newCount: number) => {
@@ -1150,6 +1196,8 @@ export function CharacterSheetView() {
                                     currentWeapon={currentWeapon}
                                     offhandWeapon={offhandWeapon}
                                     combatRuleContext={combatRuleContext}
+                                    adventurerLevel={adventurerLevel}
+                                    onAddFocus={handleAddFocus}
                                 />
                             </div>
                         </div>

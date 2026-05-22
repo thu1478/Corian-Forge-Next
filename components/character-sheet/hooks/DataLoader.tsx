@@ -238,8 +238,30 @@ export function discoverAllTraitRefs(character: any, rulesData?: any) {
         if (Array.isArray(t.selectedEffectIndices)) {
           next.selectedEffectIndices = t.selectedEffectIndices;
         }
+        if (typeof t.charges === "number") next.charges = t.charges;
       }
       traitMap.set(id, next);
+      // #region agent log
+      if (id === "human_innerSpark" || (typeof t === "object" && typeof t.charges === "number")) {
+        fetch("http://127.0.0.1:7550/ingest/244c033b-3205-4e88-b1a7-446a0537a4c2", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "f4e9fe" },
+          body: JSON.stringify({
+            sessionId: "f4e9fe",
+            runId: "post-fix",
+            hypothesisId: "A",
+            location: "DataLoader.tsx:discoverAllTraitRefs",
+            message: "trait ref from save",
+            data: {
+              id,
+              saveCharges: typeof t === "object" ? t.charges : undefined,
+              refCharges: next.charges,
+            },
+            timestamp: Date.now(),
+          }),
+        }).catch(() => {});
+      }
+      // #endregion
     });
 
     // 2. Identify Unique Active Item UIDs

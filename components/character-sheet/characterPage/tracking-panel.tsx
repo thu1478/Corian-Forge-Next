@@ -179,6 +179,32 @@ export function TraitsPanel({
                     const currentCharges = resolveCurrentCharges(trait.charges, maxCharges)
                     const showChargePips = maxCharges > 0 && Boolean(onUpdateTraitCharges)
 
+                    // #region agent log
+                    if (trait.uid === "human_innerSpark" || maxCharges > 0) {
+                        fetch("http://127.0.0.1:7550/ingest/244c033b-3205-4e88-b1a7-446a0537a4c2", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "f4e9fe" },
+                            body: JSON.stringify({
+                                sessionId: "f4e9fe",
+                                runId: "post-fix",
+                                hypothesisId: "B",
+                                location: "tracking-panel.tsx:TraitsPanel:render",
+                                message: "trait charge UI state",
+                                data: {
+                                    uid: trait.uid,
+                                    traitCharges: trait.charges,
+                                    maxCharges,
+                                    currentCharges,
+                                    showChargePips,
+                                    hasHandler: Boolean(onUpdateTraitCharges),
+                                    fixedMax: chargeDef?.fixedMaxCharges,
+                                },
+                                timestamp: Date.now(),
+                            }),
+                        }).catch(() => {})
+                    }
+                    // #endregion
+
                     return (
                     <div
                         key={trait.uid}
@@ -203,7 +229,24 @@ export function TraitsPanel({
                                               ? `${chargeDef.chargeStat} Charges`
                                               : "Charges"
                                     }
-                                    onChange={(n) => onUpdateTraitCharges?.(trait.uid, n)}
+                                    onChange={(n) => {
+                                        // #region agent log
+                                        fetch("http://127.0.0.1:7550/ingest/244c033b-3205-4e88-b1a7-446a0537a4c2", {
+                                            method: "POST",
+                                            headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "f4e9fe" },
+                                            body: JSON.stringify({
+                                                sessionId: "f4e9fe",
+                                                runId: "post-fix",
+                                                hypothesisId: "E",
+                                                location: "tracking-panel.tsx:ChargePips:onChange",
+                                                message: "pip clicked",
+                                                data: { uid: trait.uid, newCount: n },
+                                                timestamp: Date.now(),
+                                            }),
+                                        }).catch(() => {})
+                                        // #endregion
+                                        onUpdateTraitCharges?.(trait.uid, n)
+                                    }}
                                 />
                             </div>
                         ) : null}
