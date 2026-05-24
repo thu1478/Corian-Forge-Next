@@ -29,6 +29,24 @@
       "light",
       "dark"
     ],
+    "itemRanks": {
+      "common": {
+        "label": "Common",
+        "nameClass": "text-foreground"
+      },
+      "intermediate": {
+        "label": "Intermediate",
+        "nameClass": "text-sky-600 dark:text-sky-400"
+      },
+      "advanced": {
+        "label": "Advanced",
+        "nameClass": "text-amber-600 dark:text-amber-400"
+      },
+      "masterwork": {
+        "label": "Masterwork",
+        "nameClass": "text-amber-600 dark:text-amber-400"
+      }
+    },
     "xpCostPerLvl": {
       "1": 100,
       "2": 100,
@@ -836,6 +854,35 @@
           }
         }
       },
+      "concentration": {
+        "name": "Concentration",
+        "minLevel": 1,
+        "description": "When you use an action that has a Maintain tag you gain 3 Barrier",
+        "prereqs": {
+          "classes": {
+            "1": [
+              "conjurer",
+              "priest",
+              "sorcerer",
+              "tactician"
+            ]
+          }
+        }
+      },
+      "duelingStance": {
+        "name": "Dueling Stance",
+        "minLevel": 1,
+        "description": "If you only have a 1H weapon equipped in one hand and nothing in the other then that weapon's damage increases by 1",
+        "prereqs": {
+          "classes": {
+            "1": [
+              "marksman",
+              "sorcerer",
+              "weaponmaster"
+            ]
+          }
+        }
+      },
       "fineMotorUpgrade": {
         "name": "Fine motor upgrade",
         "minLevel": 3,
@@ -1142,6 +1189,18 @@
           }
         }
       },
+      "refinedControl": {
+        "name": "Refined Control",
+        "minLevel": 3,
+        "description": "By giving up one of your AP on your turn you may grant an additional AP to one of your Summons on their turn this round",
+        "prereqs": {
+          "classes": {
+            "3": [
+              "conjurer"
+            ]
+          }
+        }
+      },
       "featureCreep": {
         "name": "Feature Creep",
         "minLevel": 5,
@@ -1257,10 +1316,10 @@
       "tightGrip": {
         "name": "Tight Grip",
         "minLevel": 5,
-        "description": "You may treat non-Heavy two-handed weapons as 1H and Heavy weapons no longer increase AP costs.",
+        "description": "You may treat non-Heavy two-handed melee weapons as 1H and Heavy weapons no longer increase AP costs. These 2H weapons can be used for either 1H or 2H abilities interchangeably.",
         "prereqs": {
           "classes": {
-            "3": [
+            "5": [
               "fury"
             ]
           }
@@ -1293,6 +1352,9 @@
           "classes": {
             "3": [
               "guardian"
+            ],
+            "5": [
+              "fury"
             ]
           }
         }
@@ -1360,6 +1422,33 @@
         "prereqs": {
           "classes": {
             "5": [
+              "weaponmaster"
+            ]
+          }
+        }
+      },
+      "solidStance": {
+        "name": "Solid Stance",
+        "minLevel": 5,
+        "description": "Brawler Stances last 1 minute instead of 18 seconds now",
+        "prereqs": {
+          "classes": {
+            "3": [
+              "brawler"
+            ]
+          }
+        }
+      },
+      "improvedScratchDmg": {
+        "name": "Improved Scratch Damage",
+        "minLevel": 5,
+        "description": "Minimum physical damage after defense is increased from 1 to 2",
+        "prereqs": {
+          "classes": {
+            "3": [
+              "brawler",
+              "fury",
+              "marksman",
               "weaponmaster"
             ]
           }
@@ -1918,7 +2007,7 @@
           "level": 3,
           "trigger": "A hostile creature dies within 2 tiles of you",
           "description": "Shift to their location and quickly scavenge the body for resources, restoring 1 IP.",
-          "focusCost": 1
+          "focusCost": 0
         }
       ]
     },
@@ -2033,7 +2122,7 @@
             "type": "action",
             "description": "Heal affected creatures with the power of your music.",
             "apCost": 1,
-            "focusCost": 3,
+            "focusCost": 1,
             "mpCost": 0,
             "tags": [
               "Ranged",
@@ -2117,9 +2206,9 @@
           "actionCard": {
             "name": "Note Blast",
             "type": "action",
-            "description": "Fire a note from your instrument, dealing physical air damage",
+            "description": "Unleash a blast of air, either with your voice or instrument, dealing physical air damage",
             "apCost": 2,
-            "focusCost": 1,
+            "focusCost": 3,
             "mpCost": 0,
             "range": "10",
             "tags": [
@@ -2136,19 +2225,19 @@
               "tier1Effect": {
                 "type": "ForcedMovement",
                 "effect": "push",
-                "distance": 1
+                "distance": 2
               },
               "tier2Dmg": 4,
               "tier2Effect": {
                 "type": "ForcedMovement",
                 "effect": "push",
-                "distance": 1
+                "distance": 3
               },
               "tier3Dmg": 6,
               "tier3Effect": {
                 "type": "ForcedMovement",
                 "effect": "push",
-                "distance": 2
+                "distance": 4
               }
             }
           }
@@ -2360,10 +2449,10 @@
             }
           }
         },
-        "songOfFlowingWater": {
+        "hymnOfFlowingWater": {
           "minLevel": 5,
           "actionCard": {
-            "name": "Song of Flowing Water",
+            "name": "Hymn of Flowing Water",
             "type": "action",
             "description": "End up to 2 status effects on each affected target. Grant Barrier.",
             "apCost": 2,
@@ -2408,9 +2497,9 @@
           "id": "spellsinger",
           "name": "Spellsinger",
           "level": 1,
-          "trigger": "An ally that can hear you spends mana during combat",
+          "trigger": "An ally that can hear you while you are playing a Song spends mana during combat",
           "description": "They regain 3 Mana",
-          "focusCost": 1
+          "focusCost": 0
         },
         {
           "id": "cantStopTheMusic",
@@ -2442,7 +2531,7 @@
         "chainStrike": {
           "name": "Chain Strike",
           "minLevel": 1,
-          "description": "After you attack with a Brawling weapon as part of an action you may make an Opportunity Attack with a Brawling weapon. If you spend 3 Focus you can add Repeat(2) to this Opportunity Attack. Your target does not have to be the same as the first. You can also treat your fists as a weapon for the sake of changing damage types."
+          "description": "After you attack with a Brawling weapon as part of an action you may make an Opportunity Attack with a Brawling weapon. If you spend 1 Focus you can add Repeat(2) to this Opportunity Attack. Your target does not have to be the same as the first. You can also treat your fists as a weapon for the sake of changing damage types."
         },
         "onTheMove": {
           "name": "On the Move",
@@ -3291,7 +3380,7 @@
           "level": 3,
           "trigger": "An ally within 3 tiles of you is targeted by an attack while your Summon is within 5 tiles of you",
           "description": "Swap the locations of the target and your Summon. Your Summon takes the attack instead.",
-          "focusCost": 1
+          "focusCost": 0
         }
       ]
     },
@@ -6090,16 +6179,16 @@
           "level": 1,
           "trigger": "An attack against an ally within 10 tiles afflicts them with Bleeding, Slowed, Frightened, or Poisoned.",
           "description": "Cancel the status effect before it applies",
-          "focusCost": 2
+          "focusCost": 1
         },
         {
           "id": "sanctuary",
           "name": "Sanctuary",
           "type": "Reaction",
           "level": 3,
-          "trigger": "You or an ally is about to receive magic damage",
+          "trigger": "An ally is about to receive magic damage",
           "description": "Reduce that magical damage by 5.",
-          "focusCost": 1,
+          "focusCost": 0,
           "mpCost": 5
         }
       ]
@@ -6122,8 +6211,8 @@
         }
       ],
       "focusFeat": {
-        "name": "Quick Thinker",
-        "description": "The first time per round you stride, shift, or warp you gain 1 Focus."
+        "name": "High-Speed Combat",
+        "description": "The first time per round you or a hostile creature strides, shifts, or warps you gain 1 Focus."
       },
       "passives": {
         "backpacker": {
@@ -7053,7 +7142,7 @@
           "actionCard": {
             "name": "Energy Javelins",
             "type": "action",
-            "description": "Prepare to unleash a volley of glowing javelins in a 7x7 area. All hostile creatures in the area will take light damage.\n\nMaintain: During the Start phase you may spend 3 Focus and 10 Mana to maintain this ability. If you do so then you can retrigger the ability in the same area during the End Phase.",
+            "description": "Select some targets you can see. Prepare to rain a volley of glowing javelins onto the selected targets that appear 10 tiles above them. There must be sufficient vertical overhead for the spell.\n\nMaintain: During the Start phase you may spend 3 Focus and 10 Mana to maintain this ability. If you do so then you can retrigger the ability in the same area during the End Phase.",
             "apCost": 2,
             "focusCost": 7,
             "mpCost": 21,
@@ -7061,7 +7150,7 @@
             "tags": [
               "Ranged",
               "Spell",
-              "Area",
+              "Multi(5)",
               "Delay",
               "Maintain"
             ],
@@ -7549,7 +7638,11 @@
         "weaponBond": {
           "name": "Weapon Bond",
           "minLevel": 1,
-          "description": "Choose a melee weapon you are wielding. You bond to that weapon, ignoring the Weakened effect and dealing +1 damage for attacks using that weapon. You can change your bonded weapon after a Long Rest."
+          "description": "Choose a melee weapon you are wielding. You bond to that weapon. Once per combat you can ignore one Bane on an attack using this weapon. You can change your bonded weapon after a Long Rest.",
+          "fixedMaxCharges": 1,
+          "chargeReset": [
+            "endOfCombat"
+          ]
         },
         "bladestorm": {
           "name": "Bladestorm",
@@ -9354,6 +9447,33 @@
         "equipment/jab"
       ]
     },
+    "wp_fist_brawler": {
+      "name": "Fist (Brawler)",
+      "quantity": 1,
+      "description": "Only take this if you have taken the corresponding passive in Brawler class. This represents your hands, feet, or any other tool you use for unarmed strikes",
+      "value": 0,
+      "allowedSlots": [
+        "rightHand",
+        "leftHand"
+      ],
+      "tags": [
+        "melee",
+        "brawling",
+        "1h",
+        "light"
+      ],
+      "type": "weapon",
+      "damage": 1,
+      "damageType": "crushing",
+      "range": 1,
+      "attributes": [
+        "might",
+        "dexterity"
+      ],
+      "actionIDs": [
+        "equipment/jab"
+      ]
+    },
     "wp_dagger": {
       "name": "Dagger",
       "quantity": 1,
@@ -9546,7 +9666,7 @@
         "specialInvention"
       ],
       "type": "weapon",
-      "damage": 0,
+      "damage": 2,
       "damageType": "crushing",
       "range": 2,
       "attributes": [
@@ -10014,7 +10134,7 @@
       "name": "Greataxe",
       "quantity": 1,
       "description": "",
-      "value": 200,
+      "value": 250,
       "allowedSlots": [
         "rightHand",
         "leftHand"
@@ -10040,7 +10160,7 @@
       "name": "Maul",
       "quantity": 1,
       "description": "",
-      "value": 200,
+      "value": 250,
       "allowedSlots": [
         "rightHand",
         "leftHand"
@@ -10060,6 +10180,32 @@
       ],
       "actionIDs": [
         "equipment/whack"
+      ]
+    },
+    "wp_lance": {
+      "name": "Lance",
+      "quantity": 1,
+      "description": "",
+      "value": 250,
+      "allowedSlots": [
+        "rightHand",
+        "leftHand"
+      ],
+      "tags": [
+        "melee",
+        "2h",
+        "martial",
+        "heavy"
+      ],
+      "type": "weapon",
+      "damage": 8,
+      "damageType": "piercing",
+      "range": 1,
+      "attributes": [
+        "might"
+      ],
+      "actionIDs": [
+        "equipment/stab"
       ]
     },
     "wp_potion_launcher": {
@@ -10186,7 +10332,7 @@
       "name": "Mana Coat",
       "quantity": 1,
       "description": "+5 Max Mana",
-      "value": 250,
+      "value": 500,
       "allowedSlots": [
         "armor"
       ],
@@ -13306,7 +13452,7 @@
         },
         "prone": {
           "name": "Prone",
-          "description": "Lying flat on the ground. The prone creature's own attacks take a bane. Melee attacks against it gain a boon. Ranged attacks against it take a bane. Movement costs are doubled. You can stand up with the Change Posture action."
+          "description": "Lying flat on the ground. All their attacks gain a bane and melee attacks against them gain a boon. Ranged attacks against them gain a bane. Movement costs doubled. You can stand up with the Change Posture action. Creatures can walk over you provided you are not more than 1 size larger than them."
         },
         "restrained": {
           "name": "Restrained",

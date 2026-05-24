@@ -124,11 +124,17 @@ export interface CharacterSaveData {
     /** Character creator only: keyed skill grant picker state (see grant-skill-effects keys). Exported for re-import. */
     creatorSkillGrantPicks?: Record<string, string[]>
 
-    /** Weapon Bond: inventory item uids with +1 damage (Weapon Bond passive). */
+    /** Weapon Bond: inventory item uids marked as bonded (Weapon Bond passive). */
     bondedWeaponUids?: string[]
 
     /** Combat-tab temporary defense modifier (added to derived defense). */
     combatDefenseDelta?: number
+
+    /** Combat-tab temporary stability modifier (added to derived stability). */
+    combatStabilityDelta?: number
+
+    /** Combat-tab temporary speed modifier (added to derived speed). */
+    combatSpeedDelta?: number
 
     /** Artificer Special Invention (level 3): variant, module picks, weapon infusion damage type. */
     specialInvention?: SpecialInventionSave

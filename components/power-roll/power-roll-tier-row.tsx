@@ -10,10 +10,11 @@ import { getPowerRollPotencyBadgeAndDuration } from "@/lib/potency-display"
 import type { PowerRollTierAmountSuffix } from "@/lib/power-roll-combat-bonuses"
 import { findPotencyEffectGlossaryEntry } from "@/lib/glossary-lookup"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import type { WeaponBondContext } from "@/lib/weapon-bond"
-import { getEffectiveWeaponDamage } from "@/lib/weapon-bond"
-import { statDeltaTextClass } from "@/lib/stat-delta-display"
-import { parseWeaponBaseDamage } from "@/lib/weapon-bond"
+import {
+    getEffectiveWeaponDamage,
+    parseWeaponBaseDamage,
+    type WeaponDamageContext,
+} from "@/lib/weapon-utils"
 
 export type PowerRollDisplayMode = "simple" | "formula"
 
@@ -36,7 +37,7 @@ export function PowerRollTierRow({
     flatDamageBonus = 0,
     shieldSubstituteWeaponDamage,
     tierAmountSuffix = "DMG",
-    weaponBondContext,
+    weaponDamageContext,
 }: {
     label: string
     roll: PowerRoll
@@ -52,7 +53,8 @@ export function PowerRollTierRow({
     shieldSubstituteWeaponDamage?: number | null
     /** Suffix for the tier amount line: DMG, HP (heal), or Barrier. */
     tierAmountSuffix?: PowerRollTierAmountSuffix
-    weaponBondContext?: WeaponBondContext
+    /** When set, Dueling Stance (+1) and similar weapon damage bonuses apply to +Wpn tiers. */
+    weaponDamageContext?: WeaponDamageContext
 }) {
     const tierDmgKey = `tier${tier}Dmg` as keyof PowerRoll
     const tierDmgRaw = roll[tierDmgKey]
@@ -64,8 +66,8 @@ export function PowerRollTierRow({
 
     let weaponBonus = 0
     if (hasWpn && weaponForPowerRoll?.type === "weapon") {
-        weaponBonus = weaponBondContext
-            ? getEffectiveWeaponDamage(weaponForPowerRoll, weaponBondContext)
+        weaponBonus = weaponDamageContext
+            ? getEffectiveWeaponDamage(weaponForPowerRoll, weaponDamageContext)
             : parseWeaponBaseDamage(weaponForPowerRoll)
     } else if (hasWpn && shieldSubstituteWeaponDamage != null && shieldSubstituteWeaponDamage > 0) {
         weaponBonus = shieldSubstituteWeaponDamage

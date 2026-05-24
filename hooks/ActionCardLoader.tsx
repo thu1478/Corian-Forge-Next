@@ -7,7 +7,7 @@ import type { TraitRef } from "@/lib/baseRefs"
 import {
     hasBrawlingWeaponInHands,
     hasEquippedWeaponForWeaponAction,
-} from "@/lib/weapon-power-roll";
+} from "@/lib/weapon-utils";
 
 /**
  * Specialized hook to discover and hydrate Action Cards.

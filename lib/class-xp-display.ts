@@ -1,5 +1,5 @@
 /**
- * Class XP “packets” are earned per class level (see getMaxClassXP in ClassSelection).
+ * Class XP “packets” are earned per class level (see {@link getMaxClassXpPacketCount}).
  * For UI we group those packets under adventurer-style cutoffs 1 / 3 / 5 / 7 / 9 so players see
  * which tier of talents still has unspent picks (same smallest-first assignment as creator validation).
  */
@@ -8,6 +8,47 @@ export const CLASS_XP_ADVENTURER_CUTOFFS = [1, 3, 5, 7, 9] as const
 export type ClassXpAdventurerCutoff = (typeof CLASS_XP_ADVENTURER_CUTOFFS)[number]
 
 export type ClassXpPacket = { tier: number; cutoff: ClassXpAdventurerCutoff }
+
+type LevelKey = `${1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10}`
+
+/** Starting XP threshold for an adventurer tier (from rules `startingXPPerLvl`). */
+export function getStartingXpForAdventurerLevel(
+    adventurerLevel: number,
+    startingXPPerLvl: Record<string, number>
+): number {
+    return startingXPPerLvl[String(adventurerLevel) as LevelKey] ?? 0
+}
+
+/** Total XP cost to reach `classLevel` in one class (sum of `xpCostPerLvl` 1..level). */
+export function calculateClassXPCost(
+    classLevel: number,
+    xpCostPerLvl: Record<string, number>
+): number {
+    let total = 0
+    for (let i = 1; i <= classLevel; i++) {
+        total += xpCostPerLvl[String(i) as LevelKey] ?? 0
+    }
+    return total
+}
+
+/** Talent pick slots earned at `classLevel` (same count as {@link buildClassXpPackets}). */
+export function getMaxClassXpPacketCount(classLevel: number): number {
+    return buildClassXpPackets(classLevel).length
+}
+
+/** Alias kept for call sites that pass this as a callback (e.g. fairy-tamer). */
+export const getMaxClassXP = getMaxClassXpPacketCount
+
+/**
+ * XP available to spend on class levels: max of starting threshold for adventurer tier and earned total.
+ */
+export function getAdventurerXpBudget(
+    adventurerLevel: number,
+    totalXP: number,
+    startingXPPerLvl: Record<string, number>
+): number {
+    return Math.max(getStartingXpForAdventurerLevel(adventurerLevel, startingXPPerLvl), totalXP)
+}
 
 /** Class levels 1–2 → cutoff 1, 3–4 → 3, … */
 export function classLevelToXpCutoff(classLevel: number): ClassXpAdventurerCutoff {

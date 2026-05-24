@@ -1,7 +1,6 @@
 import type { ArmorItem, InventoryItem, ShieldItem, WeaponItem } from "@/lib/equipment-data"
 import { actionTagsIncludeCanonical } from "@/lib/action-tag-utils"
-import type { WeaponBondContext } from "@/lib/weapon-bond"
-import { getEffectiveWeaponDamage, parseWeaponBaseDamage } from "@/lib/weapon-bond"
+import { parseWeaponBaseDamage } from "@/lib/weapon-utils"
 
 function martialSuffix(tags: string[] | undefined): string {
   return tags && actionTagsIncludeCanonical(tags, "martial") ? " · Martial" : ""
@@ -54,9 +53,8 @@ export function formatArmorDefenseValue(defense: ArmorItem["defense"]): string {
   return String(v)
 }
 
-export function weaponStatSummary(item: WeaponItem, bondCtx?: WeaponBondContext): string {
-  const baseDmg = parseWeaponBaseDamage(item)
-  const dmg = bondCtx ? getEffectiveWeaponDamage(item, bondCtx) : baseDmg
+export function weaponStatSummary(item: WeaponItem): string {
+  const dmg = parseWeaponBaseDamage(item)
   const dt = typeof item.damageType === "string" && item.damageType.trim() ? item.damageType.trim() : null
   const rng = item.range ?? 0
   const m = martialSuffix(item.tags)

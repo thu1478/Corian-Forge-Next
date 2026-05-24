@@ -26,6 +26,10 @@ import {
 } from "@/lib/creature-roster"
 import {
     canAssignClassXpPicksSmallestFirst,
+    calculateClassXPCost,
+    getAdventurerXpBudget,
+    getMaxClassXP,
+    getStartingXpForAdventurerLevel,
     summarizeClassXpByAdventurerCutoff,
 } from "@/lib/class-xp-display"
 import {
@@ -139,6 +143,12 @@ interface ClassSelectionProps {
     /** Priest: filters deity-specific actions in the talent grid. */
     priestDeity?: string | null;
     onPriestDeityChange?: (deityId: string | null) => void;
+    /**
+     * Total XP the character has earned (stored on save as `xp`).
+     * Class budget uses `max(startingXP for adventurer level, totalXP)`.
+     */
+    totalXP?: number;
+    onUpdateTotalXP?: (xp: number) => void;
     onUpdateLevel: (lvl: number) => void;
     onUpdateClassData: (classes: { id: string; level: number }[], traits: ClassOptionPick[]) => void;
     /** Conjurer Summoner: template id per slot (same length as slots when Summoner is active). */
@@ -168,6 +178,8 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
                                                            priestDeity = null,
                                                            onPriestDeityChange,
                                                            onUpdateLevel,
+                                                           totalXP,
+                                                           onUpdateTotalXP,
                                                            onUpdateClassData,
                                                            conjurerSummonTemplateIds = [],
                                                            onConjurerSummonsChange,
@@ -187,6 +199,8 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
     const [adventurerLevel, setAdventurerLevel] = useState<number>(currentAdventurerLevel);
     const [localClasses, setLocalClasses] = useState<{ id: string; level: number }[]>(classes);
     const [expandedClassId, setExpandedClassId] = useState<string | null>(null);
+    const [showTotalXpEditor, setShowTotalXpEditor] = useState(false);
+    const [totalXpDraft, setTotalXpDraft] = useState("");
 
     useEffect(() => {
         setLocalClasses(classes);
@@ -197,23 +211,34 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
     }, [currentAdventurerLevel]);
 
     // --- SYSTEM MATH ---
-    const getStartingXP = (lvl: number) => (rulesData.system.startingXPPerLvl as Record<LevelKey, number>)[lvl.toString() as LevelKey] || 0;
-    const calculateClassXPCost = (level: number): number => {
-        let total = 0;
-        for (let i = 1; i <= level; i++) total += (rulesData.system.xpCostPerLvl as Record<LevelKey, number>)[i.toString() as LevelKey] || 0;
-        return total;
-    };
-    const getMaxClassXP = (level: number): number => {
-        let total = 0;
-        for (let i = 1; i <= level; i++) total += (i <= 4) ? 2 : 1;
-        return total;
-    };
+    const startingXPPerLvl = rulesData.system.startingXPPerLvl as Record<LevelKey, number>;
+    const xpCostPerLvl = rulesData.system.xpCostPerLvl as Record<LevelKey, number>;
+    const getStartingXP = (lvl: number) => getStartingXpForAdventurerLevel(lvl, startingXPPerLvl);
 
     // Use the character's actual XP when provided so an imported character with
     // earned-after-creation XP can spend the surplus on more class levels/talents.
-    const totalBudget = Math.max(getStartingXP(adventurerLevel), availableXP ?? 0);
-    const spentBudget = localClasses.reduce((sum, c) => sum + calculateClassXPCost(c.level), 0);
+    const totalBudget = getAdventurerXpBudget(
+        adventurerLevel,
+        totalXP ?? availableXP ?? 0,
+        startingXPPerLvl
+    );
+    const spentBudget = localClasses.reduce(
+        (sum, c) => sum + calculateClassXPCost(c.level, xpCostPerLvl),
+        0
+    );
     const remainingAdventurerXP = totalBudget - spentBudget;
+
+    useEffect(() => {
+        if (showTotalXpEditor) {
+            setTotalXpDraft(String(totalBudget));
+        }
+    }, [showTotalXpEditor, totalBudget]);
+
+    const commitTotalXpDraft = () => {
+        const parsed = Math.max(0, Math.floor(Number(totalXpDraft) || 0));
+        onUpdateTotalXP?.(parsed);
+        setTotalXpDraft(String(parsed));
+    };
     const hasAtLeastOneClass = localClasses.some((c) => c.level > 0);
     const allClassXPAssigned = localClasses.every((c) => {
         const spentInClass = selectedOptions.filter((o) => o.source === c.id).length;
@@ -1055,11 +1080,50 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
                         {[...Array(10)].map((_, i) => <option key={i+1} value={i+1}>Lvl {i+1} Adventurer</option>)}
                     </select>
                 </div>
-                <div className="text-right bg-card border border-border p-6 rounded-3xl">
+                <div className="text-right bg-card border border-border p-6 rounded-3xl min-w-[12rem]">
                     <div className="text-[10px] font-black uppercase text-primary mb-1 tracking-widest">Available XP</div>
-                    <div className={cn("text-4xl font-black", remainingAdventurerXP < 0 ? 'text-destructive' : 'text-foreground')}>
+                    <div className={cn("text-4xl font-black tabular-nums", remainingAdventurerXP < 0 ? 'text-destructive' : 'text-foreground')}>
                         {remainingAdventurerXP}
                     </div>
+                    {onUpdateTotalXP ? (
+                        <div className="mt-3 pt-3 border-t border-border/80">
+                            <button
+                                type="button"
+                                onClick={() => setShowTotalXpEditor((v) => !v)}
+                                className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors"
+                            >
+                                {showTotalXpEditor ? "Hide total XP" : "Set total XP"}
+                            </button>
+                            {showTotalXpEditor ? (
+                                <div className="mt-3 space-y-2 text-left">
+                                    <label className="block text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                                        Total XP
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min={0}
+                                        step={1}
+                                        value={totalXpDraft}
+                                        onChange={(e) => setTotalXpDraft(e.target.value)}
+                                        onBlur={commitTotalXpDraft}
+                                        onKeyDown={(e) => {
+                                            if (e.key === "Enter") {
+                                                e.preventDefault();
+                                                commitTotalXpDraft();
+                                            }
+                                        }}
+                                        className="w-full bg-secondary border border-border rounded-xl px-3 py-2 font-black text-sm tabular-nums"
+                                    />
+                                    <p className="text-[10px] text-muted-foreground leading-snug">
+                                        {spentBudget} spent · {totalBudget} total
+                                        {totalBudget > getStartingXP(adventurerLevel)
+                                            ? " (above adventurer tier minimum)"
+                                            : null}
+                                    </p>
+                                </div>
+                            ) : null}
+                        </div>
+                    ) : null}
                 </div>
             </header>
 

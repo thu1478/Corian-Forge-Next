@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react"
+import { useCallback, useContext, useEffect, useMemo, useState, createContext, type ReactNode } from "react"
 import {
   DndContext,
   DragEndEvent,
@@ -108,12 +108,17 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Switch } from "@/components/ui/switch"
 import type { TraitRef } from "@/lib/baseRefs"
 import {
-  buildWeaponBondContext,
-  getEffectiveWeaponDamage,
-  hasWeaponBondPassive,
-  isMeleeWeapon,
-  parseWeaponBaseDamage,
-} from "@/lib/weapon-bond"
+    buildWeaponBondContext,
+    isBondedWeapon,
+    parseWeaponBaseDamage,
+    getEffectiveWeaponDamage,
+    hasWeaponBondPassive,
+    isMeleeWeapon,
+    type WeaponDamageContext,
+} from "@/lib/weapon-utils"
+import { getItemNameClass } from "@/lib/item-rank-display"
+import type { RulesWithItemRanks } from "@/lib/item-rank-display"
+import { WeaponBondBadge } from "@/components/equipment/weapon-bond-badge"
 import { statDeltaTextClass } from "@/lib/stat-delta-display"
 
 interface InventoryPanelProps {
@@ -149,7 +154,16 @@ interface InventoryPanelProps {
   traits?: TraitRef[]
   bondedWeaponUids?: string[]
   onToggleWeaponBond?: (uid: string, bonded: boolean) => void
+  activeWeapon?: InventoryItem | null
+  offhandWeapon?: InventoryItem | null
 }
+
+const InventoryItemDisplayContext = createContext<{
+  bondedWeaponUids?: string[]
+  traits?: TraitRef[]
+  rules?: RulesWithItemRanks
+  weaponDamageContext?: WeaponDamageContext
+}>({})
 
 const FILTER_TABS: { id: InventoryKindFilter; label: string }[] = [
   { id: "all", label: "All" },
@@ -191,6 +205,10 @@ function previewInventoryItemFromCatalog(
     uid: CATALOG_PREVIEW_UID,
     id,
     customName: undefined,
+    rank:
+      typeof def.rank === "string" && def.rank.trim()
+        ? def.rank.trim()
+        : "common",
     quantity,
     containerId: null,
     name: ruleName,
@@ -252,6 +270,10 @@ function DraggableItemRow({
   /** Shown like equipment proficiency warnings (e.g. container over max). */
   capacityWarningMessage?: string | null
 }) {
+  const displayCtx = useContext(InventoryItemDisplayContext)
+  const bondCtx = buildWeaponBondContext(displayCtx.traits, displayCtx.bondedWeaponUids)
+  const bonded = isBondedWeapon(item.uid, bondCtx)
+  const nameClass = getItemNameClass(item, displayCtx.rules)
   const id = `${INV_DRAG_ITEM_PREFIX}${item.uid}`
   const equipStats = equipmentStatSummaryLine(item)
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id })
@@ -290,7 +312,8 @@ function DraggableItemRow({
         }}
       >
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm font-medium text-foreground">{item.name}</span>
+          <span className={cn("text-sm font-medium", nameClass)}>{item.name}</span>
+          <WeaponBondBadge bonded={bonded} />
           <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase text-muted-foreground">
             {item.type}
           </span>
@@ -821,6 +844,7 @@ function InventoryItemDetailSheet({
   traits,
   bondedWeaponUids,
   onToggleWeaponBond,
+  weaponDamageContext,
 }: {
   item: InventoryItem | null
   open: boolean
@@ -837,9 +861,12 @@ function InventoryItemDetailSheet({
   traits?: TraitRef[]
   bondedWeaponUids?: string[]
   onToggleWeaponBond?: (uid: string, bonded: boolean) => void
+  weaponDamageContext?: WeaponDamageContext
 }) {
   const weaponBondPassive = hasWeaponBondPassive(traits)
-  const bondCtx = buildWeaponBondContext(traits, bondedWeaponUids ?? [])
+  const bondCtx = buildWeaponBondContext(traits, bondedWeaponUids)
+  const itemBonded = item ? isBondedWeapon(item.uid, bondCtx) : false
+  const itemNameClass = item ? getItemNameClass(item, rules as RulesWithItemRanks) : ""
   const showWeaponBondRow =
     !isCatalogPreview &&
     weaponBondPassive &&
@@ -904,7 +931,10 @@ function InventoryItemDetailSheet({
         {item ? (
           <>
         <SheetHeader className="space-y-1 border-b border-border px-6 py-5 text-left">
-          <SheetTitle className="pr-8 text-xl leading-snug">{item.name}</SheetTitle>
+          <SheetTitle className="flex flex-wrap items-center gap-2 pr-8 text-xl leading-snug">
+            <span className={itemNameClass}>{item.name}</span>
+            <WeaponBondBadge bonded={itemBonded} />
+          </SheetTitle>
           <SheetDescription className="text-xs text-muted-foreground">
             {isCatalogPreview ? (
               <>Catalog preview — add from the item catalog to put a copy in inventory.</>
@@ -973,7 +1003,9 @@ function InventoryItemDetailSheet({
                         className="min-w-0 flex-1 cursor-pointer"
                       >
                         <p className="font-medium text-foreground">Weapon bond</p>
-                        <p className="text-xs text-muted-foreground">+1 damage with this weapon</p>
+                        <p className="text-xs text-muted-foreground">
+                          Bonded weapon — see Weapon Bond trait
+                        </p>
                       </label>
                       <div
                         className="shrink-0"
@@ -1040,12 +1072,12 @@ function InventoryItemDetailSheet({
                       className={cn(
                         "tabular-nums font-mono",
                         statDeltaTextClass(
-                          getEffectiveWeaponDamage(item as WeaponItem, bondCtx),
+                          getEffectiveWeaponDamage(item as WeaponItem, weaponDamageContext),
                           parseWeaponBaseDamage(item as WeaponItem)
                         )
                       )}
                     >
-                      {getEffectiveWeaponDamage(item as WeaponItem, bondCtx)}
+                      {getEffectiveWeaponDamage(item as WeaponItem, weaponDamageContext)}
                     </span>
                   </p>
                   <p>
@@ -1303,6 +1335,8 @@ export function InventoryPanel({
   traits,
   bondedWeaponUids,
   onToggleWeaponBond,
+  activeWeapon = null,
+  offhandWeapon = null,
 }: InventoryPanelProps) {
   const [detailUid, setDetailUid] = useState<string | null>(null)
   const [catalogDetailId, setCatalogDetailId] = useState<string | null>(null)
@@ -1495,7 +1529,22 @@ export function InventoryPanel({
 
   const detailSheetOpen = detailItemForSheet != null
 
+  const itemDisplayCtx = useMemo(
+    () => ({
+      bondedWeaponUids,
+      traits,
+      rules: rules as RulesWithItemRanks,
+      weaponDamageContext: {
+        traits,
+        activeWeapon,
+        offhandWeapon,
+      } satisfies WeaponDamageContext,
+    }),
+    [bondedWeaponUids, traits, rules, activeWeapon, offhandWeapon]
+  )
+
   return (
+    <InventoryItemDisplayContext.Provider value={itemDisplayCtx}>
     <div className="space-y-4">
       <div className="rounded-xl border border-border bg-card p-4">
         <h3 className="mb-4 flex items-center gap-2 text-base font-semibold uppercase tracking-wider text-primary">
@@ -1982,7 +2031,9 @@ export function InventoryPanel({
         traits={traits}
         bondedWeaponUids={bondedWeaponUids}
         onToggleWeaponBond={onToggleWeaponBond}
+        weaponDamageContext={itemDisplayCtx.weaponDamageContext}
       />
     </div>
+    </InventoryItemDisplayContext.Provider>
   )
 }

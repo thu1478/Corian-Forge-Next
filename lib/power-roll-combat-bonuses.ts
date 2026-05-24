@@ -2,9 +2,8 @@ import { actionTagsIncludeCanonical } from "@/lib/action-tag-utils"
 import type { TraitRef } from "@/lib/baseRefs"
 import type { ActionCard, PowerRoll } from "@/lib/rules"
 import type { InventoryItem, ShieldItem, WeaponItem } from "@/lib/equipment-data"
-import { resolveWeaponForActionPowerRoll } from "@/lib/weapon-power-roll"
+import { resolveWeaponForActionPowerRoll, parseWeaponBaseDamage } from "@/lib/weapon-utils"
 import { traitRefsIncludeId } from "@/lib/trait-helpers"
-import { buildWeaponBondContext, getEffectiveWeaponDamage } from "@/lib/weapon-bond"
 
 function isShieldItem(w: InventoryItem | null | undefined): w is ShieldItem {
     return !!w && w.type === "shield"
@@ -33,13 +32,11 @@ export function getShieldMasterWeaponValue(
 export function getImplementWeaponDamageFromHands(
     activeWeapon: InventoryItem | null | undefined,
     offhandWeapon: InventoryItem | null | undefined,
-    bondCtx?: { bondedWeaponUids?: readonly string[] | null; traits?: readonly TraitRef[] },
 ): number {
-    const ctx = buildWeaponBondContext(bondCtx?.traits, bondCtx?.bondedWeaponUids ?? [])
     for (const w of [activeWeapon, offhandWeapon]) {
         if (!isWeaponItem(w)) continue
         if (!actionTagsIncludeCanonical(w.tags || [], "implement")) continue
-        return getEffectiveWeaponDamage(w, ctx)
+        return parseWeaponBaseDamage(w)
     }
     return 0
 }
@@ -83,7 +80,7 @@ export interface CombatRuleBonusInput {
     equippedArmor: InventoryItem | null | undefined
     /** Action ids granted by deployed creatures; excluded from Arcane Tradition implement bonus. */
     creatureGrantedActionIds?: ReadonlySet<string> | null
-    /** Weapon Bond: bonded inventory uids (+1 damage when passive active). */
+    /** Bonded weapon inventory uids (Weapon Bond passive). */
     bondedWeaponUids?: readonly string[] | null
 }
 
@@ -97,10 +94,7 @@ export function computePowerRollFlatDamageBonus(
     if (!ctx?.traits) return 0
     const { traits, activeWeapon, offhandWeapon, equippedArmor } = ctx
     const martial = equippedArmorIsMartial(equippedArmor)
-    const implementDmg = getImplementWeaponDamageFromHands(activeWeapon, offhandWeapon, {
-        traits,
-        bondedWeaponUids: ctx.bondedWeaponUids,
-    })
+    const implementDmg = getImplementWeaponDamageFromHands(activeWeapon, offhandWeapon)
     const shieldVal = getShieldMasterWeaponValue(activeWeapon, offhandWeapon)
     const hidden = action.hiddenTags
     const ap = action.apCost ?? 0
@@ -137,10 +131,7 @@ export function computeArcaneTraditionImplementBonus(
     if (hiddenTagsIncludeSustain(action.hiddenTags)) return 0
     if (!powerRollHasNumericTierDamage(action.powerRoll)) return 0
     if (equippedArmorIsMartial(ctx.equippedArmor)) return 0
-    const d = getImplementWeaponDamageFromHands(ctx.activeWeapon, ctx.offhandWeapon, {
-        traits: ctx.traits,
-        bondedWeaponUids: ctx.bondedWeaponUids,
-    })
+    const d = getImplementWeaponDamageFromHands(ctx.activeWeapon, ctx.offhandWeapon)
     return d > 0 ? d : 0
 }
 

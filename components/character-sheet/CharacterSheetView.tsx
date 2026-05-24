@@ -82,10 +82,14 @@ import {listCatalogActionCardIds, listCatalogReactionCardIds} from "@/lib/generi
 import {collectClassProficiencies, martialProficiencyDeficitMessage} from "@/lib/equipment-proficiency";
 import {
     buildWeaponBondContext,
-    getEffectiveWeaponDamage,
+    isBondedWeapon,
     parseWeaponBaseDamage,
-} from "@/lib/weapon-bond";
-import {statDeltaTextClass} from "@/lib/stat-delta-display";
+    getEffectiveWeaponDamage,
+    type WeaponDamageContext,
+} from "@/lib/weapon-utils";
+import { getItemNameClass } from "@/lib/item-rank-display";
+import { WeaponBondBadge } from "@/components/equipment/weapon-bond-badge";
+import { statDeltaTextClass } from "@/lib/stat-delta-display";
 import type {WeaponItem} from "@/lib/equipment-data";
 import {ProficienciesPanel} from "@/components/character-sheet/characterPage/proficiencies-panel";
 import {CreaturesPanel} from "@/components/character-sheet/characterPage/creatures-panel";
@@ -109,25 +113,34 @@ function weaponRangeLabel(weapon: unknown): string | null {
 
 function weaponDamageChip(
     weapon: { type?: string; damage?: unknown; uid?: string } | null | undefined,
-    bondCtx: ReturnType<typeof buildWeaponBondContext>,
-    className?: string,
+    options?: {
+        bonded?: boolean
+        weaponDamageContext?: WeaponDamageContext
+        className?: string
+    },
 ) {
     if (!weapon || weapon.type !== "weapon" || weapon.damage == null || String(weapon.damage) === "0") {
         return null
     }
     const w = weapon as WeaponItem
     const base = parseWeaponBaseDamage(w)
-    const effective = getEffectiveWeaponDamage(w, bondCtx)
+    const dmg = options?.weaponDamageContext
+        ? getEffectiveWeaponDamage(w, options.weaponDamageContext)
+        : base
+    const className = options?.className
     return (
-        <span
-            className={cn(
-                "flex items-center gap-1 text-xs font-mono bg-muted px-1.5 py-0.5 rounded border border-border",
-                statDeltaTextClass(effective, base) || "text-muted-foreground",
-                className,
-            )}
-        >
-            <Swords className="w-3 h-3 shrink-0"/>
-            {effective}
+        <span className="inline-flex items-center gap-1 shrink-0">
+            {options?.bonded ? <WeaponBondBadge bonded /> : null}
+            <span
+                className={cn(
+                    "flex items-center gap-1 text-xs font-mono bg-muted px-1.5 py-0.5 rounded border border-border text-muted-foreground",
+                    statDeltaTextClass(dmg, base),
+                    className,
+                )}
+            >
+                <Swords className="w-3 h-3 shrink-0"/>
+                {dmg}
+            </span>
         </span>
     )
 }
@@ -308,7 +321,11 @@ export function CharacterSheetView() {
 
     const bondedWeaponUids = character.bondedWeaponUids ?? []
     const combatDefenseDelta = character.combatDefenseDelta ?? 0
+    const combatStabilityDelta = character.combatStabilityDelta ?? 0
+    const combatSpeedDelta = character.combatSpeedDelta ?? 0
     const baseDefense = derived.defense
+    const baseStability = derived.stability
+    const baseSpeed = derived.speed
     const effectiveDefense = baseDefense + combatDefenseDelta
 
     const combatRuleContext: CombatRuleContext = {
@@ -320,12 +337,18 @@ export function CharacterSheetView() {
         bondedWeaponUids,
     };
 
-    const weaponBondCtx = buildWeaponBondContext(combatRuleContext.traits, bondedWeaponUids)
-
     const hasShieldMaster = traitRefsIncludeId(
         combatRuleContext.traits,
         "shieldMaster",
     )
+
+    const weaponBondCtx = buildWeaponBondContext(combatRuleContext.traits, bondedWeaponUids)
+
+    const weaponDamageContext: WeaponDamageContext = {
+        traits: combatRuleContext.traits,
+        activeWeapon: currentWeapon,
+        offhandWeapon,
+    }
 
     const activeWeaponRangeLabel = weaponRangeLabel(currentWeapon)
 
@@ -338,6 +361,14 @@ export function CharacterSheetView() {
 
     const handleDefenseDeltaChange = (delta: number) => {
         setCharacter((prev) => ({...prev, combatDefenseDelta: delta}))
+    }
+
+    const handleStabilityDeltaChange = (delta: number) => {
+        setCharacter((prev) => ({...prev, combatStabilityDelta: delta}))
+    }
+
+    const handleSpeedDeltaChange = (delta: number) => {
+        setCharacter((prev) => ({...prev, combatSpeedDelta: delta}))
     }
 
     const handleToggleWeaponBond = (uid: string, bonded: boolean) => {
@@ -753,6 +784,8 @@ export function CharacterSheetView() {
                 focus: 0,
                 barrier: 0,
                 combatDefenseDelta: 0,
+                combatStabilityDelta: 0,
+                combatSpeedDelta: 0,
                 respite: pool - s,
                 hp: Math.min(Math.max(prev.hp + s * hpPer, derived.deathThreshold), derived.maxHP),
                 mp: Math.min(Math.max(prev.mp + s * mpPer, 0), derived.maxMP),
@@ -921,8 +954,12 @@ export function CharacterSheetView() {
                                     baseDefense={baseDefense}
                                     defenseDelta={combatDefenseDelta}
                                     onDefenseDeltaChange={handleDefenseDeltaChange}
-                                    stability={derived.stability}
-                                    speed={derived.speed}
+                                    baseStability={baseStability}
+                                    stabilityDelta={combatStabilityDelta}
+                                    onStabilityDeltaChange={handleStabilityDeltaChange}
+                                    baseSpeed={baseSpeed}
+                                    speedDelta={combatSpeedDelta}
+                                    onSpeedDeltaChange={handleSpeedDeltaChange}
                                     resistances={derived.resistances}
                                     vulnerabilities={derived.vulnerabilities}
                                     conditionImmunities={derived.conditionImmunities}
@@ -1030,8 +1067,17 @@ export function CharacterSheetView() {
                                                         className="min-w-[180px] justify-between"
                                                     >
                             <span className="flex items-center gap-2 flex-wrap justify-end">
-                                {currentWeapon ? currentWeapon.name : "Empty"}
-                                {weaponDamageChip(currentWeapon, weaponBondCtx)}
+                                {currentWeapon ? (
+                                    <span className={cn("truncate", getItemNameClass(currentWeapon, rulesData))}>
+                                        {currentWeapon.name}
+                                    </span>
+                                ) : (
+                                    "Empty"
+                                )}
+                                {weaponDamageChip(currentWeapon, {
+                                    bonded: isBondedWeapon(currentWeapon?.uid, weaponBondCtx),
+                                    weaponDamageContext,
+                                })}
                                 {currentWeapon?.type === "shield" &&
                                     typeof (currentWeapon as { defense?: number }).defense === "number" && (
                                     <span
@@ -1065,9 +1111,22 @@ export function CharacterSheetView() {
                                                             }
                                                             className="justify-between"
                                                         >
-                                                            <span className="font-medium">{weapon.name}</span>
+                                                            <span className="flex items-center gap-1.5 font-medium min-w-0">
+                                                                <span className={cn("truncate", getItemNameClass(weapon, rulesData))}>
+                                                                    {weapon.name}
+                                                                </span>
+                                                                {weapon.type === "weapon" ? (
+                                                                    <WeaponBondBadge
+                                                                        bonded={isBondedWeapon(weapon.uid, weaponBondCtx)}
+                                                                    />
+                                                                ) : null}
+                                                            </span>
                                                             <div className="flex items-center gap-1 shrink-0">
-                                                                {weaponDamageChip(weapon, weaponBondCtx, "border-0 bg-transparent px-0 py-0")}
+                                                                {weaponDamageChip(weapon, {
+                                                                    bonded: false,
+                                                                    weaponDamageContext,
+                                                                    className: "border-0 bg-transparent px-0 py-0",
+                                                                })}
                                                                 {weapon.type === "shield" &&
                                                                     typeof weapon.defense === "number" && (
                                                                     <div
@@ -1213,6 +1272,7 @@ export function CharacterSheetView() {
                                 shieldMaster={hasShieldMaster}
                                 traits={character.traits}
                                 bondedWeaponUids={bondedWeaponUids}
+                                rules={rulesData}
                                 onAccessoryChange={handleAccessoryChange}
                                 onEquipmentChange={handleEquipmentChange}
                             />
@@ -1240,6 +1300,8 @@ export function CharacterSheetView() {
                                 traits={character.traits}
                                 bondedWeaponUids={bondedWeaponUids}
                                 onToggleWeaponBond={handleToggleWeaponBond}
+                                activeWeapon={currentWeapon}
+                                offhandWeapon={offhandWeapon}
                             />
                         </div>
                     </TabsContent>
@@ -1396,7 +1458,7 @@ export function CharacterSheetView() {
                         <AlertDialogTitle>Take a long rest?</AlertDialogTitle>
                         <AlertDialogDescription className="text-left space-y-2">
                             <span className="block">
-                                This will apply end-of-combat effects (focus and barrier cleared; combat defense adjustment reset), restore charges tagged for end of combat and long rest, then set HP and MP to maximum, restore all respites, and set victories to 0.
+                                This will apply end-of-combat effects (focus and barrier cleared; combat stat adjustments reset), restore charges tagged for end of combat and long rest, then set HP and MP to maximum, restore all respites, and set victories to 0.
                             </span>
                             <span className="block font-medium text-foreground">Only confirm if you intend a full long rest.</span>
                         </AlertDialogDescription>

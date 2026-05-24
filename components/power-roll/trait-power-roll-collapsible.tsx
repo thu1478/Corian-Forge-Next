@@ -11,7 +11,7 @@ import {
     type PowerRollDisplayMode,
 } from "@/components/power-roll/power-roll-tier-row"
 import type { TraitRef } from "@/lib/baseRefs"
-import { resolveWeaponForActionPowerRoll } from "@/lib/weapon-power-roll"
+import { resolveWeaponForActionPowerRoll } from "@/lib/weapon-utils"
 
 const TRAIT_BADGE = "bg-violet-200 text-violet-950 dark:bg-violet-900/80 dark:text-violet-100"
 
@@ -69,6 +69,18 @@ export function TraitPowerRollCollapsible({
         [actionTags, roll.rollStats, currentWeapon, offhandWeapon, traitRefs]
     )
 
+    const weaponDamageContext = useMemo(
+        () =>
+            traitRefs?.length
+                ? {
+                      traits: traitRefs,
+                      activeWeapon: currentWeapon,
+                      offhandWeapon,
+                  }
+                : undefined,
+        [traitRefs, currentWeapon, offhandWeapon]
+    )
+
     if (!isValidPowerRoll(roll)) return null
 
     return (
@@ -117,6 +129,7 @@ export function TraitPowerRollCollapsible({
                     attributes={attributes}
                     weaponForPowerRoll={weaponForPowerRollDamage}
                     powerRollDisplayMode={powerRollDisplayMode}
+                    weaponDamageContext={weaponDamageContext}
                 />
                 <PowerRollTierRow
                     label="12-16"
@@ -126,6 +139,7 @@ export function TraitPowerRollCollapsible({
                     attributes={attributes}
                     weaponForPowerRoll={weaponForPowerRollDamage}
                     powerRollDisplayMode={powerRollDisplayMode}
+                    weaponDamageContext={weaponDamageContext}
                 />
                 <PowerRollTierRow
                     label=">=17"
@@ -135,6 +149,7 @@ export function TraitPowerRollCollapsible({
                     attributes={attributes}
                     weaponForPowerRoll={weaponForPowerRollDamage}
                     powerRollDisplayMode={powerRollDisplayMode}
+                    weaponDamageContext={weaponDamageContext}
                 />
             </div>
         </div>

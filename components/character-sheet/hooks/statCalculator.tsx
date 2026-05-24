@@ -20,7 +20,7 @@ import {
     vulnerabilityDamageType,
 } from "@/lib/trait-selection";
 import {isGrantSkillEffect} from "@/lib/grant-skill-effects";
-import { isDualWielding, resolveEquippedHands } from "@/lib/dual-wield";
+import { isDualWielding, resolveEquippedHands } from "@/lib/weapon-utils";
 import {useMemo} from "react";
 
 /** Hydrate trait refs into full Trait objects (shared with character creator review). */

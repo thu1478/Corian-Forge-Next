@@ -22,12 +22,14 @@ type EndOfCombatCharacter = {
     focus?: number
     barrier?: number
     combatDefenseDelta?: number
+    combatStabilityDelta?: number
+    combatSpeedDelta?: number
     traits?: TraitRef[]
     actions?: ActionRef[]
     reactions?: Reaction[]
 }
 
-/** Focus/barrier cleared, combat defense adjustment reset; restores charges tagged `endOfCombat`. */
+/** Focus/barrier cleared, combat stat adjustments reset; restores charges tagged `endOfCombat`. */
 export function applyEndOfCombatEffects<T extends EndOfCombatCharacter>(
     prev: T,
     attributes: Record<string, number>,
@@ -49,5 +51,7 @@ export function applyEndOfCombatEffects<T extends EndOfCombatCharacter>(
         focus: 0,
         barrier: 0,
         combatDefenseDelta: 0,
+        combatStabilityDelta: 0,
+        combatSpeedDelta: 0,
     }
 }

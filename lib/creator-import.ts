@@ -123,10 +123,14 @@ function sanitizeBondedWeaponUids(raw: unknown): string[] {
     return out
 }
 
-function sanitizeCombatDefenseDelta(raw: unknown): number {
+function sanitizeCombatStatDelta(raw: unknown): number {
     const n = Number(raw)
     if (!Number.isFinite(n)) return 0
     return Math.floor(n)
+}
+
+function sanitizeCombatDefenseDelta(raw: unknown): number {
+    return sanitizeCombatStatDelta(raw)
 }
 
 function sanitizeCreatorSkillGrantPicks(raw: unknown): Record<string, string[]> {
@@ -200,7 +204,8 @@ export type CreatorImportResult = {
     selectedFeats: Partial<Record<number, FeatLevelPick>>;
 };
 
-const FEAT_LEVEL_ORDER = [1, 3, 5, 7, 9, 10] as const;
+export const ATTRIBUTE_BONUS_MILESTONES = [3, 5, 7, 9, 10] as const;
+export const FEAT_LEVEL_ORDER = [1, 3, 5, 7, 9, 10] as const;
 
 function resolveRaceKey(raceValue: string): string {
     const r = raceValue?.trim();
@@ -259,7 +264,8 @@ function normalizeReactionRef(r: unknown): { id: string; slotIndex: number; char
     };
 }
 
-function adventurerLevelFromXp(xp: number | undefined, starting: Record<string, number>): number {
+/** Highest adventurer tier whose starting XP threshold is met by `xp`. */
+export function adventurerLevelFromXp(xp: number | undefined, starting: Record<string, number>): number {
     if (xp == null || Number.isNaN(xp)) return 1;
     for (let l = 10; l >= 1; l--) {
         if (starting[String(l)] === xp) return l;
@@ -490,6 +496,8 @@ function mergeImportedCharData(json: any, empty: CharacterSaveData): CharacterSa
                           row.containerId = entry.containerId === null ? null : String(entry.containerId);
                       if (typeof entry.customName === "string" && entry.customName.trim())
                           row.customName = entry.customName.trim();
+                      if (typeof entry.rank === "string" && entry.rank.trim())
+                          row.rank = entry.rank.trim();
                       if (Array.isArray(entry.inventionModules)) {
                           row.inventionModules = entry.inventionModules
                               .map((x: unknown) => String(x ?? "").trim())
@@ -592,6 +600,8 @@ function mergeImportedCharData(json: any, empty: CharacterSaveData): CharacterSa
             : empty.creatures ?? [],
         bondedWeaponUids: sanitizeBondedWeaponUids(json.bondedWeaponUids),
         combatDefenseDelta: sanitizeCombatDefenseDelta(json.combatDefenseDelta),
+        combatStabilityDelta: sanitizeCombatStatDelta(json.combatStabilityDelta),
+        combatSpeedDelta: sanitizeCombatStatDelta(json.combatSpeedDelta),
         specialInvention: sanitizeSpecialInvention(json.specialInvention),
     };
 }

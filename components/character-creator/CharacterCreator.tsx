@@ -2,7 +2,11 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import rulesData from "@/lib/rules.json";
 import { CharacterSaveData, getCharacterLevelForStats } from "@/lib/character-data";
 import { FeatLevelPick } from "@/lib/baseRefs";
-import { createEmptyCreatorCharacter, parseCreatorImportJson } from "@/lib/creator-import";
+import {
+    adventurerLevelFromXp,
+    createEmptyCreatorCharacter,
+    parseCreatorImportJson,
+} from "@/lib/creator-import";
 import {
     conjurerClassTraitRefsFromPicks,
     getConjurerSummonSchoolTag,
@@ -47,6 +51,8 @@ import { OccupationStep } from "@/components/character-creator/steps/OccupationS
 import { FeatsStep } from "@/components/character-creator/steps/FeatsStep";
 import { CharacterReview } from "@/components/character-creator/CharacterReview";
 import { StepProgress } from "@/components/character-creator/steps/StepProgress";
+import { WelcomeStep } from "@/components/character-creator/steps/WelcomeStep";
+import { CREATOR_STEPS, listCreatorTodoItems } from "@/lib/creator-todos";
 
 type AttributeKey = "might" | "dexterity" | "reason" | "willpower" | "presence";
 
@@ -85,7 +91,7 @@ export default function CharacterCreator() {
     const importInputRef = useRef<HTMLInputElement>(null);
     const [charData, setCharData] = useState<CharacterSaveData>(() => createEmptyCreatorCharacter());
 
-    const STEPS = ["Race", "Class", "Abilities", "Culture", "Occupation", "Feats", "Review"];
+    const STEPS = [...CREATOR_STEPS];
     const [currentStep, setCurrentStep] = useState(0);
     const [adventurerLevel, setAdventurerLevel] = useState(1);
     const [classSelections, setClassSelections] = useState<ClassOptionPick[]>([]);
@@ -333,6 +339,55 @@ export default function CharacterCreator() {
         }));
     }, []);
 
+    const handleStartOver = useCallback(() => {
+        setCurrentStep(0);
+        setAdventurerLevel(1);
+        setLevelBonuses({});
+        setCultureEnvironment(null);
+        setCultureOrganization(null);
+        setCultureUpbringing(null);
+        setCultureSkills([]);
+        setOccupationSkills([]);
+        setOccupationLanguages(["common"]);
+        setSelectedFeats({});
+        setClassSelections([]);
+        setCharData(createEmptyCreatorCharacter());
+    }, []);
+
+    const creatorTodos = useMemo(
+        () =>
+            listCreatorTodoItems({
+                charData,
+                classSelections,
+                levelBonuses,
+                cultureEnvironment,
+                cultureOrganization,
+                cultureUpbringing,
+                cultureSkills,
+                occupationSkills,
+                occupationLanguages,
+                selectedFeats,
+                adventurerLevel,
+                effectiveAdventurerLevel,
+                skillGrantRequirements,
+            }),
+        [
+            charData,
+            classSelections,
+            levelBonuses,
+            cultureEnvironment,
+            cultureOrganization,
+            cultureUpbringing,
+            cultureSkills,
+            occupationSkills,
+            occupationLanguages,
+            selectedFeats,
+            adventurerLevel,
+            effectiveAdventurerLevel,
+            skillGrantRequirements,
+        ]
+    );
+
     return (
         <div className="w-full max-w-7xl mx-auto px-8 py-8 min-h-screen text-slate-900 dark:text-slate-100">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-3 mb-4">
@@ -354,6 +409,15 @@ export default function CharacterCreator() {
             </div>
             <StepProgress currentStep={currentStep} steps={STEPS} onStepClick={setCurrentStep} />
             {currentStep === 0 && (
+                <WelcomeStep
+                    todos={creatorTodos}
+                    onGoToStep={setCurrentStep}
+                    onStartOver={handleStartOver}
+                    onNext={handleNext}
+                />
+            )}
+
+            {currentStep === 1 && (
                 <RaceSelection
                     raceId={charData.race}
                     racialTraits={charData.traits.filter((t) => t.source === "racial")}
@@ -364,7 +428,7 @@ export default function CharacterCreator() {
                 />
             )}
 
-            {currentStep === 1 && (
+            {currentStep === 2 && (
                 <ClassSelection
                     selectedOptions={classSelections}
                     classes={charData.classes}
@@ -392,6 +456,22 @@ export default function CharacterCreator() {
                         setCharData((prev) => ({
                             ...prev,
                             xp: STARTING_XP[String(lvl)] ?? prev.xp,
+                            attributeLevelBonuses: pruneLevelBonusesForAdventurerLevel(
+                                prev.attributeLevelBonuses ?? {},
+                                lvl
+                            ),
+                        }));
+                    }}
+                    totalXP={charData.xp}
+                    onUpdateTotalXP={(xp) => {
+                        const clamped = Math.max(0, Math.floor(Number(xp) || 0));
+                        const lvl = adventurerLevelFromXp(clamped, STARTING_XP);
+                        setAdventurerLevel(lvl);
+                        setLevelBonuses((prev) => pruneLevelBonusesForAdventurerLevel(prev, lvl));
+                        setSelectedFeats((prev) => pruneSelectedFeatsForAdventurerLevel(prev, lvl));
+                        setCharData((prev) => ({
+                            ...prev,
+                            xp: clamped,
                             attributeLevelBonuses: pruneLevelBonusesForAdventurerLevel(
                                 prev.attributeLevelBonuses ?? {},
                                 lvl
@@ -503,7 +583,7 @@ export default function CharacterCreator() {
                 />
             )}
 
-            {currentStep === 2 && (
+            {currentStep === 3 && (
                 <AbilityScores
                     adventurerLevel={effectiveAdventurerLevel}
                     scores={charData.attributes}
@@ -529,7 +609,7 @@ export default function CharacterCreator() {
                 />
             )}
 
-            {currentStep === 3 && (
+            {currentStep === 4 && (
                 <CultureStep
                     cultureEnvironment={cultureEnvironment}
                     cultureOrganization={cultureOrganization}
@@ -566,7 +646,7 @@ export default function CharacterCreator() {
                 />
             )}
 
-            {currentStep === 4 && (
+            {currentStep === 5 && (
                 <OccupationStep
                     occupationId={charData.occupation}
                     occupationSkills={occupationSkills}
@@ -607,7 +687,7 @@ export default function CharacterCreator() {
                 />
             )}
 
-            {currentStep === 5 && (
+            {currentStep === 6 && (
                 <FeatsStep
                     selectedFeats={selectedFeats}
                     adventurerLevel={effectiveAdventurerLevel}
@@ -635,7 +715,7 @@ export default function CharacterCreator() {
                 />
             )}
 
-            {currentStep === 6 && (
+            {currentStep === 7 && (
                 <CharacterReview
                     charData={charData}
                     adventurerLevel={effectiveAdventurerLevel}
@@ -649,20 +729,7 @@ export default function CharacterCreator() {
                         setCharData((prev) => ({ ...prev, [field]: value }));
                     }}
                     onBack={handleBack}
-                    onStartOver={() => {
-                        setCurrentStep(0);
-                        setAdventurerLevel(1);
-                        setLevelBonuses({});
-                        setCultureEnvironment(null);
-                        setCultureOrganization(null);
-                        setCultureUpbringing(null);
-                        setCultureSkills([]);
-                        setOccupationSkills([]);
-                        setOccupationLanguages(["common"]);
-                        setSelectedFeats({});
-                        setClassSelections([]);
-                        setCharData(createEmptyCreatorCharacter());
-                    }}
+                    onStartOver={handleStartOver}
                 />
             )}
         </div>

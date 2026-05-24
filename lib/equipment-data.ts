@@ -71,6 +71,8 @@ export interface InventoryEntry {
     containerId?: string | null;
     /** Local display name only; does not change rules catalog. */
     customName?: string;
+    /** Item quality tier id — see `rules.system.itemRanks`; instance overrides catalog default. */
+    rank?: string;
     /** Active invention modules on this instance (Modular Armor / Support Backpack). */
     inventionModules?: string[];
     inventionModuleConfig?: InventionModuleConfig;
@@ -82,6 +84,8 @@ interface BaseItem {
     name: string;
     /** Save-only override; reflected in `name` when hydrated. */
     customName?: string;
+    /** Quality tier id from catalog or save override; colors name via `rules.system.itemRanks`. */
+    rank?: string;
     quantity: number;
     description: string;
     tags: string[];

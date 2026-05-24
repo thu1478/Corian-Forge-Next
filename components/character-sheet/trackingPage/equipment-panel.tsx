@@ -27,7 +27,9 @@ import {
 import {ArmorItem, Equipment, InventoryItem, MiscItem, ShieldItem, WeaponItem} from "@/lib/equipment-data";
 import {armorStatSummary, shieldStatSummary, weaponStatSummary} from "@/lib/equipment-stats-display";
 import type { TraitRef } from "@/lib/baseRefs";
-import { buildWeaponBondContext } from "@/lib/weapon-bond";
+import { buildWeaponBondContext, isBondedWeapon } from "@/lib/weapon-utils";
+import { getItemNameClass, type RulesWithItemRanks } from "@/lib/item-rank-display";
+import { WeaponBondBadge } from "@/components/equipment/weapon-bond-badge";
 import { martialProficiencyDeficitMessage } from "@/lib/equipment-proficiency";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -67,6 +69,28 @@ interface EquipmentPanelProps {
     shieldMaster?: boolean;
     traits?: TraitRef[];
     bondedWeaponUids?: string[];
+    rules?: RulesWithItemRanks;
+}
+
+function EquippedWeaponName({
+    item,
+    bonded,
+    rules,
+    className,
+}: {
+    item: WeaponItem | ShieldItem
+    bonded: boolean
+    rules?: RulesWithItemRanks
+    className?: string
+}) {
+    return (
+        <span className={cn("inline-flex min-w-0 items-center gap-1.5", className)}>
+            <span className={cn("truncate font-medium text-sm", getItemNameClass(item, rules))}>
+                {item.name}
+            </span>
+            {item.type === "weapon" ? <WeaponBondBadge bonded={bonded} /> : null}
+        </span>
+    )
 }
 
 const accessorySlots: { key: keyof Equipment["accessories"]; label: string; icon: React.ReactNode }[] = [
@@ -91,9 +115,10 @@ export function EquipmentPanel({
     shieldMaster = false,
     traits,
     bondedWeaponUids,
+    rules,
 }: EquipmentPanelProps) {
     const [showEquipped, setShowEquipped] = useState<"all" | "equipped" | "empty">("all")
-    const weaponBondCtx = buildWeaponBondContext(traits, bondedWeaponUids ?? [])
+    const bondCtx = buildWeaponBondContext(traits, bondedWeaponUids ?? [])
 
     const activeProfWarn =
         martialProficiencyIds != null
@@ -181,12 +206,18 @@ export function EquipmentPanel({
                             <DropdownMenuTrigger asChild>
                                 <Button variant="outline" size="sm" className="w-full justify-between text-sm h-9">
                 <span className={cn(
-                    "truncate",
-                    // equipment.activeWeapon is now the OBJECT, so !! check works
-                    !!equipment.activeWeapon ? "text-foreground" : "text-muted-foreground italic"
+                    "flex min-w-0 flex-1 items-center gap-1.5 truncate",
+                    !!equipment.activeWeapon ? "" : "text-muted-foreground italic"
                 )}>
-                    {/* Access .name directly from the hydrated object */}
-                    {equipment.activeWeapon?.name || "Empty"}
+                    {equipment.activeWeapon ? (
+                        <EquippedWeaponName
+                            item={equipment.activeWeapon}
+                            bonded={isBondedWeapon(equipment.activeWeapon.uid, bondCtx)}
+                            rules={rules}
+                        />
+                    ) : (
+                        "Empty"
+                    )}
                 </span>
                                     <ChevronDown className="w-4 h-4 shrink-0 ml-2"/>
                                 </Button>
@@ -207,11 +238,15 @@ export function EquipmentPanel({
                                         <div className="flex items-center gap-2">
                                             {item.type === "weapon" ? <Sword className="w-3 h-3 opacity-50"/> :
                                                 <Shield className="w-3 h-3 opacity-50"/>}
-                                            <span className="font-medium text-sm">{item.name}</span>
+                                            <EquippedWeaponName
+                                                item={item}
+                                                bonded={isBondedWeapon(item.uid, bondCtx)}
+                                                rules={rules}
+                                            />
                                         </div>
                                         <span className="text-[10px] font-mono tabular-nums text-muted-foreground leading-snug">
                                             {item.type === "weapon"
-                                                ? weaponStatSummary(item, weaponBondCtx)
+                                                ? weaponStatSummary(item)
                                                 : shieldStatSummary(item)}
                                         </span>
                                     </DropdownMenuItem>
@@ -221,7 +256,7 @@ export function EquipmentPanel({
                         {equipment.activeWeapon ? (
                             <p className="mt-2 text-[10px] font-mono tabular-nums text-muted-foreground truncate">
                                 {equipment.activeWeapon.type === "weapon"
-                                    ? weaponStatSummary(equipment.activeWeapon, weaponBondCtx)
+                                    ? weaponStatSummary(equipment.activeWeapon)
                                     : shieldStatSummary(equipment.activeWeapon)}
                             </p>
                         ) : null}
@@ -240,10 +275,18 @@ export function EquipmentPanel({
                             <DropdownMenuTrigger asChild>
                                 <Button variant="outline" size="sm" className="w-full justify-between text-sm h-9">
                     <span className={cn(
-                        "truncate",
-                        !!equipment.offhand ? "text-foreground" : "text-muted-foreground italic"
+                        "flex min-w-0 flex-1 items-center gap-1.5 truncate",
+                        !!equipment.offhand ? "" : "text-muted-foreground italic"
                     )}>
-                        {equipment.offhand?.name || "Empty"}
+                        {equipment.offhand ? (
+                            <EquippedWeaponName
+                                item={equipment.offhand}
+                                bonded={isBondedWeapon(equipment.offhand.uid, bondCtx)}
+                                rules={rules}
+                            />
+                        ) : (
+                            "Empty"
+                        )}
                     </span>
                                     <ChevronDown className="w-4 h-4 shrink-0 ml-2"/>
                                 </Button>
@@ -266,12 +309,16 @@ export function EquipmentPanel({
                                         <div className="flex items-center gap-2">
                                             {item.type === "weapon" ? <Sword className="w-3 h-3 opacity-50"/> :
                                                 <Shield className="w-3 h-3 opacity-50"/>}
-                                            <span className="font-medium text-sm">{item.name}</span>
+                                            <EquippedWeaponName
+                                                item={item}
+                                                bonded={isBondedWeapon(item.uid, bondCtx)}
+                                                rules={rules}
+                                            />
                                         </div>
 
                                         <span className="text-[10px] font-mono tabular-nums text-muted-foreground leading-snug">
                                             {item.type === "weapon"
-                                                ? weaponStatSummary(item, weaponBondCtx)
+                                                ? weaponStatSummary(item)
                                                 : shieldStatSummary(item)}
                                         </span>
                                     </DropdownMenuItem>
@@ -281,7 +328,7 @@ export function EquipmentPanel({
                         {equipment.offhand ? (
                             <p className="mt-2 text-[10px] font-mono tabular-nums text-muted-foreground truncate">
                                 {equipment.offhand.type === "weapon"
-                                    ? weaponStatSummary(equipment.offhand, weaponBondCtx)
+                                    ? weaponStatSummary(equipment.offhand)
                                     : shieldStatSummary(equipment.offhand)}
                             </p>
                         ) : null}

@@ -18,11 +18,18 @@ export function hydrateItemData(rawCharacter: CharacterSaveData | null, rules: a
 
             const ruleName = itemDef?.name ?? `Unknown (${entry.id})`;
             const custom = typeof entry.customName === "string" ? entry.customName.trim() : "";
+            const rankRaw =
+                typeof entry.rank === "string" && entry.rank.trim()
+                    ? entry.rank.trim()
+                    : typeof itemDef?.rank === "string" && itemDef.rank.trim()
+                      ? itemDef.rank.trim()
+                      : "common";
             return {
                 ...itemDef, // Spread name, description, type, etc.
                 uid: entry.uid,
                 id: entry.id,
                 customName: custom || undefined,
+                rank: rankRaw,
                 quantity: entry.quantity ?? itemDef?.quantity ?? 1,
                 containerId: entry.containerId ?? null,
                 inventionModules: entry.inventionModules,

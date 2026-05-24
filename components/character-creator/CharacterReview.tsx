@@ -262,7 +262,7 @@ export function CharacterReview({
       occupation: charData.occupation ?? null,
       theme: charData.background,
       race: raceData?.name ?? charData.race,
-      xp: (rulesData.system.startingXPPerLvl as Record<string, number>)[String(adventurerLevel)] ?? charData.xp,
+      xp: charData.xp,
       actions,
       reactions,
       conjurerSummonTemplateIds: charData.conjurerSummonTemplateIds ?? [],

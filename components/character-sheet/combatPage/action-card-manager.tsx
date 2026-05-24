@@ -10,8 +10,7 @@ import {
     PowerRollTierRow,
     type PowerRollDisplayMode,
 } from "@/components/power-roll/power-roll-tier-row"
-import { resolveWeaponForActionPowerRoll } from "@/lib/weapon-power-roll"
-import { buildWeaponBondContext } from "@/lib/weapon-bond"
+import { resolveWeaponForActionPowerRoll } from "@/lib/weapon-utils"
 import {
     computeArcaneTraditionImplementBonus,
     computePowerRollFlatDamageBonus,
@@ -142,18 +141,21 @@ export function ActionCardComponent({
         return fromCards + arcane
     }, [action, combatRuleContext])
 
+    const weaponDamageContext = useMemo(
+        () =>
+            combatRuleContext
+                ? {
+                      traits: combatRuleContext.traits,
+                      activeWeapon: combatRuleContext.activeWeapon ?? null,
+                      offhandWeapon: combatRuleContext.offhandWeapon ?? null,
+                  }
+                : undefined,
+        [combatRuleContext]
+    )
+
     const tierAmountSuffix = useMemo(
         () => resolvePowerRollTierAmountSuffix(action.hiddenTags),
         [action.hiddenTags]
-    )
-
-    const weaponBondContext = useMemo(
-        () =>
-            buildWeaponBondContext(
-                combatRuleContext?.traits,
-                combatRuleContext?.bondedWeaponUids ?? []
-            ),
-        [combatRuleContext?.traits, combatRuleContext?.bondedWeaponUids]
     )
 
     // Effect to listen to the "Global Collapse" button from parent
@@ -444,7 +446,7 @@ export function ActionCardComponent({
                                 flatDamageBonus={flatPowerRollBonus}
                                 tierAmountSuffix={tierAmountSuffix}
                                 powerRollDisplayMode={powerRollDisplayMode}
-                                weaponBondContext={weaponBondContext}
+                                weaponDamageContext={weaponDamageContext}
                             />
                             <PowerRollTierRow
                                 label="12-16"
@@ -457,7 +459,7 @@ export function ActionCardComponent({
                                 flatDamageBonus={flatPowerRollBonus}
                                 tierAmountSuffix={tierAmountSuffix}
                                 powerRollDisplayMode={powerRollDisplayMode}
-                                weaponBondContext={weaponBondContext}
+                                weaponDamageContext={weaponDamageContext}
                             />
                             <PowerRollTierRow
                                 label=">=17"
@@ -470,7 +472,7 @@ export function ActionCardComponent({
                                 flatDamageBonus={flatPowerRollBonus}
                                 tierAmountSuffix={tierAmountSuffix}
                                 powerRollDisplayMode={powerRollDisplayMode}
-                                weaponBondContext={weaponBondContext}
+                                weaponDamageContext={weaponDamageContext}
                             />
                         </div>
                     </div>
