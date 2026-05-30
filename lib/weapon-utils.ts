@@ -2,6 +2,8 @@ import { actionTagsIncludeCanonical } from "@/lib/action-tag-utils"
 import type { TraitRef } from "@/lib/baseRefs"
 import type { InventoryItem, ShieldItem, WeaponItem } from "@/lib/equipment-data"
 import { traitRefsIncludeId } from "@/lib/trait-helpers"
+import { isAnimaWeaponSlotUid } from "@/lib/anima-weapon-slots"
+import { resolveAnimaHandWeapon, type RulesWithNaturalWeapons } from "@/lib/natural-weapons"
 
 // ---------------------------------------------------------------------------
 // Type guards
@@ -34,7 +36,11 @@ function isImplementWeapon(item: InventoryItem | null | undefined): boolean {
 // Equipment / dual wield
 // ---------------------------------------------------------------------------
 
-function resolveHandSlot(slot: unknown, inventory: unknown[] | undefined): InventoryItem | null {
+function resolveHandSlot(
+    slot: unknown,
+    inventory: unknown[] | undefined,
+    animaContext?: { activeTemplateId: string | null; rules: RulesWithNaturalWeapons }
+): InventoryItem | null {
     if (slot == null) return null
     if (typeof slot === "object" && slot !== null && "type" in slot) {
         const t = (slot as InventoryItem).type
@@ -42,7 +48,14 @@ function resolveHandSlot(slot: unknown, inventory: unknown[] | undefined): Inven
         return null
     }
     const uid = typeof slot === "string" ? slot : null
-    if (!uid || !Array.isArray(inventory)) return null
+    if (!uid) return null
+
+    if (isAnimaWeaponSlotUid(uid) && animaContext?.activeTemplateId) {
+        const animaWeapon = resolveAnimaHandWeapon(uid, animaContext.activeTemplateId, animaContext.rules)
+        if (animaWeapon) return animaWeapon
+    }
+
+    if (!Array.isArray(inventory)) return null
     const item = inventory.find((i: unknown) => {
         if (!i || typeof i !== "object") return false
         return String((i as { uid?: string }).uid) === String(uid)
@@ -52,11 +65,20 @@ function resolveHandSlot(slot: unknown, inventory: unknown[] | undefined): Inven
     return null
 }
 
+export type ResolveEquippedHandsOpts = {
+    activeDruidAnimaTemplateId?: string | null
+    rules?: RulesWithNaturalWeapons
+}
+
 /** Hydrated equipment objects or inventory UIDs (creator / save). */
-export function resolveEquippedHands(character: {
-    equipment?: { activeWeapon?: unknown; offhand?: unknown } | null
-    inventory?: unknown[]
-} | null | undefined): {
+export function resolveEquippedHands(
+    character: {
+        equipment?: { activeWeapon?: unknown; offhand?: unknown } | null
+        inventory?: unknown[]
+        activeDruidAnimaTemplateId?: string | null
+    } | null | undefined,
+    opts?: ResolveEquippedHandsOpts
+): {
     activeWeapon: InventoryItem | null
     offhandWeapon: InventoryItem | null
 } {
@@ -64,9 +86,15 @@ export function resolveEquippedHands(character: {
     if (!eq) {
         return { activeWeapon: null, offhandWeapon: null }
     }
+    const activeTemplateId =
+        opts?.activeDruidAnimaTemplateId ?? character?.activeDruidAnimaTemplateId ?? null
+    const animaContext =
+        activeTemplateId && opts?.rules
+            ? { activeTemplateId, rules: opts.rules }
+            : undefined
     return {
-        activeWeapon: resolveHandSlot(eq.activeWeapon, character?.inventory),
-        offhandWeapon: resolveHandSlot(eq.offhand, character?.inventory),
+        activeWeapon: resolveHandSlot(eq.activeWeapon, character?.inventory, animaContext),
+        offhandWeapon: resolveHandSlot(eq.offhand, character?.inventory, animaContext),
     }
 }
 

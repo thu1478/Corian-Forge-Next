@@ -6,6 +6,18 @@ function martialSuffix(tags: string[] | undefined): string {
   return tags && actionTagsIncludeCanonical(tags, "martial") ? " · Martial" : ""
 }
 
+function heavySuffix(tags: string[] | undefined): string {
+  return tags && actionTagsIncludeCanonical(tags, "heavy") ? " · Heavy" : ""
+}
+
+function slowStartSuffix(tags: string[] | undefined): string {
+  return tags && actionTagsIncludeCanonical(tags, "slowStart") ? " · Slow Start" : ""
+}
+
+function equipmentTagSuffixes(tags: string[] | undefined): string {
+  return martialSuffix(tags) + heavySuffix(tags) + slowStartSuffix(tags)
+}
+
 function weaponHandsSuffix(tags: string[] | undefined): string {
   if (!tags) return ""
   if (actionTagsIncludeCanonical(tags, "1H")) return " · 1H"
@@ -57,16 +69,16 @@ export function weaponStatSummary(item: WeaponItem): string {
   const dmg = parseWeaponBaseDamage(item)
   const dt = typeof item.damageType === "string" && item.damageType.trim() ? item.damageType.trim() : null
   const rng = item.range ?? 0
-  const m = martialSuffix(item.tags)
+  const tags = equipmentTagSuffixes(item.tags)
   const h = weaponHandsSuffix(item.tags)
   const base = dt != null ? `Damage ${dmg} (${dt}) · Range ${rng}` : `Damage ${dmg} · Range ${rng}`
-  return base + rollStatsSuffix(item.attributes) + m + h
+  return base + rollStatsSuffix(item.attributes) + tags + h
 }
 
 export function armorStatSummary(item: ArmorItem): string {
   const def = formatArmorDefenseValue(item.defense)
   const stab = item.stability ?? 0
-  return `Defense ${def} · Stability ${stab}${martialSuffix(item.tags)}`
+  return `Defense ${def} · Stability ${stab}${equipmentTagSuffixes(item.tags)}`
 }
 
 export function shieldStatSummary(item: ShieldItem): string {
@@ -76,7 +88,7 @@ export function shieldStatSummary(item: ShieldItem): string {
       : null
   const def = item.defense ?? 0
   const base = stab != null ? `Defense ${def} · Stability ${stab}` : `Defense ${def}`
-  return base + martialSuffix(item.tags)
+  return base + equipmentTagSuffixes(item.tags)
 }
 
 export function equipmentStatSummaryLine(item: InventoryItem): string | null {
@@ -114,7 +126,7 @@ export function equipmentStatSummaryFromDef(def: Record<string, unknown>): strin
       ? def.attributes.filter((a): a is string => typeof a === "string" && a.trim().length > 0)
       : []
     const base = dt != null ? `Damage ${dmg} (${dt}) · Range ${rng}` : `Damage ${dmg} · Range ${rng}`
-    return base + rollStatsSuffix(attrs) + martialSuffix(tags) + weaponHandsSuffix(tags)
+    return base + rollStatsSuffix(attrs) + equipmentTagSuffixes(tags) + weaponHandsSuffix(tags)
   }
   if (t === "armor" && def.defense != null && typeof def.defense === "object") {
     const d = def.defense as Record<string, unknown>
@@ -125,12 +137,12 @@ export function equipmentStatSummaryFromDef(def: Record<string, unknown>): strin
       if (typeof d.attrMax === "number") defStr += ` (max +${d.attrMax})`
     }
     const stab = typeof def.stability === "number" ? def.stability : 0
-    return `Defense ${defStr} · Stability ${stab}${martialSuffix(tags)}`
+    return `Defense ${defStr} · Stability ${stab}${equipmentTagSuffixes(tags)}`
   }
   if (t === "shield" && typeof def.defense === "number") {
     const stab = typeof def.stability === "number" ? def.stability : null
     const base = stab != null ? `Defense ${def.defense} · Stability ${stab}` : `Defense ${def.defense}`
-    return base + martialSuffix(tags)
+    return base + equipmentTagSuffixes(tags)
   }
   if (t === "container") {
     const cap = def.containerCapacity

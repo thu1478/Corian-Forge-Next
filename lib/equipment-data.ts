@@ -114,6 +114,7 @@ export interface WeaponItem extends BaseItem {
 export interface ShieldItem extends BaseItem {
     type: "shield";
     defense: number;
+    stability?: number;
 }
 
 export interface ArmorItem extends BaseItem {

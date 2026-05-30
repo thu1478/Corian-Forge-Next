@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import {CharacterSaveData} from "@/lib/character-data";
 import {WeaponItem, ArmorItem, MiscItem, ShieldItem} from "@/lib/equipment-data";
 import {HydratedCharacter} from "@/lib/HydratedChar";
+import { isAnimaWeaponSlotUid, resolveAnimaHandWeapon, type RulesWithNaturalWeapons } from "@/lib/natural-weapons";
 
 export function hydrateItemData(rawCharacter: CharacterSaveData | null, rules: any) {
     const hydratedCharacter = useMemo((): HydratedCharacter | null => {
@@ -42,16 +43,26 @@ export function hydrateItemData(rawCharacter: CharacterSaveData | null, rules: a
 
         // 2. Hydrate the Equipment slots using the new fullInventory
         const equipment = rawCharacter.equipment;
+        const resolveHandSlot = (slot: unknown): WeaponItem | ShieldItem | null => {
+            if (slot == null) return null;
+            const uid = typeof slot === "string" ? slot : null;
+            if (!uid) return null;
+            if (isAnimaWeaponSlotUid(uid)) {
+                return resolveAnimaHandWeapon(
+                    uid,
+                    rawCharacter.activeDruidAnimaTemplateId,
+                    rules as RulesWithNaturalWeapons
+                );
+            }
+            const i = fullInventory.find((x) => x.uid === uid);
+            if (!i) return null;
+            if (i.type === "weapon" || i.type === "shield") return i as WeaponItem | ShieldItem;
+            return null;
+        };
+
         const hydratedEquipment = {
-            activeWeapon: (() => {
-                const i = fullInventory.find((x) => x.uid === equipment.activeWeapon);
-                if (!i) return null;
-                if (i.type === "weapon" || i.type === "shield") return i as WeaponItem | ShieldItem;
-                return null;
-            })(),
-            offhand:
-                (fullInventory.find((i) => i.uid === equipment.offhand) as WeaponItem | ShieldItem | undefined) ??
-                null,
+            activeWeapon: resolveHandSlot(equipment.activeWeapon),
+            offhand: resolveHandSlot(equipment.offhand),
             armor: (fullInventory.find((i) => i.uid === equipment.armor) as ArmorItem | undefined) ?? null,
             accessories: Object.fromEntries(
                 Object.entries(equipment.accessories ?? {}).map(([slot, uid]) => [

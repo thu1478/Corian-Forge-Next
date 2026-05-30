@@ -14,7 +14,19 @@
           "trigger": "A hostile creature leaves your melee range while you have a non-Implement melee weapon equipped",
           "description": "Deal fixed physical damage to the target equal to your melee weapon damage"
         }
-      ]
+      ],
+      "naturalWeapon": {
+        "attributes": [
+          "might",
+          "dexterity"
+        ],
+        "range": 1,
+        "tags": [
+          "melee",
+          "natural",
+          "brawling"
+        ]
+      }
     },
     "damageTypes": [
       "crushing",
@@ -706,7 +718,7 @@
       "manaStrike": {
         "name": "Mana Strike",
         "minLevel": 1,
-        "description": "Once per round you can spend 5 Mana to add half your Rea, WiP, or Pre modifier (round up) to your weapon attack's damage."
+        "description": "Once per round you can spend 5 Mana to add half your Rea, WiP, or Pre modifier (round up) to your weapon's damage for a weapon attack."
       },
       "coupDeGrace": {
         "name": "Coup de Grace",
@@ -769,19 +781,8 @@
         "prereqs": {
           "classes": {
             "1": [
+              "druid",
               "scout"
-            ]
-          }
-        }
-      },
-      "spearCharge": {
-        "name": "Spear Charge",
-        "minLevel": 1,
-        "description": "If you use Charge while wielding a polearm you deal +1 damage.",
-        "prereqs": {
-          "classes": {
-            "1": [
-              "weaponmaster"
             ]
           }
         }
@@ -819,7 +820,8 @@
             "1": [
               "weaponmaster",
               "guardian",
-              "marksman"
+              "marksman",
+              "rider"
             ]
           }
         }
@@ -832,6 +834,7 @@
           "classes": {
             "1": [
               "conjurer",
+              "druid",
               "priest",
               "sorcerer",
               "tactician"
@@ -847,6 +850,7 @@
           "classes": {
             "1": [
               "conjurer",
+              "druid",
               "priest",
               "sorcerer",
               "tactician"
@@ -879,6 +883,18 @@
               "marksman",
               "sorcerer",
               "weaponmaster"
+            ]
+          }
+        }
+      },
+      "critterForm": {
+        "name": "Critter Form",
+        "minLevel": 1,
+        "description": "You may transform into a Critter Anima without spending any of your Anima charges. This form must be a 1T creature such as a rabbit that has no combat capabilities. You may choose creatures with a Swimming or Climbing Speed, but not a flying Speed.",
+        "prereqs": {
+          "classes": {
+            "3": [
+              "druid"
             ]
           }
         }
@@ -1027,6 +1043,7 @@
           "classes": {
             "3": [
               "conjurer",
+              "druid",
               "fairytamer",
               "scout",
               "tactician"
@@ -1064,7 +1081,7 @@
         "description": "Your ranged attacks deal +3 damage against flying targets",
         "prereqs": {
           "classes": {
-            "3": [
+            "1": [
               "marksman"
             ]
           }
@@ -1140,6 +1157,7 @@
             {
               "classes": {
                 "1": [
+                  "rider",
                   "weaponmaster",
                   "guardian"
                 ]
@@ -1321,6 +1339,9 @@
           "classes": {
             "5": [
               "fury"
+            ],
+            "7": [
+              "rider"
             ]
           }
         }
@@ -1363,13 +1384,6 @@
         "name": "Magic Penetration",
         "minLevel": 5,
         "description": "You may double the mana cost of a spell to ignore resistance.",
-        "prereqs": {
-          "classes": {
-            "5": [
-              "sorcerer"
-            ]
-          }
-        },
         "prereqs": {
           "any": [
             {
@@ -1449,7 +1463,36 @@
               "brawler",
               "fury",
               "marksman",
+              "rider",
               "weaponmaster"
+            ]
+          }
+        }
+      },
+      "cavalrySlayer": {
+        "name": "Cavalry Slayer",
+        "minLevel": 5,
+        "description": "You deal +2 physical damage to mounted targets",
+        "prereqs": {
+          "classes": {
+            "3": [
+              "brawler",
+              "fury",
+              "marksman",
+              "rider",
+              "weaponmaster"
+            ]
+          }
+        }
+      },
+      "passengerPrincess": {
+        "name": "Passenger Princess",
+        "minLevel": 5,
+        "description": "Your Faithful Steed has their passengers count increased by 1. You may spend 1 AP to pickup a willing adjacent creature provided you have an empty passenger slot or drop off an existing passenger into an adjacent unoccupied tile.",
+        "prereqs": {
+          "classes": {
+            "3": [
+              "rider"
             ]
           }
         }
@@ -3061,6 +3104,673 @@
         }
       ]
     },
+    "druid": {
+      "name": "Druid",
+      "description": "Druids invoke the powers of nature to curse their enemies and aid their allies.",
+      "proficiencies": [],
+      "primaryAttribute": "willpower",
+      "statBonus": {
+        "stat": "mp",
+        "amount": 1,
+        "frequency": 1
+      },
+      "focusFeat": {
+        "name": "Survival of the Fittest",
+        "description": "The first time per round any creature within 5 tiles has their HP or Barrier amount change you gain 1 Focus."
+      },
+      "freeFeaturesNote": "Druid: You can comfortably take a nap almost anywhere in the wild.\n\nYou gain +1 Max MP per Druid level. You cannot cast Druid spells while wearing martial armor.",
+      "passives": {
+        "naturesGift": {
+          "name": "Nature's Gift",
+          "minLevel": 1,
+          "description": "You only lose 1 HP instead of 2 for each AP spent under the Bleeding effect. Once you've unlocked Anima you may also spend a Respite to use Anima even if you don't have any more uses."
+        },
+        "curseMark": {
+          "name": "Curse Mark",
+          "minLevel": 1,
+          "description": "You may spend HP instead of Mana to pay for Maintain effects."
+        },
+        "anima": {
+          "name": "Anima",
+          "minLevel": 3,
+          "description": "Twice per Long Rest you may spend 2 AP to transform into one of your Anima for up to 1 hour. When you do so you gain Barrier equal to Druid level x 3. You may select 2 Anima of level 2 or lower. At level 5 you may select 1 Anima of level 4 or lower.\n\nBenefits:\n- You can stay in Anima form up to 1 hour.\n- On use you immediately gain Barrier equal to Druid level x 3.\n- You take on the chosen Anima's Might, Dexterity, Defense, Stability, and Speed.\n- You may use Brawler abilities while in Anima form.\n\nDrawbacks:\n- While in Anima form you cannot speak any of your languages or cast spells, though you may still Maintain existing effects.\n- If you are Bloodied or take physical damage exceeding your Might score in a single hit you revert back to normal form.\n- You cannot use Anima while wearing martial armor.",
+          "fixedMaxCharges": 2,
+          "chargeReset": [
+            "longRest"
+          ]
+        },
+        "leechSeed": {
+          "name": "Leech Seed",
+          "minLevel": 5,
+          "description": "If any creature spends Mana inside of one of your Area spells that have a Maintain tag you gain 3 Mana"
+        }
+      },
+      "actions": {
+        "earthPulse": {
+          "minLevel": 1,
+          "actionCard": {
+            "name": "Earth Pulse",
+            "type": "action",
+            "description": "Write a glowing sigil on an unoccupied tile within range. Any creature standing on that sigil in combat during the Start Phase regains 3 HP.",
+            "apCost": 1,
+            "focusCost": 3,
+            "mpCost": 5,
+            "range": "3",
+            "duration": "1 minute",
+            "tags": [
+              "Ranged",
+              "Spell"
+            ],
+            "source": "druid"
+          }
+        },
+        "infestation": {
+          "minLevel": 1,
+          "actionCard": {
+            "name": "Infestation",
+            "type": "action",
+            "description": "Summon a swarm of insects to bite a target, dealing nature damage.",
+            "apCost": 2,
+            "focusCost": 0,
+            "mpCost": 5,
+            "range": "5",
+            "tags": [
+              "Ranged",
+              "Spell"
+            ],
+            "source": "druid",
+            "damageType": "nature",
+            "powerRoll": {
+              "rollStats": [
+                "willpower",
+                "presence"
+              ],
+              "tier1Dmg": 1,
+              "tier2Dmg": 2,
+              "tier2Effect": {
+                "type": "ForcedMovement",
+                "srcStats": [
+                  "willpower"
+                ],
+                "targetStats": [
+                  "presence"
+                ],
+                "effect": "slide",
+                "distance": 1,
+                "strength": "average"
+              },
+              "tier3Dmg": 3,
+              "tier3Effect": {
+                "type": "ForcedMovement",
+                "srcStats": [
+                  "willpower"
+                ],
+                "targetStats": [
+                  "presence"
+                ],
+                "effect": "slide",
+                "distance": 2,
+                "strength": "strong"
+              }
+            }
+          }
+        },
+        "wildfire": {
+          "minLevel": 1,
+          "actionCard": {
+            "name": "Wildfire",
+            "type": "action",
+            "description": "Release scorching embers to deal fire damage, potentially setting several targets on fire.",
+            "apCost": 2,
+            "focusCost": 3,
+            "mpCost": 10,
+            "range": "6",
+            "tags": [
+              "Ranged",
+              "Spell",
+              "Multi(3)"
+            ],
+            "source": "druid",
+            "damageType": "fire",
+            "powerRoll": {
+              "rollStats": [
+                "reason",
+                "willpower"
+              ],
+              "tier1Dmg": 0,
+              "tier1Effect": {
+                "type": "Condition",
+                "srcStats": [
+                  "willpower"
+                ],
+                "targetStats": [
+                  "dexterity"
+                ],
+                "effect": "poisoned",
+                "strength": "weak",
+                "duration": "roundEnd"
+              },
+              "tier2Dmg": 1,
+              "tier2Effect": {
+                "type": "Condition",
+                "srcStats": [
+                  "willpower"
+                ],
+                "targetStats": [
+                  "dexterity"
+                ],
+                "effect": "poisoned",
+                "strength": "average",
+                "duration": "roundEnd"
+              },
+              "tier3Dmg": 2,
+              "tier3Effect": {
+                "type": "Condition",
+                "srcStats": [
+                  "willpower"
+                ],
+                "targetStats": [
+                  "dexterity"
+                ],
+                "effect": "poisoned",
+                "strength": "strong",
+                "duration": "roundEnd"
+              }
+            }
+          }
+        },
+        "earthFist": {
+          "minLevel": 1,
+          "actionCard": {
+            "name": "Earth Fist",
+            "type": "action",
+            "description": "Manipulate nearby dirt or sand to create a large fist to launch your targets, dealing earth damage.",
+            "apCost": 2,
+            "focusCost": 1,
+            "mpCost": 6,
+            "range": "6",
+            "tags": [
+              "Ranged",
+              "Spell",
+              "Multi(2)"
+            ],
+            "source": "druid",
+            "damageType": "earth",
+            "powerRoll": {
+              "rollStats": [
+                "willpower",
+                "presence"
+              ],
+              "tier1Dmg": 1,
+              "tier1Effect": {
+                "type": "ForcedMovement",
+                "effect": "push",
+                "distance": 1
+              },
+              "tier2Dmg": 2,
+              "tier2Effect": {
+                "type": "ForcedMovement",
+                "effect": "push",
+                "distance": 2
+              },
+              "tier3Dmg": 3,
+              "tier3Effect": {
+                "type": "ForcedMovement",
+                "effect": "push",
+                "distance": 3
+              }
+            }
+          }
+        },
+        "mushroomCircle": {
+          "minLevel": 1,
+          "actionCard": {
+            "name": "Mushroom Circle",
+            "type": "action",
+            "description": "Create a circle of hallucinogenic mushrooms on an unoccupied tile within range. The first creature that enters that tile must make a Willpower Roll.",
+            "apCost": 2,
+            "focusCost": 0,
+            "mpCost": 10,
+            "range": "5",
+            "duration": "1 minute",
+            "tags": [
+              "Ranged",
+              "Spell"
+            ],
+            "source": "druid",
+            "powerRoll": {
+              "rollStats": [
+                "willpower",
+                "presence"
+              ],
+              "tier1Effect": {
+                "type": "Condition",
+                "srcStats": [
+                  "willpower"
+                ],
+                "targetStats": [
+                  "willpower"
+                ],
+                "effect": "frightened",
+                "strength": "weak",
+                "duration": "turnEnd"
+              },
+              "tier2Effect": {
+                "type": "Condition",
+                "srcStats": [
+                  "willpower"
+                ],
+                "targetStats": [
+                  "willpower"
+                ],
+                "effect": "frightened",
+                "strength": "average",
+                "duration": "turnEnd"
+              },
+              "tier3Effect": {
+                "type": "Condition",
+                "srcStats": [
+                  "willpower"
+                ],
+                "targetStats": [
+                  "willpower"
+                ],
+                "effect": "frightened",
+                "strength": "strong",
+                "duration": "turnEnd"
+              }
+            }
+          }
+        },
+        "muddyWaters": {
+          "minLevel": 1,
+          "actionCard": {
+            "name": "Muddy Waters",
+            "type": "action",
+            "description": "Select a target to curse, dealing water damage.\n\n1 Focus: Add Multi(2).",
+            "apCost": 1,
+            "focusCost": 0,
+            "mpCost": 3,
+            "range": "8",
+            "tags": [
+              "Ranged",
+              "Spell",
+              "First Strike"
+            ],
+            "source": "druid",
+            "damageType": "water",
+            "powerRoll": {
+              "rollStats": [
+                "willpower",
+                "presence"
+              ],
+              "tier1Dmg": 0,
+              "tier1Effect": {
+                "type": "Condition",
+                "srcStats": [
+                  "willpower"
+                ],
+                "targetStats": [
+                  "dexterity"
+                ],
+                "effect": "slowed",
+                "strength": "weak",
+                "duration": "roundEnd"
+              },
+              "tier2Dmg": 1,
+              "tier2Effect": {
+                "type": "Condition",
+                "srcStats": [
+                  "willpower"
+                ],
+                "targetStats": [
+                  "dexterity"
+                ],
+                "effect": "slowed",
+                "strength": "average",
+                "duration": "roundEnd"
+              },
+              "tier3Dmg": 2,
+              "tier3Effect": {
+                "type": "Condition",
+                "srcStats": [
+                  "willpower"
+                ],
+                "targetStats": [
+                  "dexterity"
+                ],
+                "effect": "slowed",
+                "strength": "strong",
+                "duration": "roundEnd"
+              }
+            }
+          }
+        },
+        "twistedBog": {
+          "minLevel": 3,
+          "actionCard": {
+            "name": "Twisted Bog",
+            "type": "action",
+            "description": "Select a 5x5 area. You create a bog there that acts as difficult terrain. Creatures cannot Warp while inside the bog.",
+            "apCost": 2,
+            "focusCost": 5,
+            "mpCost": 13,
+            "range": "10",
+            "duration": "1 minute",
+            "tags": [
+              "Ranged",
+              "Spell",
+              "Area"
+            ],
+            "source": "druid",
+            "powerRoll": {
+              "rollStats": [
+                "willpower"
+              ],
+              "tier1Effect": {
+                "type": "Condition",
+                "srcStats": [
+                  "willpower"
+                ],
+                "targetStats": [
+                  "might"
+                ],
+                "effect": "slowed",
+                "strength": "weak",
+                "duration": "saveEnd"
+              },
+              "tier2Effect": {
+                "type": "Condition",
+                "srcStats": [
+                  "willpower"
+                ],
+                "targetStats": [
+                  "might"
+                ],
+                "effect": "slowed",
+                "strength": "average",
+                "duration": "saveEnd"
+              },
+              "tier3Effect": {
+                "type": "Condition",
+                "srcStats": [
+                  "willpower"
+                ],
+                "targetStats": [
+                  "might"
+                ],
+                "effect": "slowed",
+                "strength": "strong",
+                "duration": "saveEnd"
+              }
+            }
+          }
+        },
+        "bloodMist": {
+          "minLevel": 3,
+          "actionCard": {
+            "name": "Blood Mist",
+            "type": "action",
+            "description": "Select a 7x7 area. A dangerous red mist fills the area.\n\nMaintain: You may spend 1 Focus and 5 Mana at the Start Phase to Maintain this spell and retrigger the effect during the End Phase.",
+            "apCost": 2,
+            "focusCost": 5,
+            "mpCost": 13,
+            "range": "10",
+            "duration": "1 minute",
+            "tags": [
+              "Ranged",
+              "Spell",
+              "Area",
+              "Maintain"
+            ],
+            "source": "druid",
+            "powerRoll": {
+              "rollStats": [
+                "reason",
+                "willpower"
+              ],
+              "tier1Effect": {
+                "type": "Condition",
+                "srcStats": [
+                  "willpower"
+                ],
+                "targetStats": [
+                  "presence"
+                ],
+                "effect": "bleeding",
+                "strength": "weak",
+                "duration": "turnEnd"
+              },
+              "tier2Effect": {
+                "type": "Condition",
+                "srcStats": [
+                  "willpower"
+                ],
+                "targetStats": [
+                  "presence"
+                ],
+                "effect": "bleeding",
+                "strength": "average",
+                "duration": "turnEnd"
+              },
+              "tier3Effect": {
+                "type": "Condition",
+                "srcStats": [
+                  "willpower"
+                ],
+                "targetStats": [
+                  "presence"
+                ],
+                "effect": "bleeding",
+                "strength": "strong",
+                "duration": "turnEnd"
+              }
+            }
+          }
+        },
+        "naturesGlue": {
+          "minLevel": 3,
+          "actionCard": {
+            "name": "Nature's Glue",
+            "type": "action",
+            "description": "Target 2 creatures or a solid object or structure and a creature. The two targets are tethered and are unable to move more than 3 tiles away from each other. The tether is broken upon either target taking slashing damage or by them spending 2 AP to manually separate themselves. If their Might is >= 13 then they need only spend 1 AP for this. If their Might is >= 16 then they can spend 0 AP. If they take fire damage the tether ends as well, but not before applying that same fire damage to the other tethered target.",
+            "apCost": 2,
+            "focusCost": 3,
+            "mpCost": 8,
+            "range": "8",
+            "duration": "1 minute",
+            "tags": [
+              "Ranged",
+              "Spell",
+              "Multi(2)"
+            ],
+            "source": "druid"
+          }
+        },
+        "weakeningCurse": {
+          "minLevel": 3,
+          "actionCard": {
+            "name": "Weakening Curse",
+            "type": "action",
+            "description": "Try to curse all of your targets.",
+            "apCost": 2,
+            "focusCost": 5,
+            "mpCost": 10,
+            "range": "8",
+            "duration": "1 minute",
+            "tags": [
+              "Ranged",
+              "Spell",
+              "Multi(5)"
+            ],
+            "source": "druid",
+            "powerRoll": {
+              "rollStats": [
+                "willpower"
+              ],
+              "tier1Effect": {
+                "type": "Condition",
+                "srcStats": [
+                  "willpower"
+                ],
+                "targetStats": [
+                  "willpower"
+                ],
+                "effect": "weakened",
+                "strength": "weak",
+                "duration": "saveEnd"
+              },
+              "tier2Effect": {
+                "type": "Condition",
+                "srcStats": [
+                  "willpower"
+                ],
+                "targetStats": [
+                  "willpower"
+                ],
+                "effect": "weakened",
+                "strength": "average",
+                "duration": "saveEnd"
+              },
+              "tier3Effect": {
+                "type": "Condition",
+                "srcStats": [
+                  "willpower"
+                ],
+                "targetStats": [
+                  "willpower"
+                ],
+                "effect": "weakened",
+                "strength": "strong",
+                "duration": "saveEnd"
+              }
+            }
+          }
+        },
+        "twistedBriars": {
+          "minLevel": 5,
+          "actionCard": {
+            "name": "Twisted Briars",
+            "type": "action",
+            "description": "Select a 7x7 area. Thorny plants sprout in the area, dealing nature damage to all hostile creatures there. They also deal 3 nature damage each time any creature enters any one of its tiles and act as difficult terrain. Creatures do not benefit from healing while in the area.\n\nMaintain: You may spend 1 Focus and 5 Mana at the Start Phase to Maintain this spell and retrigger the effect during the End Phase.",
+            "apCost": 2,
+            "focusCost": 7,
+            "mpCost": 15,
+            "range": "12",
+            "duration": "1 minute",
+            "tags": [
+              "Ranged",
+              "Spell",
+              "Area",
+              "Maintain"
+            ],
+            "source": "druid",
+            "damageType": "nature",
+            "powerRoll": {
+              "rollStats": [
+                "reason",
+                "willpower"
+              ],
+              "tier1Effect": {
+                "type": "Condition",
+                "srcStats": [
+                  "willpower"
+                ],
+                "targetStats": [
+                  "dexterity"
+                ],
+                "effect": "bleeding",
+                "strength": "weak",
+                "duration": "turnEnd"
+              },
+              "tier2Effect": {
+                "type": "Condition",
+                "srcStats": [
+                  "willpower"
+                ],
+                "targetStats": [
+                  "dexterity"
+                ],
+                "effect": "bleeding",
+                "strength": "average",
+                "duration": "turnEnd"
+              },
+              "tier3Effect": {
+                "type": "Condition",
+                "srcStats": [
+                  "willpower"
+                ],
+                "targetStats": [
+                  "dexterity"
+                ],
+                "effect": "bleeding",
+                "strength": "strong",
+                "duration": "turnEnd"
+              }
+            }
+          }
+        },
+        "bloodMoon": {
+          "minLevel": 5,
+          "actionCard": {
+            "name": "Blood Moon",
+            "type": "action",
+            "description": "Manipulate the blood inside a creature to make them do your bidding. Select an Elite-class or weaker enemy and slide them. If the target becomes adjacent to another creature on their side the target must make an Opportunity attack against that other creature. A target can only use two Opportunity attacks this way.",
+            "apCost": 2,
+            "focusCost": 7,
+            "mpCost": 21,
+            "range": "6",
+            "duration": "1 minute",
+            "tags": [
+              "Ranged",
+              "Spell"
+            ],
+            "source": "druid",
+            "powerRoll": {
+              "rollStats": [
+                "willpower",
+                "presence"
+              ],
+              "tier1Effect": {
+                "type": "ForcedMovement",
+                "effect": "slide",
+                "distance": 5
+              },
+              "tier2Effect": {
+                "type": "ForcedMovement",
+                "effect": "slide",
+                "distance": 6
+              },
+              "tier3Effect": {
+                "type": "ForcedMovement",
+                "effect": "slide",
+                "distance": 7
+              }
+            }
+          }
+        }
+      },
+      "reactions": [
+        {
+          "id": "quickCurse",
+          "name": "Quick Curse",
+          "type": "Reaction",
+          "level": 1,
+          "focusCost": 0,
+          "trigger": "An enemy within 8 tiles makes an attack",
+          "description": "Inflict Bane on that attack."
+        },
+        {
+          "id": "evilEye",
+          "name": "Evil Eye",
+          "type": "Reaction",
+          "level": 1,
+          "focusCost": 3,
+          "trigger": "An enemy within 10 tiles resists a Reason, Willpower, or Presence potency",
+          "description": "Reduce their attribute modifier for that potency only, potentially making them fail the potency instead."
+        }
+      ]
+    },
     "conjurer": {
       "name": "Conjurer",
       "description": "Mages that can summon and buff allies.",
@@ -3522,12 +4232,12 @@
         "bigHands": {
           "name": "Big Hands",
           "minLevel": 1,
-          "description": "You gain a Boon on Grab checks."
+          "description": "You gain a Boon on Grab and Escape Grab rolls."
         },
         "frenzy": {
           "name": "Frenzy",
           "minLevel": 1,
-          "description": "If you are Bloodied you deal +2 damage with melee attacks. If you are Bloodied at the start of your turn you may choose to Rage, granting a Boon to all attacks that target only you. In exchange you have a Boon on all attacks you make for the rest of the round."
+          "description": "If you are Bloodied you deal +2 damage with melee attacks. If you are Bloodied during the Start Phase you may choose to Rage, granting a Boon to all attacks that target only you. In exchange you have a Boon on all attacks you make for that round"
         },
         "centerOfMass": {
           "name": "Center of Mass",
@@ -3614,7 +4324,8 @@
             "mpCost": 0,
             "range": "3",
             "tags": [
-              "Ranged"
+              "Ranged",
+              "Brawling"
             ],
             "source": "fury",
             "powerRoll": {
@@ -3770,7 +4481,7 @@
           "actionCard": {
             "name": "Eye for an Eye",
             "type": "action",
-            "description": "Prepare a powerful attack. If you take any damage before the delay effect triggers then you may add your Might modifier to the damage and stride up to half your Speed (round down) when the delay effect triggers. Once the delay effect triggers you may attack",
+            "description": "Prepare a powerful attack. If you take any damage before the delay effect triggers then you may stride up to half your Speed (round down) when the delay effect triggers. Once the delay effect triggers you may attack",
             "apCost": 2,
             "focusCost": 3,
             "mpCost": 0,
@@ -4154,7 +4865,7 @@
           "actionCard": {
             "name": "Brace for Impact",
             "type": "action",
-            "description": "You cannot willingly move for the rest of the round. You are treated as an object for the sake of cover and gain 1 Stability. Gain 5 Barrier",
+            "description": "You cannot willingly move for the rest of the round. You are treated as an object for the sake of cover and blocking vision. You gain 1 Stability for the duration. Gain 5 Barrier.",
             "apCost": 1,
             "focusCost": 0,
             "mpCost": 0,
@@ -6193,6 +6904,532 @@
         }
       ]
     },
+    "rider": {
+      "name": "Rider",
+      "description": "Riders excel at fighting on their mounts as they zoom around the battlefield.",
+      "proficiencies": [],
+      "primaryAttribute": "dexterity",
+      "statBonus": {
+        "stat": "hp",
+        "amount": 1,
+        "frequency": 2
+      },
+      "focusFeat": {
+        "name": "Momentum",
+        "description": "The first time per round an ally strides or shifts you gain 1 Focus."
+      },
+      "freeFeaturesNote": "Rider: You can always find where to buy mounts in the area within a day if the environment is suitable.\n\nYou may use 1H melee weapons while mounted. The other hand must be either empty or holding a shield so that you can still control your mount. You may also use ranged weapons, but you take a Bane on any ranged attacks if you have already changed position this round.",
+      "passives": {
+        "faithfulSteed": {
+          "name": "Faithful Steed",
+          "minLevel": 1,
+          "description": "You gain a faithful and loyal Mount. This Mount will not let anyone else ride it and is a Beast type creature with size 2. Your first Mount is free when you choose this passive. You may only have one Faithful Steed, but if you lose yours you may obtain a new one at any compatible town or city. Choose the type of your Mount (Swift, Tough, or Adaptable)."
+        },
+        "twoStep": {
+          "name": "Two-Step",
+          "minLevel": 1,
+          "description": "You are no longer unable to shift while mounted. While mounted, Cavalier abilities let you shift normally while non-cavalier abilities that let you shift are converted to shift 1."
+        },
+        "longStride": {
+          "name": "Long Stride",
+          "minLevel": 3,
+          "description": "Your Step distance while mounted equals 1 + half your Dexterity modifier (round down, min 1)."
+        },
+        "canter": {
+          "name": "Canter",
+          "minLevel": 5,
+          "description": "After you attack you may shift 2."
+        }
+      },
+      "mounts": [
+        {
+          "id": "swift",
+          "name": "Swift",
+          "size": "2",
+          "speed": 8,
+          "passengers": 1,
+          "bonusStats": {
+            "defense": 1
+          },
+          "creatureTypes": [
+            "beast"
+          ],
+          "description": "A fast mount granting +1 Def while you ride it. Signature: Cyclone Starter."
+        },
+        {
+          "id": "tough",
+          "name": "Tough",
+          "size": "2",
+          "speed": 5,
+          "passengers": 1,
+          "bonusStats": {
+            "defense": 1,
+            "stability": 1
+          },
+          "creatureTypes": [
+            "beast"
+          ],
+          "description": "A sturdy mount granting +1 Def and +1 Stability while you ride it. Signature: Seismic Step."
+        },
+        {
+          "id": "adaptable",
+          "name": "Adaptable",
+          "size": "2",
+          "speed": 6,
+          "passengers": 1,
+          "bonusStats": {
+          },
+          "creatureTypes": [
+            "beast"
+          ],
+          "description": "A versatile mount. Gain Swimming or Climbing speed equal to your mount's Speed (choose one). Signature: Amphibious Escape."
+        }
+      ],
+      "actions": {
+        "summonMount": {
+          "minLevel": 1,
+          "actionCard": {
+            "name": "Summon Mount",
+            "type": "action",
+            "description": "Call your Mount. You must also pay the corresponding IP cost. The Mount appears in an unoccupied space within 3 tiles that you can reach by walking. You may also use this to move your Mount if no one is riding it to an unoccupied area within 3 tiles of you.",
+            "apCost": 1,
+            "focusCost": 1,
+            "ipCost": 1,
+            "range": "3",
+            "tags": [
+              "Riding"
+            ],
+            "source": "rider"
+          }
+        },
+        "charge": {
+          "minLevel": 1,
+          "actionCard": {
+            "name": "Charge",
+            "type": "action",
+            "description": "Shift up to your Speed in a straight line before attacking the target. You must shift at least 3 tiles. If you are riding a Mount you gain Penetrate equal to your stability.",
+            "apCost": 2,
+            "focusCost": 3,
+            "range": "Wpn",
+            "tags": [
+              "Melee",
+              "Weapon"
+            ],
+            "source": "rider",
+            "powerRoll": {
+              "rollStats": [
+                "might",
+                "dexterity"
+              ],
+              "tier1Dmg": 2,
+              "tier1Wpn": true,
+              "tier2Dmg": 3,
+              "tier2Wpn": true,
+              "tier2Effect": {
+                "type": "ForcedMovement",
+                "effect": "push",
+                "distance": 1
+              },
+              "tier3Dmg": 4,
+              "tier3Wpn": true,
+              "tier3Effect": {
+                "type": "ForcedMovement",
+                "effect": "push",
+                "distance": 2
+              }
+            }
+          }
+        },
+        "hipCheck": {
+          "minLevel": 1,
+          "actionCard": {
+            "name": "Hip Check",
+            "type": "action",
+            "description": "Try to shift 1 into an adjacent area that has hostile creatures in it, inflicting push on all creatures in that area. If any creature is not pushed you stay at your original location.",
+            "apCost": 1,
+            "focusCost": 0,
+            "range": "1",
+            "tags": [
+              "Melee",
+              "Area",
+              "Riding"
+            ],
+            "source": "rider",
+            "powerRoll": {
+              "rollStats": [
+                "might",
+                "dexterity"
+              ],
+              "tier1Effect": {
+                "type": "Special",
+                "effect": "Push 1"
+              },
+              "tier2Effect": {
+                "type": "Special",
+                "effect": "Push 2"
+              },
+              "tier3Effect": {
+                "type": "Special",
+                "effect": "Push 3"
+              }
+            }
+          }
+        },
+        "takedown": {
+          "minLevel": 1,
+          "actionCard": {
+            "name": "Takedown",
+            "type": "action",
+            "description": "You may Stride up to your Speed before attacking. You deal bonus damage equal to each tile you moved past 4.",
+            "apCost": 3,
+            "focusCost": 3,
+            "range": "Wpn",
+            "tags": [
+              "Melee",
+              "Weapon",
+              "1H"
+            ],
+            "source": "rider",
+            "powerRoll": {
+              "rollStats": [
+                "might",
+                "dexterity"
+              ],
+              "tier1Dmg": 1,
+              "tier1Wpn": true,
+              "tier2Dmg": 2,
+              "tier2Wpn": true,
+              "tier2Effect": {
+                "type": "Condition",
+                "effect": "prone",
+                "srcStats": [
+                  "dexterity"
+                ],
+                "targetStats": [
+                  "might"
+                ],
+                "strength": "average"
+              },
+              "tier3Dmg": 3,
+              "tier3Wpn": true,
+              "tier3Effect": {
+                "type": "Condition",
+                "effect": "prone",
+                "srcStats": [
+                  "dexterity"
+                ],
+                "targetStats": [
+                  "might"
+                ],
+                "strength": "strong"
+              }
+            }
+          }
+        },
+        "mountedCatapult": {
+          "minLevel": 1,
+          "actionCard": {
+            "name": "Mounted Catapult",
+            "type": "action",
+            "description": "Stride up to your Speed and suddenly stop, launching you from your Mount. Warp the same number of tiles you traveled forward. The tile you land on must be unoccupied. Your Mount stays where it flung you.",
+            "apCost": 1,
+            "focusCost": 1,
+            "tags": [
+              "Riding"
+            ],
+            "source": "rider"
+          }
+        },
+        "siderider": {
+          "minLevel": 1,
+          "actionCard": {
+            "name": "Side-rider",
+            "type": "action",
+            "description": "Cling to the side of your Mount instead of riding on top, letting you treat them as Cover while riding them until the start of your next turn.",
+            "apCost": 1,
+            "focusCost": 0,
+            "tags": [
+              "Riding"
+            ],
+            "source": "rider"
+          }
+        },
+        "bailingCrash": {
+          "minLevel": 3,
+          "actionCard": {
+            "name": "Bailing Crash",
+            "type": "action",
+            "description": "Select a 3x3 area and Stride in a straight line up to it. You must move at least 3 tiles. Right before the attack you dismount and warp 3 tiles backwards as your mount crashes into the area, dealing crushing damage and disappearing afterwards.",
+            "apCost": 2,
+            "focusCost": 5,
+            "tags": [
+              "Melee",
+              "Area",
+              "Riding"
+            ],
+            "source": "rider",
+            "damageType": "crushing",
+            "powerRoll": {
+              "rollStats": [
+                "might",
+                "dexterity"
+              ],
+              "tier1Dmg": 4,
+              "tier2Dmg": 6,
+              "tier2Effect": {
+                "type": "Condition",
+                "effect": "prone",
+                "srcStats": [
+                  "might",
+                  "dexterity"
+                ],
+                "targetStats": [
+                  "might"
+                ],
+                "strength": "average"
+              },
+              "tier3Dmg": 8,
+              "tier3Effect": {
+                "type": "Condition",
+                "effect": "prone",
+                "srcStats": [
+                  "might",
+                  "dexterity"
+                ],
+                "targetStats": [
+                  "might"
+                ],
+                "strength": "strong"
+              }
+            }
+          }
+        },
+        "eatMyDust": {
+          "minLevel": 3,
+          "actionCard": {
+            "name": "Eat my Dust",
+            "type": "action",
+            "description": "You Stride up to your Speed in a straight line. You must move at least 6 tiles. You kick up dust as you move, creating a 2-tile high and 1-tile thick wall of dust that blocks vision behind you. Each instance of air damage that touches it can remove 2x2 sections of it.",
+            "apCost": 2,
+            "focusCost": 3,
+            "duration": "1 minute",
+            "tags": [
+              "Area",
+              "Riding"
+            ],
+            "source": "rider"
+          }
+        },
+        "cycloneStarter": {
+          "minLevel": 3,
+          "mountTypeId": "swift",
+          "actionCard": {
+            "name": "Cyclone Starter",
+            "type": "action",
+            "description": "Stride up to your Speed. If you circle an area and end your movement at your start position then you whip up a cyclone — all creatures in the area lose up to 5 Barrier and then take physical air damage.",
+            "apCost": 2,
+            "focusCost": 5,
+            "tags": [
+              "Riding"
+            ],
+            "source": "rider",
+            "damageType": "air",
+            "powerRoll": {
+              "rollStats": [
+                "dexterity"
+              ],
+              "tier1Dmg": 3,
+              "tier2Dmg": 5,
+              "tier3Dmg": 7
+            }
+          }
+        },
+        "seismicStep": {
+          "minLevel": 3,
+          "mountTypeId": "tough",
+          "actionCard": {
+            "name": "Seismic Step",
+            "type": "action",
+            "description": "Your Mount stomps the ground, creating a 2-tile high and X×1 long wall in an adjacent space. X equals your Size + 2. It has the durability of wood.",
+            "apCost": 1,
+            "focusCost": 5,
+            "tags": [
+              "Riding"
+            ],
+            "source": "rider"
+          }
+        },
+        "amphibiousEscape": {
+          "minLevel": 3,
+          "mountTypeId": "adaptable",
+          "actionCard": {
+            "name": "Amphibious Escape",
+            "type": "action",
+            "description": "Warp to an unoccupied area within your Speed. On landing you deal physical earth (if you chose climbing) or water (if you chose swimming) damage to all creatures within 1 tile.",
+            "apCost": 2,
+            "focusCost": 5,
+            "tags": [
+              "Riding"
+            ],
+            "source": "rider",
+            "powerRoll": {
+              "rollStats": [
+                "dexterity"
+              ],
+              "tier1Dmg": 4,
+              "tier2Dmg": 7,
+              "tier3Dmg": 10
+            }
+          }
+        },
+        "crunchyTrample": {
+          "minLevel": 3,
+          "actionCard": {
+            "name": "Crunchy Trample",
+            "type": "action",
+            "description": "Stride up to half your Speed (round down). If you pass over any hostile prone creatures your mount stomps on them, dealing crushing damage.",
+            "apCost": 1,
+            "focusCost": 5,
+            "tags": [
+              "Riding",
+              "Penetrate(2)"
+            ],
+            "source": "rider",
+            "damageType": "crushing",
+            "powerRoll": {
+              "rollStats": [
+                "might",
+                "dexterity"
+              ],
+              "tier1Dmg": 4,
+              "tier2Dmg": 6,
+              "tier3Dmg": 8
+            }
+          }
+        },
+        "championsJoust": {
+          "minLevel": 5,
+          "actionCard": {
+            "name": "Champion's Joust",
+            "type": "action",
+            "description": "Select an adjacent X×Y area where X is the width of your mount and Y is your Speed. Prepare to charge from your current position to the other end. Hostile creatures in the area are pushed aside as you Shift forward. If any creature is not pushed aside completely you end your charge early. Against that target only this attack gains Penetrate equal to tiles traveled.",
+            "apCost": 2,
+            "focusCost": 7,
+            "tags": [
+              "Melee",
+              "Weapon",
+              "Delay",
+              "Area"
+            ],
+            "source": "rider",
+            "powerRoll": {
+              "rollStats": [
+                "might",
+                "dexterity"
+              ],
+              "tier1Dmg": 4,
+              "tier1Wpn": true,
+              "tier1Effect": {
+                "type": "ForcedMovement",
+                "effect": "push",
+                "distance": 2
+              },
+              "tier2Dmg": 7,
+              "tier2Wpn": true,
+              "tier2Effect": {
+                "type": "ForcedMovement",
+                "effect": "push",
+                "distance": 3
+              },
+              "tier3Dmg": 10,
+              "tier3Wpn": true,
+              "tier3Effect": {
+                "type": "ForcedMovement",
+                "effect": "push",
+                "distance": 4
+              }
+            }
+          }
+        },
+        "driveBy": {
+          "minLevel": 5,
+          "actionCard": {
+            "name": "Drive-by",
+            "type": "action",
+            "description": "Shift up to half your Speed (round down) and attack with your weapon. Ranged weapons do not get the usual Bane from moving.",
+            "apCost": 3,
+            "focusCost": 7,
+            "range": "Wpn",
+            "tags": [
+              "Melee",
+              "Ranged",
+              "Weapon",
+              "Repeat(3)"
+            ],
+            "source": "rider",
+            "powerRoll": {
+              "rollStats": [
+                "might",
+                "dexterity"
+              ],
+              "tier1Dmg": 2,
+              "tier1Wpn": true,
+              "tier2Dmg": 3,
+              "tier2Wpn": true,
+              "tier3Dmg": 5,
+              "tier3Wpn": true
+            }
+          }
+        },
+        "bulwark": {
+          "minLevel": 5,
+          "actionCard": {
+            "name": "Bulwark",
+            "type": "action",
+            "description": "Gain Barrier and 1 Stability until the end of your next turn.",
+            "apCost": 1,
+            "focusCost": 7,
+            "tags": [
+              "Riding"
+            ],
+            "hiddenTags": [
+              "sustain",
+              "barrier"
+            ],
+            "source": "rider",
+            "powerRoll": {
+              "rollStats": [
+                "might",
+                "dexterity"
+              ],
+              "tier1Dmg": 6,
+              "tier2Dmg": 9,
+              "tier3Dmg": 12
+            }
+          }
+        }
+      },
+      "reactions": [
+        {
+          "id": "stayBack",
+          "name": "Stay Back",
+          "type": "Reaction",
+          "level": 1,
+          "trigger": "A hostile creature willingly moves within 1 tile of you",
+          "description": "Your Mount inflicts push 2 on them. If the creature moved as part of an attack the push happens after the attack is resolved.",
+          "focusCost": 0
+        },
+        {
+          "id": "hangOn",
+          "name": "Hang On",
+          "type": "Reaction",
+          "level": 3,
+          "trigger": "You are forcefully dismounted",
+          "description": "Your Mount stays and you are not forcefully dismounted.",
+          "focusCost": 1
+        }
+      ]
+    },
     "scout": {
       "name": "Scout",
       "description": "The Scout excels at sneaking and mobility.",
@@ -7272,7 +8509,7 @@
         "knowledgeIsPower": {
           "name": "Knowledge is Power",
           "minLevel": 1,
-          "description": "When you take the Study action to learn a trait about a target you automatically gain the Skill bonus if you have the appropriate skill already without spending Inspiration. You gain one additional trained skill from Interpersonal or Lore (choose in character creation).",
+          "description": "When you take the Study action to learn a trait about a target if you would get a Boon from a skill you instead get double Boon. You gain one additional trained skill from Interpersonal or Lore (choose in character creation).",
           "effects": [
             {
               "type": "GrantSkill",
@@ -7893,19 +9130,21 @@
             }
           }
         },
-        "charge": {
+        "trinityStrike": {
           "minLevel": 3,
           "actionCard": {
-            "name": "Charge",
+            "name": "Trinity Strike",
             "type": "action",
-            "description": "Your Speed increases by 2 for this attack. Shift up to your Speed in a straight line before attacking the target. You must shift at least 3 tiles.",
+            "description": "Quickly launch 3 consecutive strikes at your target. This can only be used once per round.",
             "apCost": 2,
             "focusCost": 3,
             "mpCost": 0,
             "range": "Wpn",
             "tags": [
               "Melee",
-              "Weapon"
+              "Weapon",
+              "1H",
+              "Repeat(3)"
             ],
             "source": "weaponmaster",
             "powerRoll": {
@@ -7913,22 +9152,12 @@
                 "might",
                 "dexterity"
               ],
-              "tier1Dmg": 3,
+              "tier1Dmg": 0,
               "tier1Wpn": true,
-              "tier2Dmg": 4,
+              "tier2Dmg": 1,
               "tier2Wpn": true,
-              "tier2Effect": {
-                "type": "ForcedMovement",
-                "effect": "push",
-                "distance": 1
-              },
-              "tier3Dmg": 6,
-              "tier3Wpn": true,
-              "tier3Effect": {
-                "type": "ForcedMovement",
-                "effect": "push",
-                "distance": 2
-              }
+              "tier3Dmg": 2,
+              "tier3Wpn": true
             }
           }
         },
@@ -8327,7 +9556,7 @@
           "actionCard": {
             "name": "Warp",
             "type": "action",
-            "description": "Warp up to your Reason or Willpower modifier to an unoccupied tile",
+            "description": "Warp up to your Reason or Willpower modifier to an unoccupied tile\n\n3 Focus: The distance is doubled",
             "apCost": 2,
             "focusCost": 1,
             "mpCost": 8,
@@ -8882,7 +10111,14 @@
         "elf_swimmingGrace": {
           "name": "Swimming Grace",
           "type": "innate",
-          "description": "You can hold your breath underwater for an hour and can speak and understand words normally underwater. You can move as easily underwater as you can on land."
+          "description": "You can hold your breath underwater for an hour and can speak and understand words normally underwater. You can move as easily underwater as you can on land.",
+          "effects": [
+            {
+              "type": "GrantMovement",
+              "stat": "swimming",
+              "value": "speed"
+            }
+          ]
         },
         "elf_elvish": {
           "name": "Elvish",
@@ -10496,6 +11732,17 @@
         "equipment/raiseShield"
       ]
     },
+    "misc_magibike": {
+      "name": "Magibike",
+      "quantity": 1,
+      "description": "A magitech bike treated as a Mount. Requires at least 1 Artificer level to use. It has Speed 8, Size 2, 1 passenger slot, and stores up to 10 Mana. It grants no mounted stat bonuses, but while riding the bike you may spend its Mana and even absorb into yourself for 0 AP on your turn. You can recharge its Mana during a Short Rest.",
+      "value": 0,
+      "tags": [
+        "mount",
+        "magitech"
+      ],
+      "type": "misc"
+    },
     "con_minor_healing_potion": {
       "name": "Minor Healing Potion",
       "quantity": 1,
@@ -10924,7 +12171,7 @@
     "equipment/lasso": {
       "name": "Lasso",
       "type": "action",
-      "description": "Lasso the target with your weapon",
+      "description": "Lasso the target with your weapon. You may also use this on an ally to deal no damage and instead vertical pull 3",
       "apCost": 2,
       "focusCost": 0,
       "mpCost": 0,
@@ -11181,6 +12428,329 @@
       "chargeReset": [
         "shortRest"
       ]
+    },
+    "beast/wolfBite": {
+      "name": "Wolf Bite",
+      "type": "action",
+      "description": "Bite at the target's legs, dealing slashing damage and potentially knocking them prone.",
+      "apCost": 2,
+      "focusCost": 0,
+      "mpCost": 0,
+      "range": "1",
+      "tags": [
+        "Melee",
+        "Weapon",
+        "Anima"
+      ],
+      "hiddenTags": [
+        "natural:bite"
+      ],
+      "source": "druidAnima",
+      "damageType": "slashing",
+      "powerRoll": {
+        "rollStats": [
+          "might",
+          "dexterity"
+        ],
+        "tier1Wpn": true,
+        "tier2Wpn": true,
+        "tier2Effect": {
+          "type": "Condition",
+          "srcStats": [
+            "might",
+            "dexterity"
+          ],
+          "targetStats": [
+            "might"
+          ],
+          "effect": "prone",
+          "strength": "average"
+        },
+        "tier3Wpn": true,
+        "tier3Effect": {
+          "type": "Condition",
+          "srcStats": [
+            "might",
+            "dexterity"
+          ],
+          "targetStats": [
+            "might"
+          ],
+          "effect": "prone",
+          "strength": "strong"
+        }
+      }
+    },
+    "beast/ram": {
+      "name": "Ram",
+      "type": "action",
+      "description": "Prepare to ram a target. When delay triggers shift in a straight line up to your Speed at your target to deal crushing damage. If you reach a different hostile creature first they become the new target. If you reach an obstacle that blocks movement first it would also become the new target.",
+      "apCost": 2,
+      "focusCost": 1,
+      "mpCost": 0,
+      "range": "1",
+      "tags": [
+        "Melee",
+        "Weapon",
+        "Brawling",
+        "Delay",
+        "Anima"
+      ],
+      "hiddenTags": [
+        "natural:head"
+      ],
+      "source": "druidAnima",
+      "damageType": "crushing",
+      "powerRoll": {
+        "rollStats": [
+          "might",
+          "dexterity"
+        ],
+        "tier1Dmg": 4,
+        "tier1Wpn": true,
+        "tier1Effect": {
+          "type": "ForcedMovement",
+          "effect": "push",
+          "distance": 1
+        },
+        "tier2Dmg": 6,
+        "tier2Wpn": true,
+        "tier2Effect": {
+          "type": "ForcedMovement",
+          "effect": "push",
+          "distance": 2
+        },
+        "tier3Dmg": 8,
+        "tier3Wpn": true,
+        "tier3Effect": {
+          "type": "Condition",
+          "srcStats": [
+            "might"
+          ],
+          "targetStats": [
+            "might"
+          ],
+          "effect": "prone",
+          "strength": "strong"
+        }
+      }
+    },
+    "beast/kick": {
+      "name": "Kick",
+      "type": "action",
+      "description": "Kick the target to deal crushing damage",
+      "apCost": 2,
+      "focusCost": 0,
+      "mpCost": 0,
+      "range": "1",
+      "tags": [
+        "Melee",
+        "Weapon",
+        "Brawling",
+        "Anima"
+      ],
+      "hiddenTags": [
+        "natural:legs"
+      ],
+      "source": "druidAnima",
+      "damageType": "crushing",
+      "powerRoll": {
+        "rollStats": [
+          "might",
+          "dexterity"
+        ],
+        "tier1Dmg": 1,
+        "tier1Wpn": true,
+        "tier2Dmg": 2,
+        "tier2Wpn": true,
+        "tier2Effect": {
+          "type": "ForcedMovement",
+          "effect": "push",
+          "distance": 1
+        },
+        "tier3Dmg": 3,
+        "tier3Wpn": true,
+        "tier3Effect": {
+          "type": "ForcedMovement",
+          "effect": "push",
+          "distance": 2
+        }
+      }
+    },
+    "beast/punch": {
+      "name": "Punch",
+      "type": "action",
+      "description": "Punch the target to deal crushing damage",
+      "apCost": 2,
+      "focusCost": 0,
+      "mpCost": 0,
+      "range": "1",
+      "tags": [
+        "Melee",
+        "Weapon",
+        "Brawling",
+        "Anima"
+      ],
+      "hiddenTags": [
+        "natural:arms"
+      ],
+      "source": "druidAnima",
+      "damageType": "crushing",
+      "powerRoll": {
+        "rollStats": [
+          "might",
+          "dexterity"
+        ],
+        "tier1Dmg": 0,
+        "tier1Wpn": true,
+        "tier2Dmg": 1,
+        "tier2Wpn": true,
+        "tier3Dmg": 2,
+        "tier3Wpn": true
+      }
+    },
+    "beast/growl": {
+      "name": "Growl",
+      "type": "action",
+      "description": "Try to intimidate the targets",
+      "apCost": 2,
+      "focusCost": 1,
+      "mpCost": 0,
+      "range": "1",
+      "tags": [
+        "Ranged",
+        "Multi(2)",
+        "Anima"
+      ],
+      "source": "druidAnima",
+      "powerRoll": {
+        "rollStats": [
+          "presence"
+        ],
+        "tier1Effect": {
+          "type": "Condition",
+          "srcStats": [
+            "presence"
+          ],
+          "targetStats": [
+            "presence"
+          ],
+          "effect": "frightened",
+          "strength": "weak",
+          "duration": "turnEnd"
+        },
+        "tier2Effect": {
+          "type": "Condition",
+          "srcStats": [
+            "presence"
+          ],
+          "targetStats": [
+            "presence"
+          ],
+          "effect": "frightened",
+          "strength": "average",
+          "duration": "turnEnd"
+        },
+        "tier3Effect": {
+          "type": "Condition",
+          "srcStats": [
+            "presence"
+          ],
+          "targetStats": [
+            "presence"
+          ],
+          "effect": "frightened",
+          "strength": "strong",
+          "duration": "turnEnd"
+        }
+      }
+    },
+    "beast/chomp": {
+      "name": "Chomp",
+      "type": "action",
+      "description": "Bite the target to deal piercing damage. If the target is already Grabbed by you this deals an additional 2 DMG",
+      "apCost": 2,
+      "focusCost": 0,
+      "mpCost": 0,
+      "range": "1",
+      "tags": [
+        "Melee",
+        "Weapon",
+        "Brawling",
+        "Anima"
+      ],
+      "hiddenTags": [
+        "natural:teeth"
+      ],
+      "source": "druidAnima",
+      "damageType": "piercing",
+      "powerRoll": {
+        "rollStats": [
+          "might",
+          "dexterity"
+        ],
+        "tier1Dmg": 2,
+        "tier1Wpn": true,
+        "tier2Dmg": 3,
+        "tier2Wpn": true,
+        "tier3Dmg": 5,
+        "tier3Wpn": true
+      }
+    },
+    "beast/tailWhip": {
+      "name": "Tail Whip",
+      "type": "action",
+      "description": "Whip your tail in an adjacent 3x1 area, dealing slashing damage",
+      "apCost": 2,
+      "focusCost": 0,
+      "mpCost": 0,
+      "range": "2",
+      "tags": [
+        "Melee",
+        "Weapon",
+        "Brawling",
+        "Area",
+        "Anima"
+      ],
+      "hiddenTags": [
+        "natural:tail"
+      ],
+      "source": "druidAnima",
+      "damageType": "slashing",
+      "powerRoll": {
+        "rollStats": [
+          "might",
+          "dexterity"
+        ],
+        "tier1Dmg": 1,
+        "tier1Wpn": true,
+        "tier2Dmg": 2,
+        "tier2Wpn": true,
+        "tier2Effect": {
+          "type": "Condition",
+          "srcStats": [
+            "dexterity"
+          ],
+          "targetStats": [
+            "might"
+          ],
+          "effect": "prone",
+          "strength": "average"
+        },
+        "tier3Dmg": 3,
+        "tier3Wpn": true,
+        "tier3Effect": {
+          "type": "Condition",
+          "srcStats": [
+            "dexterity"
+          ],
+          "targetStats": [
+            "might"
+          ],
+          "effect": "prone",
+          "strength": "strong"
+        }
+      }
     },
     "monster/clayFist": {
       "name": "Clay Fist",
@@ -12345,6 +13915,44 @@
       "extraGrabby": {
         "name": "Extra grabby",
         "description": "Terrain this creature occupies is difficult terrain for hostile creatures as it tries to grab them."
+      },
+      "teamwork": {
+        "name": "Teamwork",
+        "description": "While adjacent to an ally you cannot be flanked or made frightened"
+      },
+      "charger": {
+        "name": "Charger",
+        "description": "If you inflict forced movement on a creature as part of an action that also lets you move then the distance is increased by 1"
+      },
+      "grappler": {
+        "name": "Grappler",
+        "description": "When dealing damage with a melee attack to a target within 1 tile you may add a Potency of D < 1 to the attack by spending 1 Focus. If the target fails to resist then they are Grabbed."
+      },
+      "naturalSwimmer": {
+        "name": "Natural Swimmer",
+        "description": "Gain Swimming Speed of 8",
+        "effects": [
+          {
+            "type": "GrantMovement",
+            "stat": "swimming",
+            "value": "8"
+          }
+        ]
+      },
+      "greatSwimmer": {
+        "name": "Great Swimmer",
+        "description": "Gain Swimming Speed of 6",
+        "effects": [
+          {
+            "type": "GrantMovement",
+            "stat": "swimming",
+            "value": "6"
+          }
+        ]
+      },
+      "bloodthirsty": {
+        "name": "Bloodthirsty",
+        "description": "Gain a Boon on attacks against creatures that are bloodied or bleeding"
       }
     },
     "creatures": {
@@ -12358,6 +13966,179 @@
           "plant"
         ],
         "actionIDs": []
+      },
+      "anima_elk": {
+        "name": "Elk Anima",
+        "description": "A 700-lb elk with majestic antlers",
+        "role": "summon",
+        "level": 2,
+        "creatureTypes": [
+          "beast"
+        ],
+        "tags": [
+          "anima",
+          "beast"
+        ],
+        "attributes": {
+          "might": 14,
+          "dexterity": 9,
+          "reason": 2,
+          "willpower": 6,
+          "presence": 6
+        },
+        "actionIDs": [
+          "beast/ram",
+          "beast/kick"
+        ],
+        "naturalWeapons": {
+          "legs": {
+            "name": "Hooves",
+            "damage": 2,
+            "damageType": "crushing"
+          },
+          "head": {
+            "name": "Antlers",
+            "damage": 2,
+            "damageType": "crushing"
+          }
+        },
+        "defaultNaturalWeaponKey": "legs",
+        "traitRefs": [
+          "teamwork",
+          "charger"
+        ],
+        "defense": 2,
+        "stability": 0,
+        "speed": 6,
+        "size": "2",
+        "resistances": [
+          "water",
+          "nature"
+        ],
+        "vulnerabilities": [
+          {
+            "stat": "fire",
+            "value": "1"
+          },
+          {
+            "stat": "dark",
+            "value": "1"
+          }
+        ]
+      },
+      "anima_gorilla": {
+        "name": "Gorilla Anima",
+        "description": "A large gorilla with a tough hide and great strength",
+        "role": "summon",
+        "level": 2,
+        "creatureTypes": [
+          "beast"
+        ],
+        "tags": [
+          "anima",
+          "beast"
+        ],
+        "attributes": {
+          "might": 13,
+          "dexterity": 10,
+          "reason": 3,
+          "willpower": 8,
+          "presence": 10
+        },
+        "actionIDs": [
+          "beast/punch",
+          "beast/growl"
+        ],
+        "naturalWeapons": {
+          "arms": {
+            "name": "Arms",
+            "damage": 2,
+            "damageType": "crushing"
+          }
+        },
+        "defaultNaturalWeaponKey": "arms",
+        "traitRefs": [
+          "teamwork",
+          "grappler"
+        ],
+        "defense": 2,
+        "stability": 0,
+        "speed": 4,
+        "size": "1M",
+        "resistances": [
+          "volt",
+          "earth"
+        ],
+        "vulnerabilities": [
+          {
+            "stat": "air",
+            "value": "1"
+          },
+          {
+            "stat": "water",
+            "value": "1"
+          }
+        ]
+      },
+      "anima_crocodile": {
+        "name": "Crocodile Anima",
+        "description": "A large crocodile with a tough hide and powerful jaws",
+        "role": "summon",
+        "level": 2,
+        "creatureTypes": [
+          "beast"
+        ],
+        "tags": [
+          "anima",
+          "beast"
+        ],
+        "attributes": {
+          "might": 15,
+          "dexterity": 13,
+          "reason": 2,
+          "willpower": 6,
+          "presence": 5
+        },
+        "actionIDs": [
+          "beast/chomp",
+          "beast/tailWhip"
+        ],
+        "naturalWeapons": {
+          "teeth": {
+            "name": "Teeth",
+            "damage": 3,
+            "damageType": "piercing"
+          },
+          "tail": {
+            "name": "Tail",
+            "damage": 2,
+            "damageType": "crushing"
+          }
+        },
+        "defaultNaturalWeaponKey": "teeth",
+        "traitRefs": [
+          "greatSwimmer",
+          "grappler",
+          "bloodthirsty"
+        ],
+        "defense": 2,
+        "stability": 1,
+        "speed": 2,
+        "size": "2",
+        "resistances": [
+          "water",
+          "dark"
+        ],
+        "vulnerabilities": [
+          {
+            "stat": "volt",
+            "value": "1"
+          },
+          {
+            "stat": "nature",
+            "value": "1"
+          }
+        ]
       },
       "fairySylph": {
         "name": "Sylph",
@@ -13380,6 +15161,35 @@
           "metaphysical",
           "weakling"
         ]
+      },
+      "mount_swift": {
+        "role": "summon",
+        "level": 1
+      },
+      "mount_tough": {
+        "role": "summon",
+        "level": 1
+      },
+      "mount_adaptable": {
+        "role": "summon",
+        "level": 1
+      },
+      "mount_magibike": {
+        "name": "Magibike",
+        "description": "An inventory-backed magitech Mount. Requires at least 1 Artificer level to use. It stores up to 10 Mana and grants no mounted stat bonuses.",
+        "role": "summon",
+        "level": 1,
+        "creatureTypes": [
+          "construct"
+        ],
+        "tags": [
+          "mount",
+          "magitech"
+        ],
+        "speed": 8,
+        "size": "2",
+        "passengers": 1,
+        "defaultMaxMp": 10
       }
     }
   },
@@ -13436,7 +15246,7 @@
         },
         "dazed": {
           "name": "Dazed",
-          "description": "Lose 2 AP. You cannot use reactions. Does not take effect if target has Stunned."
+          "description": "Lose 2 AP for your next turn. You cannot use reactions. Does not take effect if target has Stunned."
         },
         "frightened": {
           "name": "Frightened",
@@ -13460,7 +15270,7 @@
         },
         "shaken": {
           "name": "Shaken",
-          "description": "Lose 1 AP. Does not take effect if target has Dazed or Stunned."
+          "description": "Lose 1 AP for your next turn. Does not take effect if target has Dazed or Stunned."
         },
         "slowed": {
           "name": "Slowed",
@@ -13468,7 +15278,7 @@
         },
         "stunned": {
           "name": "Stunned",
-          "description": "Lose 3 AP. You cannot use reactions."
+          "description": "Lose 3 AP for your next turn. You cannot use reactions."
         },
         "sundered": {
           "name": "Sundered",
@@ -13492,13 +15302,17 @@
           "name": "2H",
           "description": "This can only be done with a two-handed weapon"
         },
+        "anima": {
+          "name": "Anima",
+          "description": "This action requires you to be in Anima form to use"
+        },
         "area": {
           "name": "Area",
           "description": "This affects an entire area"
         },
         "barrierX": {
           "name": "Barrier X",
-          "description": "Grants a Barrier equal to X. Barrier does not stack, but absorbs damage for you after defense but before affecting your HP."
+          "description": "Grants a Barrier equal to X. Barrier does not stack, but absorbs damage for you after defense but before affecting your HP. Barrier will not protect you from an effect that says you lose HP such as bleeding or poisoned"
         },
         "blinded": {
           "name": "Blinded",
@@ -13587,6 +15401,10 @@
         "repeatX": {
           "name": "Repeat (X)",
           "description": "You may repeat this action up to X times at no additional cost, keeping the same result tier. You may choose different targets each time"
+        },
+        "riding": {
+          "name": "Riding",
+          "description": "Can only be used while riding a Mount"
         },
         "shiftX": {
           "name": "Shift X",

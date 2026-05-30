@@ -8,8 +8,14 @@ import {ReactionRef, TraitRef} from "@/lib/baseRefs";
 import {HydratedCharacter} from "@/lib/HydratedChar";
 import { mergeActionChargeState } from "@/lib/charge-helpers";
 import {buildReactionLibrary} from "@/lib/rest-helpers";
-import {getDeployedCreatureActionRefs, getInjectedCompanionReactionRefs} from "@/lib/creature-roster";
+import {
+    getActiveDruidAnimaActionRefs,
+    getDeployedCreatureActionRefs,
+    getInjectedCompanionReactionRefs,
+} from "@/lib/creature-roster";
 import { resolveInventionModulePassiveIds } from "@/lib/trait-helpers";
+import { resolveEquippedHands } from "@/lib/weapon-utils";
+import { getEquippedAnimaNaturalKeys } from "@/lib/natural-weapons";
 
 export function useDataLoader(rulesDataParam: any) {
     // 1. Core Data IO (The source of truth)
@@ -86,9 +92,20 @@ export function useDataLoader(rulesDataParam: any) {
         [rawCharacter?.creatures, rawCharacter?.traits, rulesDataParam]
     )
 
+    const activeAnimaActionRefs = useMemo(
+        () => getActiveDruidAnimaActionRefs(rawCharacter, rulesDataParam),
+        [
+            rawCharacter?.activeDruidAnimaTemplateId,
+            rawCharacter?.druidAnimaTemplateIds,
+            rawCharacter?.classes,
+            rawCharacter?.traits,
+            rulesDataParam,
+        ]
+    )
+
     const creatureGrantedActionIds = useMemo(
-        () => creatureActionRefs.map((r) => r.id),
-        [creatureActionRefs]
+        () => [...creatureActionRefs, ...activeAnimaActionRefs].map((r) => r.id),
+        [creatureActionRefs, activeAnimaActionRefs]
     )
 
     const reactionRefsWithCompanion = useMemo(() => {
@@ -103,6 +120,33 @@ export function useDataLoader(rulesDataParam: any) {
         return base
     }, [rawCharacter?.reactions, rawCharacter?.creatures, rawCharacter?.traits, rulesDataParam])
 
+    const resolvedHands = useMemo(
+        () =>
+            resolveEquippedHands(rawCharacter, {
+                rules: rulesDataParam,
+                activeDruidAnimaTemplateId: rawCharacter?.activeDruidAnimaTemplateId,
+            }),
+        [
+            rawCharacter?.equipment,
+            rawCharacter?.inventory,
+            rawCharacter?.activeDruidAnimaTemplateId,
+            rulesDataParam,
+        ]
+    )
+
+    const animaEquippedNaturalKeys = useMemo(
+        () =>
+            rawCharacter?.activeDruidAnimaTemplateId
+                ? getEquippedAnimaNaturalKeys(rawCharacter)
+                : new Set<string>(),
+        [rawCharacter?.activeDruidAnimaTemplateId, rawCharacter?.equipment]
+    )
+
+    const activeAnimaActionIdList = useMemo(
+        () => activeAnimaActionRefs.map((r) => r.id),
+        [activeAnimaActionRefs]
+    )
+
     const hydratedActions = useActions(
         hydratedItemsChar?.inventory || [],
         equippedUids,
@@ -111,10 +155,14 @@ export function useDataLoader(rulesDataParam: any) {
             ...(rawCharacter?.actions || []),
             ...traitActionIds.map((id) => ({ id })),
             ...creatureActionRefs,
+            ...activeAnimaActionRefs,
         ],
         handSlotUids,
         creatureGrantedActionIds,
         traitRefs as TraitRef[] | undefined,
+        resolvedHands,
+        activeAnimaActionIdList,
+        animaEquippedNaturalKeys,
     );
 
     // 5. Final Object Assembly
@@ -241,27 +289,6 @@ export function discoverAllTraitRefs(character: any, rulesData?: any) {
         if (typeof t.charges === "number") next.charges = t.charges;
       }
       traitMap.set(id, next);
-      // #region agent log
-      if (id === "human_innerSpark" || (typeof t === "object" && typeof t.charges === "number")) {
-        fetch("http://127.0.0.1:7550/ingest/244c033b-3205-4e88-b1a7-446a0537a4c2", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "f4e9fe" },
-          body: JSON.stringify({
-            sessionId: "f4e9fe",
-            runId: "post-fix",
-            hypothesisId: "A",
-            location: "DataLoader.tsx:discoverAllTraitRefs",
-            message: "trait ref from save",
-            data: {
-              id,
-              saveCharges: typeof t === "object" ? t.charges : undefined,
-              refCharges: next.charges,
-            },
-            timestamp: Date.now(),
-          }),
-        }).catch(() => {});
-      }
-      // #endregion
     });
 
     // 2. Identify Unique Active Item UIDs

@@ -235,46 +235,6 @@ export function getAllowedFairySpellIdsForSlot(
             ids.add(lp[0])
             ids.add(lp[1])
         }
-        // #region agent log
-        fetch("http://127.0.0.1:7550/ingest/244c033b-3205-4e88-b1a7-446a0537a4c2", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "d70b49" },
-            body: JSON.stringify({
-                sessionId: "d70b49",
-                location: "fairy-tamer.ts:getAllowedFairySpellIdsForSlot",
-                message: "upgrade slot: merged lesser+greater spell ids",
-                data: {
-                    slot,
-                    templateId: s.templateId,
-                    resolved,
-                    lesserTid: lesser ?? null,
-                    mergedLesserPair: Boolean(lp),
-                },
-                timestamp: Date.now(),
-                hypothesisId: "H1",
-            }),
-        }).catch(() => {})
-        // #endregion
-    } else if (contracts.level5Mode === "upgrade" && isFairyGreaterTemplate(s.templateId)) {
-        // #region agent log
-        fetch("http://127.0.0.1:7550/ingest/244c033b-3205-4e88-b1a7-446a0537a4c2", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "d70b49" },
-            body: JSON.stringify({
-                sessionId: "d70b49",
-                location: "fairy-tamer.ts:getAllowedFairySpellIdsForSlot",
-                message: "greater template but merge NOT applied (lesser spells may strip)",
-                data: {
-                    slot,
-                    templateId: s.templateId,
-                    resolved,
-                    upgradedSlotIndex: contracts.upgradedSlotIndex,
-                },
-                timestamp: Date.now(),
-                hypothesisId: "H2",
-            }),
-        }).catch(() => {})
-        // #endregion
     }
     return ids
 }
@@ -411,20 +371,6 @@ export function getFairySpellPickMinLevel(
             }
             const gPair = FAIRY_ACTIONS_BY_TEMPLATE[s.templateId]
             if (gPair && (spellCardId === gPair[0] || spellCardId === gPair[1])) {
-                // #region agent log
-                fetch("http://127.0.0.1:7550/ingest/244c033b-3205-4e88-b1a7-446a0537a4c2", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "d70b49" },
-                    body: JSON.stringify({
-                        sessionId: "d70b49",
-                        location: "fairy-tamer.ts:getFairySpellPickMinLevel",
-                        message: "greater-upgrade spell min packet tier (both use 5)",
-                        data: { slot, spellCardId, templateId: s.templateId, minLevel: 5 },
-                        timestamp: Date.now(),
-                        hypothesisId: "H_GR",
-                    }),
-                }).catch(() => {})
-                // #endregion
                 return 5
             }
             return 5
@@ -465,31 +411,7 @@ export function stripInvalidFairySpellPicks<T extends FairyClassSpellPick>(picks
     return picks.filter((p) => {
         if (p.source !== "fairytamer" || p.fairySpellSlot == null) return true
         const allowed = getAllowedFairySpellIdsForSlot(contracts, p.fairySpellSlot)
-        const ok = Boolean(allowed?.has(p.id))
-        if (!ok) {
-            // #region agent log
-            fetch("http://127.0.0.1:7550/ingest/244c033b-3205-4e88-b1a7-446a0537a4c2", {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "d70b49" },
-                body: JSON.stringify({
-                    sessionId: "d70b49",
-                    location: "fairy-tamer.ts:stripInvalidFairySpellPicks",
-                    message: "fairy spell class XP pick removed (not in allowed set)",
-                    data: {
-                        pickId: p.id,
-                        fairySpellSlot: p.fairySpellSlot,
-                        slotTemplate: getFairySlot(contracts, p.fairySpellSlot)?.templateId ?? null,
-                        allowedIds: allowed ? [...allowed] : null,
-                        resolvedUpgrade: resolveUpgradedFairySlotIndex(contracts),
-                        level5Mode: contracts.level5Mode,
-                    },
-                    timestamp: Date.now(),
-                    hypothesisId: "H3",
-                }),
-            }).catch(() => {})
-            // #endregion
-        }
-        return ok
+        return Boolean(allowed?.has(p.id))
     })
 }
 
@@ -531,26 +453,6 @@ export function applyFairyUpgradeToSlot(
         templateId: greater,
         actionCardIds: keepIds,
     }
-    // #region agent log
-    fetch("http://127.0.0.1:7550/ingest/244c033b-3205-4e88-b1a7-446a0537a4c2", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "d70b49" },
-        body: JSON.stringify({
-            sessionId: "d70b49",
-            location: "fairy-tamer.ts:applyFairyUpgradeToSlot",
-            message: "applied lesser→greater upgrade on contract slot",
-            data: {
-                slotIndex,
-                fromTemplate: cur.templateId,
-                greaterTemplate: greater,
-                priorActionCardIds: cur.actionCardIds,
-                keepIds,
-            },
-            timestamp: Date.now(),
-            hypothesisId: "H4",
-        }),
-    }).catch(() => {})
-    // #endregion
     return {
         ...setFairySlotAt(c, slotIndex, nextSlot),
         level5Mode: "upgrade",

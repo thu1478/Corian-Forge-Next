@@ -16,6 +16,12 @@ import {
     getCreatureTemplates,
     resolveCreatureTraitEntries,
 } from "@/lib/creature-roster"
+import {
+    resolveNaturalWeaponForAction,
+    getNaturalWeaponSystemDefaults,
+    normalizeNaturalWeapon,
+    type RulesWithNaturalWeapons,
+} from "@/lib/natural-weapons"
 import { FAIRY_ACTIONS_BY_TEMPLATE } from "@/lib/fairy-tamer"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -68,6 +74,12 @@ const PREVIEW_WEAPON_OPTIONS: { value: string; label: string }[] = [
     { value: "wp_dagger", label: "Dagger (melee)" },
     { value: "wp_hand_crossbow", label: "Hand crossbow (ranged)" },
 ]
+
+const RIDER_MOUNT_ACTIONS_BY_TEMPLATE: Record<string, readonly string[]> = {
+    mount_swift: ["cycloneStarter"],
+    mount_tough: ["seismicStep"],
+    mount_adaptable: ["amphibiousEscape"],
+}
 
 function catalogToPreviewWeapon(catalogId: string): InventoryItem | null {
     if (!catalogId || catalogId === "__none__") return null
@@ -248,21 +260,23 @@ function formatCreatureVuln(v: { stat: string; value?: string }): string {
 }
 
 /**
- * Rules library only: show Fairy Tamer contract spell cards for fairy bestiary ids even when `actionIDs` is empty.
+ * Rules library only: show preview-only cards for bestiary ids even when `actionIDs` is empty.
  * Character sheet still uses {@link getActionCardIdsForCreatureEntry} and creator picks — unchanged.
  */
 function getLibraryCreatureActionDisplayIds(id: string, def: Pick<CreatureDefinition, "actionIDs">): string[] {
     const base = [...(def.actionIDs ?? [])].map((s) => String(s).trim()).filter(Boolean)
-    const pair = FAIRY_ACTIONS_BY_TEMPLATE[id]
-    if (!pair) return [...new Set(base)]
     const seen = new Set(base)
     const out = [...base]
-    for (const raw of pair) {
-        const aid = String(raw).trim()
-        if (!aid || seen.has(aid)) continue
-        seen.add(aid)
-        out.push(aid)
+
+    for (const previewIds of [FAIRY_ACTIONS_BY_TEMPLATE[id], RIDER_MOUNT_ACTIONS_BY_TEMPLATE[id]]) {
+        for (const raw of previewIds ?? []) {
+            const aid = String(raw).trim()
+            if (!aid || seen.has(aid)) continue
+            seen.add(aid)
+            out.push(aid)
+        }
     }
+
     return out
 }
 
@@ -283,6 +297,12 @@ const LibraryCreatureCard = memo(function LibraryCreatureCard({
     const actionIds = getLibraryCreatureActionDisplayIds(id, def)
     const attrKeys = ["might", "dexterity", "reason", "willpower", "presence"] as const
     const oa = def.opportunityAttack
+    const naturalWeaponEntries = def.naturalWeapons
+        ? Object.entries(def.naturalWeapons).map(([key, raw]) => {
+              const merged = normalizeNaturalWeapon(raw, getNaturalWeaponSystemDefaults(rules as RulesWithNaturalWeapons))
+              return { key, merged }
+          })
+        : []
 
     return (
         <div className="min-w-0 space-y-3 rounded-lg border border-border bg-card/40 p-4">
@@ -387,6 +407,24 @@ const LibraryCreatureCard = memo(function LibraryCreatureCard({
                 ) : null}
             </div>
 
+            {naturalWeaponEntries.length > 0 ? (
+                <div>
+                    <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        Natural weapons
+                    </p>
+                    <ul className="space-y-1 text-xs text-muted-foreground">
+                        {naturalWeaponEntries.map(({ key, merged }) => (
+                            <li key={key} className="font-mono tabular-nums">
+                                <span className="font-semibold text-foreground">{merged.name}</span>
+                                <span className="text-muted-foreground"> ({key})</span>
+                                {" — "}
+                                {merged.damage} {merged.damageType}, range {merged.range ?? "—"}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            ) : null}
+
             {def.resistances && def.resistances.length > 0 ? (
                 <div>
                     <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -464,6 +502,13 @@ const LibraryCreatureCard = memo(function LibraryCreatureCard({
                                     </p>
                                 )
                             }
+                            const cardWeapon =
+                                resolveNaturalWeaponForAction(
+                                    def,
+                                    rules as RulesWithNaturalWeapons,
+                                    ac.tags,
+                                    ac.hiddenTags
+                                ) ?? previewWeapon
                             return (
                                 <div key={aid} className="space-y-2">
                                     <Badge variant="outline" className="font-mono text-[10px]">
@@ -472,10 +517,10 @@ const LibraryCreatureCard = memo(function LibraryCreatureCard({
                                     <ActionCardComponent
                                         action={ac}
                                         attributes={DEMO_ATTRIBUTES}
-                                        currentWeapon={previewWeapon}
+                                        currentWeapon={cardWeapon}
                                         offhandWeapon={null}
                                         forceCollapsed={false}
-                                        powerRollDisplayMode="simple"
+                                        powerRollDisplayMode="formula"
                                         defaultPowerRollExpanded={false}
                                         collapseAllSignal={collapseAllSignal}
                                     />
@@ -486,8 +531,8 @@ const LibraryCreatureCard = memo(function LibraryCreatureCard({
                 </div>
             ) : (
                 <p className="text-xs text-muted-foreground border-t border-border/60 pt-2">
-                    No action cards to preview (<span className="font-mono">actionIDs</span> empty and not a mapped fairy
-                    contract template).
+                    No action cards to preview (<span className="font-mono">actionIDs</span> empty and no
+                    library-only preview mapping).
                 </p>
             )}
         </div>
@@ -729,6 +774,7 @@ export function RulesLibraryView() {
     const classSectionIds = (classId: string) => ({
         passives: `lib-class-${tocSlug(classId)}-passives`,
         deities: `lib-class-${tocSlug(classId)}-deities`,
+        mounts: `lib-class-${tocSlug(classId)}-mounts`,
         actions: `lib-class-${tocSlug(classId)}-actions`,
         reactions: `lib-class-${tocSlug(classId)}-reactions`,
     })
@@ -866,6 +912,17 @@ export function RulesLibraryView() {
                                                                 }
                                                             >
                                                                 Deities
+                                                            </button>
+                                                        ) : null}
+                                                        {Array.isArray(selectedClass.mounts) && selectedClass.mounts.length > 0 ? (
+                                                            <button
+                                                                type="button"
+                                                                className="w-full rounded-md px-2 py-1 text-left text-xs hover:bg-muted"
+                                                                onClick={() =>
+                                                                    libraryScrollTo(classSectionIds(effectiveClassId).mounts)
+                                                                }
+                                                            >
+                                                                Mounts
                                                             </button>
                                                         ) : null}
                                                         {Object.keys(selectedClass.actions ?? {}).length > 0 ? (
@@ -1167,6 +1224,50 @@ export function RulesLibraryView() {
                                         </section>
                                     ) : null}
 
+                                    {Array.isArray(selectedClass.mounts) && selectedClass.mounts.length > 0 ? (
+                                        <section
+                                            id={classSectionIds(effectiveClassId).mounts}
+                                            className="scroll-mt-36 space-y-3"
+                                        >
+                                            <h3 className="text-lg font-bold border-b border-border pb-1">Mounts</h3>
+                                            <div className="space-y-4">
+                                                {selectedClass.mounts.map((m: Record<string, any>) => (
+                                                    <div
+                                                        key={m.id}
+                                                        className="rounded-lg border border-border p-4 space-y-2 bg-muted/10"
+                                                    >
+                                                        <div className="font-bold">
+                                                            {m.name}{" "}
+                                                            <span className="text-muted-foreground font-mono text-sm font-normal">
+                                                                ({m.id})
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-sm text-muted-foreground whitespace-pre-line">
+                                                            {m.description}
+                                                        </p>
+                                                        <div className="flex flex-wrap gap-2 text-xs">
+                                                            {m.speed != null ? (
+                                                                <Badge variant="outline">Speed {m.speed}</Badge>
+                                                            ) : null}
+                                                            {m.size != null ? (
+                                                                <Badge variant="outline">Size {m.size}</Badge>
+                                                            ) : null}
+                                                            {m.passengers != null ? (
+                                                                <Badge variant="outline">Passengers {m.passengers}</Badge>
+                                                            ) : null}
+                                                            {m.bonusStats?.defense != null ? (
+                                                                <Badge variant="secondary">+{m.bonusStats.defense} Def (mounted)</Badge>
+                                                            ) : null}
+                                                            {m.bonusStats?.stability != null ? (
+                                                                <Badge variant="secondary">+{m.bonusStats.stability} Stability (mounted)</Badge>
+                                                            ) : null}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </section>
+                                    ) : null}
+
                                     <section
                                         id={classSectionIds(effectiveClassId).actions}
                                         className="scroll-mt-36 space-y-3"
@@ -1186,6 +1287,9 @@ export function RulesLibraryView() {
                                                             {typeof wrapper.minLevel === "number" ? (
                                                                 <Badge variant="secondary">Lv {wrapper.minLevel}</Badge>
                                                             ) : null}
+                                                            {wrapper.mountTypeId ? (
+                                                                <Badge variant="default">Mount: {wrapper.mountTypeId}</Badge>
+                                                            ) : null}
                                                             {wrapper.deityId ? (
                                                                 <Badge variant="default">Deity: {wrapper.deityId}</Badge>
                                                             ) : null}
@@ -1196,7 +1300,7 @@ export function RulesLibraryView() {
                                                             currentWeapon={previewWeapon}
                                                             offhandWeapon={null}
                                                             forceCollapsed={false}
-                                                            powerRollDisplayMode="simple"
+                                                            powerRollDisplayMode="formula"
                                                             defaultPowerRollExpanded={false}
                                                             collapseAllSignal={collapseAllSignal}
                                                         />
@@ -1247,7 +1351,7 @@ export function RulesLibraryView() {
                                                                 currentWeapon={previewWeapon}
                                                                 offhandWeapon={null}
                                                                 forceCollapsed={false}
-                                                                powerRollDisplayMode="simple"
+                                                                powerRollDisplayMode="formula"
                                                                 defaultPowerRollExpanded={false}
                                                                 collapseAllSignal={collapseAllSignal}
                                                             />
@@ -1452,7 +1556,7 @@ export function RulesLibraryView() {
                                                                             currentWeapon={previewWeapon}
                                                                             offhandWeapon={null}
                                                                             forceCollapsed={false}
-                                                                            powerRollDisplayMode="simple"
+                                                                            powerRollDisplayMode="formula"
                                                                             defaultPowerRollExpanded={false}
                                                                             collapseAllSignal={collapseAllSignal}
                                                                         />
@@ -1688,7 +1792,7 @@ export function RulesLibraryView() {
                                                                                             currentWeapon={cardWeapon}
                                                                                             offhandWeapon={null}
                                                                                             forceCollapsed={false}
-                                                                                            powerRollDisplayMode="simple"
+                                                                                            powerRollDisplayMode="formula"
                                                                                             defaultPowerRollExpanded={false}
                                                                                             collapseAllSignal={
                                                                                                 collapseAllSignal
@@ -1734,7 +1838,7 @@ export function RulesLibraryView() {
                                                                     currentWeapon={cardWeapon}
                                                                     offhandWeapon={null}
                                                                     forceCollapsed={false}
-                                                                    powerRollDisplayMode="simple"
+                                                                    powerRollDisplayMode="formula"
                                                                     defaultPowerRollExpanded={false}
                                                                     collapseAllSignal={collapseAllSignal}
                                                                 />

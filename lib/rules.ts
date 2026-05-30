@@ -54,7 +54,7 @@ export interface GrantSkillEffect {
 
 export type TraitEffect =
     | {
-          type: "StatChange" | "Resistance" | "Vulnerability" | "Immunity" | "GrantSight" | "AttributeChange" | "GrantActionCard" | "Language" | "SummonSchool"
+          type: "StatChange" | "Resistance" | "Vulnerability" | "Immunity" | "GrantSight" | "GrantMovement" | "AttributeChange" | "GrantActionCard" | "Language" | "SummonSchool"
           stat?: string
           /** Omitted on some rows (e.g. `Immunity`, `GrantSight` with only `stat`). */
           value?: string

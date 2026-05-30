@@ -126,10 +126,13 @@ export function CharacterReview({
     () =>
       reconcileCreatureRoster(charData.creatures ?? [], traitsAlignedWithExport, rulesData as any, {
         classes: charData.classes,
+        inventory: charData.inventory,
         conjurerSummonTemplateIds: charData.conjurerSummonTemplateIds,
+        druidAnimaTemplateIds: charData.druidAnimaTemplateIds,
         fairyTamerContracts: charData.fairyTamerContracts,
+        riderMountType: charData.riderMountType ?? null,
       }),
-    [charData.creatures, charData.classes, charData.conjurerSummonTemplateIds, charData.fairyTamerContracts, traitsAlignedWithExport]
+    [charData.creatures, charData.classes, charData.conjurerSummonTemplateIds, charData.druidAnimaTemplateIds, charData.fairyTamerContracts, charData.riderMountType, traitsAlignedWithExport]
   );
 
   const creatureTemplates = useMemo(
@@ -266,10 +269,17 @@ export function CharacterReview({
       actions,
       reactions,
       conjurerSummonTemplateIds: charData.conjurerSummonTemplateIds ?? [],
+      druidAnimaTemplateIds: charData.druidAnimaTemplateIds ?? [],
+      activeDruidAnimaTemplateId: null,
+      equipmentBeforeAnima: null,
+      animaBarrierBonus: null,
       creatures: reconcileCreatureRoster(charData.creatures ?? [], allExportTraits, rulesData as any, {
         classes: charData.classes,
+        inventory: charData.inventory,
         conjurerSummonTemplateIds: charData.conjurerSummonTemplateIds,
+        druidAnimaTemplateIds: charData.druidAnimaTemplateIds,
         fairyTamerContracts: charData.fairyTamerContracts,
+        riderMountType: charData.riderMountType ?? null,
       }),
       focusFeatures: charData.classes.map((c) => ({ classSrc: c.id, slotIndex: -1 })),
       skills,

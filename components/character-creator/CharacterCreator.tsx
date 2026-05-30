@@ -11,9 +11,14 @@ import {
     conjurerClassTraitRefsFromPicks,
     getConjurerSummonSchoolTag,
     getConjurerSummonSlotCount,
+    getCreatureTemplates,
     getSummonMastery,
     listConjurerCatalogTemplateIdsForSlot,
 } from "@/lib/creature-roster";
+import {
+    getDruidAnimaSlots,
+    sanitizeDruidAnimaTemplateIds,
+} from "@/lib/druid-anima";
 import {
     characterHasFairyContractFromPicks,
     emptyFairyTamerContracts,
@@ -449,6 +454,29 @@ export default function CharacterCreator() {
                             })
                         );
                     }}
+                    riderMountType={charData.riderMountType ?? null}
+                    riderAdaptableMovement={charData.riderAdaptableMovement ?? null}
+                    onRiderMountTypeChange={(mountTypeId) => {
+                        setCharData((prev) => ({
+                            ...prev,
+                            riderMountType: mountTypeId,
+                            riderAdaptableMovement:
+                                mountTypeId === "adaptable" ? prev.riderAdaptableMovement : null,
+                        }));
+                        setClassSelections((prev) =>
+                            prev.filter((sel) => {
+                                if (sel.source !== "rider") return true;
+                                const a = (rulesData.classes as Record<string, any>).rider?.actions?.[sel.id] as
+                                    | { mountTypeId?: string }
+                                    | undefined;
+                                if (!a?.mountTypeId) return true;
+                                return Boolean(mountTypeId && a.mountTypeId === mountTypeId);
+                            })
+                        );
+                    }}
+                    onRiderAdaptableMovementChange={(movement) => {
+                        setCharData((prev) => ({ ...prev, riderAdaptableMovement: movement }));
+                    }}
                     onUpdateLevel={(lvl) => {
                         setAdventurerLevel(lvl);
                         setLevelBonuses((prev) => pruneLevelBonusesForAdventurerLevel(prev, lvl));
@@ -486,6 +514,9 @@ export default function CharacterCreator() {
                                 ...prev,
                                 classes,
                                 ...(!hasPriest ? { priestDeity: null } : {}),
+                                ...(!classes.some((c) => c.id === "rider" && c.level > 0)
+                                    ? { riderMountType: null, riderAdaptableMovement: null }
+                                    : {}),
                             }
                             const hasSummoner = options.some((o) => o.id === "summoner" && o.source === "conjurer")
                             const slots = getConjurerSummonSlotCount(classes, hasSummoner)
@@ -547,9 +578,26 @@ export default function CharacterCreator() {
                             const invention = needsInvention
                                 ? sanitizeSpecialInvention(prev.specialInvention) ?? prev.specialInvention
                                 : undefined
+                            const animaTraits = nextOptions
+                                .filter((o) => o.source === "druid" && o.id === "anima")
+                                .map((o) => ({ id: o.id, source: "class" as const }))
+                            const animaSlots = getDruidAnimaSlots(classes, animaTraits)
+                            const creatureTemplates = getCreatureTemplates(rulesData as any)
+                            const druidAnimaTemplateIds = sanitizeDruidAnimaTemplateIds(
+                                prev.druidAnimaTemplateIds,
+                                animaSlots,
+                                creatureTemplates
+                            )
+                            const activeDruidAnimaTemplateId =
+                                prev.activeDruidAnimaTemplateId &&
+                                druidAnimaTemplateIds.includes(prev.activeDruidAnimaTemplateId)
+                                    ? prev.activeDruidAnimaTemplateId
+                                    : null
                             return {
                                 ...next,
                                 conjurerSummonTemplateIds: ids,
+                                druidAnimaTemplateIds,
+                                activeDruidAnimaTemplateId,
                                 fairyTamerContracts: fairySynced,
                                 specialInvention: invention,
                             }
@@ -563,6 +611,10 @@ export default function CharacterCreator() {
                     conjurerSummonTemplateIds={charData.conjurerSummonTemplateIds ?? []}
                     onConjurerSummonsChange={(ids) =>
                         setCharData((prev) => ({ ...prev, conjurerSummonTemplateIds: ids }))
+                    }
+                    druidAnimaTemplateIds={charData.druidAnimaTemplateIds ?? []}
+                    onDruidAnimaChange={(ids) =>
+                        setCharData((prev) => ({ ...prev, druidAnimaTemplateIds: ids }))
                     }
                     fairyTamerContracts={charData.fairyTamerContracts ?? emptyFairyTamerContracts()}
                     onFairyTamerContractsChange={(contracts) => {

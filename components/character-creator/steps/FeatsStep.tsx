@@ -406,30 +406,46 @@ export function FeatsStep({
             const visibleOlder = filterFeats(level, olderFeats);
             const olderLabel = olderFeatsSectionLabel(level);
 
-            return (
-              <div key={level} className="bg-card border border-border rounded-xl p-6">
-                <div className="flex justify-between items-center mb-4 border-b border-border pb-3">
-                  <h3 className="text-xl font-black text-purple-800 uppercase tracking-wider dark:text-purple-400">
-                    Level {level}
-                  </h3>
-                  {featPickComplete(level, selectedFeats, featsRegistry) ? (
-                    <span className="text-xs font-bold bg-green-100 text-green-900 px-2 py-1 rounded border border-green-300 dark:bg-green-900/25 dark:text-green-400 dark:border-green-600/40">
-                      Selected
-                    </span>
-                  ) : (
-                    <span className="text-xs font-bold bg-amber-100 text-amber-950 px-2 py-1 rounded border border-amber-400 dark:bg-amber-900/30 dark:text-amber-200 dark:border-amber-600/50">
-                      Pending
-                    </span>
-                  )}
-                </div>
+            const complete = featPickComplete(level, selectedFeats, featsRegistry);
 
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-3">
-                      Level {level} feats
-                    </h4>
-                    {renderFeatGrid(level, visibleNew)}
+            return (
+              <Collapsible key={level} defaultOpen className="bg-card border border-border rounded-xl">
+                <CollapsibleTrigger
+                  type="button"
+                  className="flex w-full items-center justify-between gap-4 rounded-t-xl px-6 py-4 text-left transition-colors hover:bg-muted/30 [&[data-state=open]>svg:last-child]:rotate-180"
+                >
+                  <div className="min-w-0">
+                    <h3 className="text-xl font-black text-purple-800 uppercase tracking-wider dark:text-purple-400">
+                      Level {level}
+                    </h3>
+                    <p className="mt-1 text-xs font-medium text-muted-foreground">
+                      {showOnlyAvailable
+                        ? `${visibleNew.length + visibleOlder.length} available feats shown`
+                        : `${newFeats.length + olderFeats.length} feats`}
+                    </p>
                   </div>
+                  <div className="flex shrink-0 items-center gap-3">
+                    {complete ? (
+                      <span className="text-xs font-bold bg-green-100 text-green-900 px-2 py-1 rounded border border-green-300 dark:bg-green-900/25 dark:text-green-400 dark:border-green-600/40">
+                        Selected
+                      </span>
+                    ) : (
+                      <span className="text-xs font-bold bg-amber-100 text-amber-950 px-2 py-1 rounded border border-amber-400 dark:bg-amber-900/30 dark:text-amber-200 dark:border-amber-600/50">
+                        Pending
+                      </span>
+                    )}
+                    <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform duration-200" />
+                  </div>
+                </CollapsibleTrigger>
+
+                <CollapsibleContent>
+                  <div className="space-y-4 border-t border-border px-6 pb-6 pt-4">
+                    <div>
+                      <h4 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-3">
+                        Level {level} feats
+                      </h4>
+                      {renderFeatGrid(level, visibleNew)}
+                    </div>
 
                   {olderFeats.length > 0 && olderLabel ? (
                     <Collapsible className="rounded-xl border border-border/80 bg-muted/15 overflow-hidden">
@@ -457,8 +473,9 @@ export function FeatsStep({
                       </CollapsibleContent>
                     </Collapsible>
                   ) : null}
-                </div>
-              </div>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
             );
           })}
         </div>

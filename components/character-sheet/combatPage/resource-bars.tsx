@@ -307,6 +307,9 @@ interface CombatStatsPanelProps {
     vulnerabilities: Record<string,number>
     conditionImmunities: string[]
     specialSight: string[]
+    specialMovement: string[]
+    mountedContext?: { creatureName: string; defenseBonus: number; stabilityBonus: number } | null
+    highlightedStats?: Partial<Record<"defense" | "stability" | "speed", boolean>>
 }
 
 function CombatStatDeltaCell({
@@ -316,6 +319,7 @@ function CombatStatDeltaCell({
     delta,
     onDeltaChange,
     iconClassName,
+    highlighted = false,
 }: {
     icon: React.ReactNode
     label: string
@@ -323,8 +327,10 @@ function CombatStatDeltaCell({
     delta: number
     onDeltaChange: (delta: number) => void
     iconClassName?: string
+    highlighted?: boolean
 }) {
     const effective = baseValue + delta
+    const deltaClass = statDeltaTextClass(effective, baseValue)
     return (
         <div className="text-center p-3 bg-muted/30 rounded-lg border border-border flex flex-col">
             <div className="flex justify-center mb-2">
@@ -333,8 +339,9 @@ function CombatStatDeltaCell({
             <div
                 className={cn(
                     "text-2xl font-bold tabular-nums",
-                    statDeltaTextClass(effective, baseValue) || "text-foreground"
+                    deltaClass || (highlighted ? "text-violet-600 dark:text-violet-300" : "text-foreground")
                 )}
+                title={highlighted && !deltaClass ? "Changed by active mount or Anima form" : undefined}
             >
                 {effective}
             </div>
@@ -398,6 +405,9 @@ export function CombatStatsPanel({
     vulnerabilities,
     conditionImmunities,
     specialSight,
+    specialMovement = [],
+    mountedContext = null,
+    highlightedStats = {},
 }: CombatStatsPanelProps) {
     const conflictingTypes = useConflictingDamageTypes(resistances, vulnerabilities)
 
@@ -412,6 +422,7 @@ export function CombatStatsPanel({
                     baseValue={baseDefense}
                     delta={defenseDelta}
                     onDeltaChange={onDefenseDeltaChange}
+                    highlighted={highlightedStats.defense === true}
                 />
                 <CombatStatDeltaCell
                     icon={<ShieldCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />}
@@ -419,6 +430,7 @@ export function CombatStatsPanel({
                     baseValue={baseStability}
                     delta={stabilityDelta}
                     onDeltaChange={onStabilityDeltaChange}
+                    highlighted={highlightedStats.stability === true}
                 />
                 <CombatStatDeltaCell
                     icon={<Footprints className="w-5 h-5 text-sky-600 dark:text-sky-400" />}
@@ -426,8 +438,14 @@ export function CombatStatsPanel({
                     baseValue={baseSpeed}
                     delta={speedDelta}
                     onDeltaChange={onSpeedDeltaChange}
+                    highlighted={highlightedStats.speed === true}
                 />
             </div>
+            {mountedContext ? (
+                <p className="text-[10px] text-muted-foreground text-center -mt-2 mb-3">
+                    Riding {mountedContext.creatureName}
+                </p>
+            ) : null}
 
             {/* Resistances & Vulnerabilities */}
             <div className="space-y-3">
@@ -515,6 +533,20 @@ export function CombatStatsPanel({
                         ) : (
                             <ul className="mt-1 space-y-0.5 list-disc list-inside text-sm text-foreground">
                                 {specialSight.map((s) => (
+                                    <li key={s}>{s}</li>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
+                    <div>
+                        <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+                            Special movement
+                        </span>
+                        {specialMovement.length === 0 ? (
+                            <p className="text-xs text-muted-foreground/80 mt-1">—</p>
+                        ) : (
+                            <ul className="mt-1 space-y-0.5 list-disc list-inside text-sm text-foreground">
+                                {specialMovement.map((s) => (
                                     <li key={s}>{s}</li>
                                 ))}
                             </ul>

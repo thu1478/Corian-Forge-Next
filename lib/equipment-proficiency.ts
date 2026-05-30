@@ -1,6 +1,8 @@
 import { actionTagsIncludeCanonical } from "@/lib/action-tag-utils"
 import type { InventoryItem } from "@/lib/equipment-data"
 
+export const HEAVY_MIGHT_REQUIREMENT = 13
+
 /** Class `proficiencies` entries from rules.json that gate martial gear. */
 export type MartialProficiencyId =
   | "martialMelee"
@@ -38,6 +40,23 @@ export function collectClassProficiencies(
 function itemRequiresMartialCheck(item: InventoryItem | null | undefined): boolean {
   if (!item) return false
   return actionTagsIncludeCanonical(item.tags, "martial")
+}
+
+export function itemHasHeavyTag(item: InventoryItem | null | undefined): boolean {
+  if (!item) return false
+  return actionTagsIncludeCanonical(item.tags, "heavy")
+}
+
+export function heavyMightRequirementDeficitMessage(
+  item: InventoryItem | null | undefined,
+  might: number | null | undefined,
+): string | null {
+  if (!itemHasHeavyTag(item)) return null
+  const score = Number(might)
+  if (Number.isFinite(score) && score >= HEAVY_MIGHT_REQUIREMENT) return null
+  return `Heavy equipment requires Might ${HEAVY_MIGHT_REQUIREMENT} to use effectively. Your Might is ${
+    Number.isFinite(score) ? score : "unknown"
+  }. See glossary: Heavy.`
 }
 
 /**

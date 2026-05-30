@@ -79,7 +79,11 @@ import {
 import {applyEndOfCombatEffects} from "@/lib/rest-helpers";
 import {getCharacterLevelForStats} from "@/lib/character-data";
 import {listCatalogActionCardIds, listCatalogReactionCardIds} from "@/lib/generic-catalog";
-import {collectClassProficiencies, martialProficiencyDeficitMessage} from "@/lib/equipment-proficiency";
+import {
+    collectClassProficiencies,
+    heavyMightRequirementDeficitMessage,
+    martialProficiencyDeficitMessage,
+} from "@/lib/equipment-proficiency";
 import {
     buildWeaponBondContext,
     isBondedWeapon,
@@ -94,11 +98,20 @@ import type {WeaponItem} from "@/lib/equipment-data";
 import {ProficienciesPanel} from "@/components/character-sheet/characterPage/proficiencies-panel";
 import {CreaturesPanel} from "@/components/character-sheet/characterPage/creatures-panel";
 import {
+    getActiveDruidAnimaActionRefs,
     getCreatureTemplates,
     getDeployedCreatureActionRefs,
     reconcileCreatureRoster,
     type CreatureRosterEntry,
 } from "@/lib/creature-roster";
+import {
+    druidAnimaDisabledReason,
+    isDruidAnimaRosterEntry,
+    applyAnimaTransformEquipment,
+    applyAnimaTransformBarrier,
+} from "@/lib/druid-anima";
+import { resolveEquippedHands } from "@/lib/weapon-utils";
+import { animaWeaponActionVisible, getEquippedAnimaNaturalKeys, listNaturalWeaponOptionsForTemplate } from "@/lib/natural-weapons";
 
 type ActionFilter = string;
 type ViewMode = "grid" | "list"
@@ -182,10 +195,20 @@ export function CharacterSheetView() {
     const rosterReconcileOpts = useMemo(
         () => ({
             classes: character?.classes ?? [],
+            inventory: character?.inventory ?? [],
             conjurerSummonTemplateIds: character?.conjurerSummonTemplateIds,
+            druidAnimaTemplateIds: character?.druidAnimaTemplateIds,
             fairyTamerContracts: character?.fairyTamerContracts,
+            riderMountType: character?.riderMountType ?? null,
         }),
-        [character?.classes, character?.conjurerSummonTemplateIds, character?.fairyTamerContracts]
+        [
+            character?.classes,
+            character?.inventory,
+            character?.conjurerSummonTemplateIds,
+            character?.druidAnimaTemplateIds,
+            character?.fairyTamerContracts,
+            character?.riderMountType,
+        ]
     )
 
     const creaturesResolved = useMemo(
@@ -203,26 +226,42 @@ export function CharacterSheetView() {
             rosterReconcileOpts
         )
         const s = character.creatures ?? []
-        const sSet = new Set(s.map((x: { id: string }) => x.id))
-        if (r.some((x) => !sSet.has(x.id))) {
+        const sKey = s.map((x: { id: string; templateId?: string }) => `${x.id}:${x.templateId ?? ""}`).join("|")
+        const rKey = r.map((x) => `${x.id}:${x.templateId}`).join("|")
+        if (sKey !== rKey) {
             setCharacter((prev: any) => ({
                 ...prev,
+                mountedCreatureId:
+                    prev.mountedCreatureId && r.some((x) => x.id === prev.mountedCreatureId)
+                        ? prev.mountedCreatureId
+                        : null,
+                activeDruidAnimaTemplateId:
+                    prev.activeDruidAnimaTemplateId &&
+                    r.some((x) => isDruidAnimaRosterEntry(x) && x.templateId === prev.activeDruidAnimaTemplateId)
+                        ? prev.activeDruidAnimaTemplateId
+                        : null,
                 creatures: reconcileCreatureRoster(prev.creatures, prev.traits ?? [], rulesData as any, {
                     classes: prev.classes ?? [],
+                    inventory: prev.inventory ?? [],
                     conjurerSummonTemplateIds: prev.conjurerSummonTemplateIds,
+                    druidAnimaTemplateIds: prev.druidAnimaTemplateIds,
                     fairyTamerContracts: prev.fairyTamerContracts,
+                    riderMountType: prev.riderMountType ?? null,
                 }),
             }))
         }
-    }, [character?.traits, character?.creatures, character?.classes, character?.conjurerSummonTemplateIds, rosterReconcileOpts, setCharacter])
+    }, [character?.traits, character?.creatures, character?.classes, character?.inventory, character?.conjurerSummonTemplateIds, character?.druidAnimaTemplateIds, character?.fairyTamerContracts, character?.riderMountType, rosterReconcileOpts, setCharacter])
 
     const patchCreatureEntry = useCallback(
         (id: string, patch: Partial<CreatureRosterEntry>) => {
             setCharacter((prev: any) => {
                 const base = reconcileCreatureRoster(prev.creatures, prev.traits ?? [], rulesData as any, {
                     classes: prev.classes ?? [],
+                    inventory: prev.inventory ?? [],
                     conjurerSummonTemplateIds: prev.conjurerSummonTemplateIds,
+                    druidAnimaTemplateIds: prev.druidAnimaTemplateIds,
                     fairyTamerContracts: prev.fairyTamerContracts,
+                    riderMountType: prev.riderMountType ?? null,
                 })
                 const idx = base.findIndex((c) => c.id === id)
                 if (idx < 0) return prev
@@ -240,12 +279,48 @@ export function CharacterSheetView() {
             {creatures: character.creatures, traits: character.traits ?? []},
             rulesData as any
         )
-        return new Set(refs.map((r) => r.id))
-    }, [character?.creatures, character?.traits])
+        const animaRefs = getActiveDruidAnimaActionRefs(character, rulesData as any)
+        return new Set([...refs, ...animaRefs].map((r) => r.id))
+    }, [
+        character?.creatures,
+        character?.traits,
+        character?.activeDruidAnimaTemplateId,
+        character?.druidAnimaTemplateIds,
+        character?.classes,
+    ])
+
+    const activeAnimaActionIds = useMemo(() => {
+        if (!character) return new Set<string>()
+        return new Set(getActiveDruidAnimaActionRefs(character, rulesData as any).map((r) => r.id))
+    }, [
+        character?.activeDruidAnimaTemplateId,
+        character?.druidAnimaTemplateIds,
+        character?.classes,
+        character?.traits,
+    ])
+
+    const equippedAnimaNaturalKeys = useMemo(() => {
+        if (!character?.activeDruidAnimaTemplateId) return new Set<string>()
+        return getEquippedAnimaNaturalKeys(character)
+    }, [
+        character?.activeDruidAnimaTemplateId,
+        character?.equipment?.activeWeapon,
+        character?.equipment?.offhand,
+    ])
 
     const filteredActions = useMemo(() => {
         if (!character) return [];
         const filtered = (character.actions || []).filter((action: any) => {
+            if (character.activeDruidAnimaTemplateId) {
+                const source = String(action.source || "").toLowerCase()
+                if (source !== "brawler" && !activeAnimaActionIds.has(action.id)) return false
+                if (
+                    activeAnimaActionIds.has(action.id) &&
+                    !animaWeaponActionVisible(action.tags, action.hiddenTags, equippedAnimaNaturalKeys)
+                ) {
+                    return false
+                }
+            }
             if (actionFilter !== "all") {
                 const filterLower = actionFilter.toLowerCase();
                 if (filterLower === "creatures") {
@@ -279,7 +354,7 @@ export function CharacterSheetView() {
             const ab = b.apCost ?? 0;
             return aa - ab;
         });
-    }, [character, actionFilter, actionSearch, creatureGrantedActionIds]);
+    }, [character, actionFilter, actionSearch, creatureGrantedActionIds, activeAnimaActionIds, equippedAnimaNaturalKeys]);
 
     const catalogActionIds = useMemo(() => listCatalogActionCardIds(rulesData as any), []);
 
@@ -302,17 +377,22 @@ export function CharacterSheetView() {
 
     if (isLoading || !character) return <div className="p-8 text-center">Loading...</div>;
 
-    const currentWeapon = character.inventory.find(
-        (item: any) => item.uid === character.activeWeaponUid
-    ) || null;
+    const { activeWeapon: currentWeapon, offhandWeapon } = resolveEquippedHands(character, {
+        rules: rulesData as any,
+        activeDruidAnimaTemplateId: character.activeDruidAnimaTemplateId,
+    });
 
     const activeWeaponProficiencyMessage = martialProficiencyDeficitMessage(
         currentWeapon,
         classProficiencies
     );
-
-    const offhandWeapon =
-        character.inventory.find((item: any) => item.uid === character.offhandUid) || null;
+    const activeWeaponHeavyMessage = heavyMightRequirementDeficitMessage(
+        currentWeapon,
+        derived.attributes.might
+    );
+    const activeWeaponWarningMessage = [activeWeaponProficiencyMessage, activeWeaponHeavyMessage]
+        .filter(Boolean)
+        .join(" ");
 
     const equippedArmor =
         (character as { equipment?: { armor?: unknown } }).equipment?.armor ??
@@ -352,12 +432,26 @@ export function CharacterSheetView() {
 
     const activeWeaponRangeLabel = weaponRangeLabel(currentWeapon)
 
-    const availableWeapons = [
-        ...character.inventory.filter(
-            (item: any) => item.type === "weapon" || (hasShieldMaster && item.type === "shield"),
-        ),
-        {uid: "empty", name: "Empty", type: "misc"} as any,
-    ];
+    const animaCombatWeaponOptions =
+        character.activeDruidAnimaTemplateId != null
+            ? listNaturalWeaponOptionsForTemplate(
+                  getCreatureTemplates(rulesData as any)[character.activeDruidAnimaTemplateId],
+                  rulesData as any,
+              ).map(({ weapon }) => weapon)
+            : [];
+
+    const availableWeapons = character.activeDruidAnimaTemplateId
+        ? [
+              ...animaCombatWeaponOptions,
+              { uid: "empty", name: "Empty", type: "misc" } as any,
+          ]
+        : [
+              ...character.inventory.filter(
+                  (item: any) =>
+                      item.type === "weapon" || (hasShieldMaster && item.type === "shield"),
+              ),
+              { uid: "empty", name: "Empty", type: "misc" } as any,
+          ];
 
     const handleDefenseDeltaChange = (delta: number) => {
         setCharacter((prev) => ({...prev, combatDefenseDelta: delta}))
@@ -369,6 +463,21 @@ export function CharacterSheetView() {
 
     const handleSpeedDeltaChange = (delta: number) => {
         setCharacter((prev) => ({...prev, combatSpeedDelta: delta}))
+    }
+
+    const handleActiveDruidAnimaChange = (templateId: string | null) => {
+        setCharacter((prev: any) => {
+            const nextTemplateId = templateId?.trim() || null
+            if (nextTemplateId && druidAnimaDisabledReason(prev)) return prev
+            const equipPatch = applyAnimaTransformEquipment(prev, nextTemplateId, rulesData as any)
+            const barrierPatch = applyAnimaTransformBarrier(prev, nextTemplateId)
+            return {
+                ...prev,
+                ...equipPatch,
+                ...barrierPatch,
+                activeDruidAnimaTemplateId: nextTemplateId,
+            }
+        })
     }
 
     const handleToggleWeaponBond = (uid: string, bonded: boolean) => {
@@ -702,47 +811,11 @@ export function CharacterSheetView() {
     };
 
     const handleUpdateTraitCharges = (traitId: string, newCount: number) => {
-        // #region agent log
-        fetch("http://127.0.0.1:7550/ingest/244c033b-3205-4e88-b1a7-446a0537a4c2", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "f4e9fe" },
-            body: JSON.stringify({
-                sessionId: "f4e9fe",
-                runId: "post-fix",
-                hypothesisId: "D",
-                location: "CharacterSheetView.tsx:handleUpdateTraitCharges",
-                message: "trait charge update requested",
-                data: { traitId, newCount },
-                timestamp: Date.now(),
-            }),
-        }).catch(() => {});
-        // #endregion
         setCharacter((prev: any) => {
             const nextTraits = (prev.traits || []).map((t: any) => {
                 const id = typeof t === "object" && t?.id ? t.id : t
                 return id === traitId ? {...(typeof t === "object" ? t : {id: t}), id: traitId, charges: newCount} : t
             })
-            // #region agent log
-            fetch("http://127.0.0.1:7550/ingest/244c033b-3205-4e88-b1a7-446a0537a4c2", {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "f4e9fe" },
-                body: JSON.stringify({
-                    sessionId: "f4e9fe",
-                    runId: "post-fix",
-                    hypothesisId: "D",
-                    location: "CharacterSheetView.tsx:handleUpdateTraitCharges:after",
-                    message: "traits array after update",
-                    data: {
-                        traitId,
-                        traitsCharges: nextTraits.map((t: any) => ({
-                            id: typeof t === "object" ? t.id : t,
-                            charges: typeof t === "object" ? t.charges : undefined,
-                        })),
-                    },
-                    timestamp: Date.now(),
-                }),
-            }).catch(() => {});
-            // #endregion
             return { ...prev, traits: nextTraits }
         })
     }
@@ -812,6 +885,7 @@ export function CharacterSheetView() {
                 mp: derived.maxMP,
                 respite: derived.maxRespite,
                 victories: 0,
+                mountedCreatureId: null,
             }
         });
         setLongRestDialogOpen(false);
@@ -964,6 +1038,9 @@ export function CharacterSheetView() {
                                     vulnerabilities={derived.vulnerabilities}
                                     conditionImmunities={derived.conditionImmunities}
                                     specialSight={derived.specialSight}
+                                    specialMovement={derived.specialMovement}
+                                    mountedContext={derived.mountedContext}
+                                    highlightedStats={derived.statHighlights?.combat}
                                 />
                                 <OtherStats
                                     xp={Math.max(0, Math.floor(Number(character.xp ?? 0) || 0))}
@@ -1057,7 +1134,7 @@ export function CharacterSheetView() {
                                                 <Swords className="w-4 h-4 text-primary shrink-0"/>
                                                 <span
                                                     className="text-sm font-medium text-foreground">Active Weapon</span>
-                                                <ProficiencyAlert message={activeWeaponProficiencyMessage}/>
+                                                <ProficiencyAlert message={activeWeaponWarningMessage || null}/>
                                             </div>
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
@@ -1239,7 +1316,10 @@ export function CharacterSheetView() {
                             </div>
 
                             <div className="lg:col-span-3 space-y-4">
-                                <AttributesPanel attributes={derived.attributes}/>
+                                <AttributesPanel
+                                    attributes={derived.attributes}
+                                    highlighted={derived.statHighlights?.attributes}
+                                />
                                 <FocusReactionsPanel
                                     rules={rulesData}
                                     knownFocusFeats={character.focusFeatures}
@@ -1269,10 +1349,12 @@ export function CharacterSheetView() {
                                 equipment={character.equipment}
                                 inventory={character.inventory}
                                 martialProficiencyIds={classProficiencies}
+                                might={derived.attributes.might}
                                 shieldMaster={hasShieldMaster}
                                 traits={character.traits}
                                 bondedWeaponUids={bondedWeaponUids}
                                 rules={rulesData}
+                                activeDruidAnimaTemplateId={character.activeDruidAnimaTemplateId ?? null}
                                 onAccessoryChange={handleAccessoryChange}
                                 onEquipmentChange={handleEquipmentChange}
                             />
@@ -1323,6 +1405,13 @@ export function CharacterSheetView() {
                                     currentWeapon={currentWeapon}
                                     offhandWeapon={offhandWeapon}
                                     onPatchCreature={patchCreatureEntry}
+                                    mountedCreatureId={character.mountedCreatureId ?? null}
+                                    onMountedCreatureChange={(id) =>
+                                        setCharacter((prev: any) => ({ ...prev, mountedCreatureId: id }))
+                                    }
+                                    activeDruidAnimaTemplateId={character.activeDruidAnimaTemplateId ?? null}
+                                    onActiveDruidAnimaChange={handleActiveDruidAnimaChange}
+                                    druidAnimaDisabledReason={druidAnimaDisabledReason(character)}
                                 />
                                 <CultureBackgroundOccupationPanel
                                     theme={character.background ?? ""}

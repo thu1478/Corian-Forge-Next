@@ -104,6 +104,7 @@ import {
   formatWeaponAttribLabel,
 } from "@/lib/equipment-stats-display"
 import { ProficiencyAlert } from "@/components/character-sheet/trackingPage/equipment-panel"
+import { heavyMightRequirementDeficitMessage } from "@/lib/equipment-proficiency"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { Switch } from "@/components/ui/switch"
 import type { TraitRef } from "@/lib/baseRefs"
@@ -120,6 +121,7 @@ import { getItemNameClass } from "@/lib/item-rank-display"
 import type { RulesWithItemRanks } from "@/lib/item-rank-display"
 import { WeaponBondBadge } from "@/components/equipment/weapon-bond-badge"
 import { statDeltaTextClass } from "@/lib/stat-delta-display"
+import { EffectGlossaryTag } from "@/components/effect-glossary-tag"
 
 interface InventoryPanelProps {
   inventory: InventoryItem[]
@@ -163,6 +165,7 @@ const InventoryItemDisplayContext = createContext<{
   traits?: TraitRef[]
   rules?: RulesWithItemRanks
   weaponDamageContext?: WeaponDamageContext
+  attributes?: InventoryPanelProps["attributes"]
 }>({})
 
 const FILTER_TABS: { id: InventoryKindFilter; label: string }[] = [
@@ -276,6 +279,7 @@ function DraggableItemRow({
   const nameClass = getItemNameClass(item, displayCtx.rules)
   const id = `${INV_DRAG_ITEM_PREFIX}${item.uid}`
   const equipStats = equipmentStatSummaryLine(item)
+  const heavyWarningMessage = heavyMightRequirementDeficitMessage(item, displayCtx.attributes?.might)
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id })
   const style = transform
     ? { transform: CSS.Translate.toString(transform), zIndex: isDragging ? 20 : undefined }
@@ -328,6 +332,7 @@ function DraggableItemRow({
         ) : null}
       </div>
       <div className="flex shrink-0 items-center gap-1.5">
+        {heavyWarningMessage ? <ProficiencyAlert message={heavyWarningMessage} /> : null}
         {capacityWarningMessage ? <ProficiencyAlert message={capacityWarningMessage} /> : null}
         <label className="sr-only" htmlFor={`qty-${item.uid}`}>
           Quantity for {item.name}
@@ -875,32 +880,6 @@ function InventoryItemDetailSheet({
     isMeleeWeapon(item) &&
     !!onToggleWeaponBond
 
-  useEffect(() => {
-    if (!open || !item || item.type !== "weapon") return
-    // #region agent log
-    fetch("http://127.0.0.1:7550/ingest/244c033b-3205-4e88-b1a7-446a0537a4c2", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "f4e9fe" },
-      body: JSON.stringify({
-        sessionId: "f4e9fe",
-        runId: "pre-fix",
-        hypothesisId: "D",
-        location: "inventory-panel.tsx:weaponBondConditions",
-        message: "Weapon bond row eligibility",
-        data: {
-          itemUid: item.uid,
-          showWeaponBondRow,
-          isCatalogPreview,
-          weaponBondPassive,
-          isMelee: isMeleeWeapon(item),
-          hasHandler: !!onToggleWeaponBond,
-          tags: (item as WeaponItem).tags,
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {})
-    // #endregion
-  }, [open, item, showWeaponBondRow, isCatalogPreview, weaponBondPassive, onToggleWeaponBond])
   const traitBlocks = useMemo(
     () => (item ? buildItemInventoryTraitBlocks(item, rules) : []),
     [item, rules]
@@ -909,6 +888,10 @@ function InventoryItemDetailSheet({
     () => (item ? hydrateItemGrantedActionCards(item, rules) : []),
     [item, rules]
   )
+  const heavyWarningMessage = heavyMightRequirementDeficitMessage(item, attributes.might)
+  const itemTags = Array.isArray(item?.tags)
+    ? item.tags.filter((tag): tag is string => typeof tag === "string" && tag.trim().length > 0)
+    : []
 
   const rulesName = item ? String(itemCatalog[item.id]?.name ?? item.id) : ""
   const customNameDraft = item?.customName ?? ""
@@ -990,6 +973,19 @@ function InventoryItemDetailSheet({
               </div>
             </div>
 
+            {itemTags.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Tags
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {itemTags.map((tag) => (
+                    <EffectGlossaryTag key={tag} tag={tag} />
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
             {item.type === "weapon" && (
               <div className="space-y-2">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -1007,60 +1003,12 @@ function InventoryItemDetailSheet({
                           Bonded weapon — see Weapon Bond trait
                         </p>
                       </label>
-                      <div
-                        className="shrink-0"
-                        ref={(el: HTMLDivElement | null) => {
-                          if (!el) return
-                          const sw = el.querySelector('[data-slot="switch"]') as HTMLElement | null
-                          const r = sw?.getBoundingClientRect()
-                          const cs = sw ? getComputedStyle(sw) : null
-                          // #region agent log
-                          fetch("http://127.0.0.1:7550/ingest/244c033b-3205-4e88-b1a7-446a0537a4c2", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "f4e9fe" },
-                            body: JSON.stringify({
-                              sessionId: "f4e9fe",
-                              runId: "post-fix",
-                              hypothesisId: "A",
-                              location: "inventory-panel.tsx:weaponBondSwitchRef",
-                              message: "Switch mount geometry",
-                              data: {
-                                switchFound: !!sw,
-                                width: r?.width ?? 0,
-                                height: r?.height ?? 0,
-                                display: cs?.display,
-                                visibility: cs?.visibility,
-                                opacity: cs?.opacity,
-                                wrapperWidth: el.offsetWidth,
-                              },
-                              timestamp: Date.now(),
-                            }),
-                          }).catch(() => {})
-                          // #endregion
-                        }}
-                      >
+                      <div className="shrink-0">
                         <Switch
                           id={`weapon-bond-${item.uid}`}
                           checked={(bondedWeaponUids ?? []).includes(item.uid)}
                           className="h-6 w-11 shrink-0 border border-border/80 data-[state=unchecked]:bg-muted-foreground/25"
-                          onCheckedChange={(on) => {
-                            // #region agent log
-                            fetch("http://127.0.0.1:7550/ingest/244c033b-3205-4e88-b1a7-446a0537a4c2", {
-                              method: "POST",
-                              headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "f4e9fe" },
-                              body: JSON.stringify({
-                                sessionId: "f4e9fe",
-                                runId: "pre-fix",
-                                hypothesisId: "E",
-                                location: "inventory-panel.tsx:weaponBondToggle",
-                                message: "Switch toggled",
-                                data: { uid: item.uid, bonded: on },
-                                timestamp: Date.now(),
-                              }),
-                            }).catch(() => {})
-                            // #endregion
-                            onToggleWeaponBond(item.uid, on)
-                          }}
+                          onCheckedChange={(on) => onToggleWeaponBond(item.uid, on)}
                           aria-label="Weapon bond"
                         />
                       </div>
@@ -1210,6 +1158,15 @@ function InventoryItemDetailSheet({
               <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                 Description
               </p>
+              {heavyWarningMessage ? (
+                <div
+                  role="status"
+                  className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-2 text-xs text-amber-950 dark:text-amber-100"
+                >
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                  <span>{heavyWarningMessage}</span>
+                </div>
+              ) : null}
               <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
                 {item.description || "—"}
               </p>
@@ -1534,13 +1491,14 @@ export function InventoryPanel({
       bondedWeaponUids,
       traits,
       rules: rules as RulesWithItemRanks,
+      attributes,
       weaponDamageContext: {
         traits,
         activeWeapon,
         offhandWeapon,
       } satisfies WeaponDamageContext,
     }),
-    [bondedWeaponUids, traits, rules, activeWeapon, offhandWeapon]
+    [bondedWeaponUids, traits, rules, attributes, activeWeapon, offhandWeapon]
   )
 
   return (
@@ -1559,7 +1517,7 @@ export function InventoryPanel({
                 <span className="text-xl font-bold tabular-nums text-yellow-600 dark:text-yellow-400">{money}</span>
               </div>
               <span className="text-xs font-medium uppercase tracking-wider text-yellow-700 dark:text-yellow-500/90">
-                Gold
+                Zenny
               </span>
             </div>
             <div className="space-y-3">
@@ -1852,6 +1810,8 @@ export function InventoryPanel({
                   {catalogEntries.map(({ id, def }) => {
                     const t = catalogDefType(def)
                     const statLine = equipmentStatSummaryFromDef(def)
+                    const previewItem = previewInventoryItemFromCatalog(id, def)
+                    const heavyWarningMessage = heavyMightRequirementDeficitMessage(previewItem, attributes.might)
                     return (
                       <div
                         key={id}
@@ -1865,6 +1825,7 @@ export function InventoryPanel({
                             <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase text-muted-foreground">
                               {t}
                             </span>
+                            {heavyWarningMessage ? <ProficiencyAlert message={heavyWarningMessage} /> : null}
                           </div>
                           <p className="line-clamp-2 whitespace-pre-line text-xs text-muted-foreground">
                             {String(def.description ?? "")}

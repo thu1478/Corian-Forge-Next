@@ -6,13 +6,22 @@ function isMonsterCatalogEntry(id: string, card: { type?: string; source?: strin
     return false
 }
 
+function isAnimaCatalogEntry(id: string, card: { type?: string; source?: string }) {
+    if (id.startsWith("anima/")) return true
+    if (String(card.source || "").toLowerCase() === "druidanima") return true
+    return false
+}
+
 /** Every global `actionCards` attack action except monster entries (feat, fairy, generic, equipment, …). */
 export function listCatalogActionCardIds(rules: {
     actionCards?: Record<string, ActionCard | Record<string, unknown>>
 }): string[] {
     const cards = rules.actionCards || {}
     return Object.entries(cards)
-        .filter(([id, c]) => (c as ActionCard)?.type === "action" && !isMonsterCatalogEntry(id, c as ActionCard))
+        .filter(([id, c]) => {
+            const card = c as ActionCard
+            return card?.type === "action" && !isMonsterCatalogEntry(id, card) && !isAnimaCatalogEntry(id, card)
+        })
         .map(([id]) => id)
         .sort()
 }
@@ -25,7 +34,8 @@ export function listCatalogReactionCardIds(rules: {
     return Object.entries(cards)
         .filter(([id, c]) => {
             const t = (c as ActionCard)?.type
-            return (t === "reaction" || t === "freeReaction") && !isMonsterCatalogEntry(id, c as ActionCard)
+            const card = c as ActionCard
+            return (t === "reaction" || t === "freeReaction") && !isMonsterCatalogEntry(id, card) && !isAnimaCatalogEntry(id, card)
         })
         .map(([id]) => id)
         .sort()

@@ -13,7 +13,7 @@ import {
     type WeaponInfusionDamageType,
 } from "@/lib/character-data";
 import { emptyFairyTamerContracts, type FairyTamerContractsSave } from "@/lib/fairy-tamer";
-import type { InventoryEntry } from "@/lib/equipment-data";
+import type { Equipment, InventoryEntry } from "@/lib/equipment-data";
 import { FeatLevelPick, TraitRef } from "@/lib/baseRefs";
 import { CharAttribute } from "@/lib/rules";
 import { makeInventoryUid } from "@/lib/inventory-filters";
@@ -78,8 +78,15 @@ export function createEmptyCreatorCharacter(): CharacterSaveData {
         occupation: null,
         attributeLevelBonuses: {},
         priestDeity: null,
+        riderMountType: null,
+        riderAdaptableMovement: null,
+        mountedCreatureId: null,
         creatures: [],
         conjurerSummonTemplateIds: [],
+        druidAnimaTemplateIds: [],
+        activeDruidAnimaTemplateId: null,
+        equipmentBeforeAnima: null,
+        animaBarrierBonus: null,
         fairyTamerContracts: emptyFairyTamerContracts(),
         creatorSkillGrantPicks: {},
     };
@@ -551,9 +558,36 @@ function mergeImportedCharData(json: any, empty: CharacterSaveData): CharacterSa
             json.priestDeity != null && String(json.priestDeity).trim() !== ""
                 ? String(json.priestDeity).trim().toLowerCase()
                 : empty.priestDeity ?? null,
+        riderMountType:
+            json.riderMountType != null && String(json.riderMountType).trim() !== ""
+                ? String(json.riderMountType).trim().toLowerCase()
+                : empty.riderMountType ?? null,
+        riderAdaptableMovement:
+            json.riderAdaptableMovement === "swimming" || json.riderAdaptableMovement === "climbing"
+                ? json.riderAdaptableMovement
+                : empty.riderAdaptableMovement ?? null,
+        mountedCreatureId:
+            json.mountedCreatureId != null && String(json.mountedCreatureId).trim() !== ""
+                ? String(json.mountedCreatureId).trim()
+                : empty.mountedCreatureId ?? null,
         conjurerSummonTemplateIds: Array.isArray(json.conjurerSummonTemplateIds)
             ? (json.conjurerSummonTemplateIds as unknown[]).map((x) => String(x ?? "").trim())
             : empty.conjurerSummonTemplateIds ?? [],
+        druidAnimaTemplateIds: Array.isArray(json.druidAnimaTemplateIds)
+            ? (json.druidAnimaTemplateIds as unknown[]).map((x) => String(x ?? "").trim())
+            : empty.druidAnimaTemplateIds ?? [],
+        activeDruidAnimaTemplateId:
+            json.activeDruidAnimaTemplateId != null && String(json.activeDruidAnimaTemplateId).trim() !== ""
+                ? String(json.activeDruidAnimaTemplateId).trim()
+                : null,
+        equipmentBeforeAnima:
+            json.equipmentBeforeAnima && typeof json.equipmentBeforeAnima === "object"
+                ? (json.equipmentBeforeAnima as Equipment)
+                : null,
+        animaBarrierBonus:
+            json.animaBarrierBonus != null && Number.isFinite(Number(json.animaBarrierBonus))
+                ? Math.max(0, Math.floor(Number(json.animaBarrierBonus)))
+                : null,
         fairyTamerContracts:
             json.fairyTamerContracts != null
                 ? parseFairyTamerContractsFromImport(json.fairyTamerContracts)
@@ -585,9 +619,13 @@ function mergeImportedCharData(json: any, empty: CharacterSaveData): CharacterSa
                           rosterSource:
                               rosterSource === "feat" ||
                               rosterSource === "conjurer" ||
-                              rosterSource === "fairyTamer"
+                              rosterSource === "fairyTamer" ||
+                              rosterSource === "rider" ||
+                              rosterSource === "inventory" ||
+                              rosterSource === "druidAnima"
                                   ? rosterSource
                                   : undefined,
+                          sourceItemUid: typeof c.sourceItemUid === "string" ? c.sourceItemUid : undefined,
                           pickedActionCardIds,
                           customName: typeof c.customName === "string" ? c.customName : undefined,
                           notes: typeof c.notes === "string" ? c.notes : undefined,

@@ -98,6 +98,12 @@ export function vulnerabilityDamageType(effect: TraitEffect): string | null {
     return null;
 }
 
+/** Damage type for Resistance effects (`stat` or type-only `value`, e.g. racial fire/earth picks). */
+export function resistanceDamageType(effect: TraitEffect): string | null {
+    if (effect.type !== "Resistance") return null;
+    return vulnerabilityDamageType(effect);
+}
+
 /** VU amount: uses numeric `value` when `stat` is set; otherwise defaults to 2 for type-only legacy rows. */
 export function vulnerabilityAmount(effect: TraitEffect): number {
     if (effect.type === "GrantSkill") return 0;

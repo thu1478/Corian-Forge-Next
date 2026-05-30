@@ -6,8 +6,30 @@ import {
     emptyFairyTamerContracts,
     getFairytamerLevel,
 } from "@/lib/fairy-tamer"
+import {
+    applyRiderMountOptionToCreatureDefinition,
+    buildRiderMountRow,
+    getRiderMountTemplateId,
+    isRiderRosterEntry,
+    riderHasFaithfulSteed,
+} from "@/lib/rider-mounts"
+import {
+    DRUID_ANIMA_ROSTER_SOURCE,
+    getDruidAnimaActionCardIds,
+    getDruidAnimaSlots,
+    getSelectedDruidAnimaTemplateIds,
+    sanitizeDruidAnimaTemplateIds,
+    isDruidAnimaRosterEntry,
+} from "@/lib/druid-anima"
+import { type CreatureSize, isCreatureSize } from "@/lib/creature-size"
+import {
+    type NaturalWeaponDefinition,
+    parseNaturalWeaponFromJson,
+} from "@/lib/natural-weapons"
 
 export const MAX_DEPLOYED_SUMMONS = 1
+export const MAGIBIKE_ITEM_ID = "misc_magibike"
+export const MAGIBIKE_TEMPLATE_ID = "mount_magibike"
 
 /** Conjurer Summoner: max minion rows deployed at once (rank 1 → 2, rank 2+ → 3). Excludes summons; mutual exclusion with any deployed summon. */
 export function getMaxConjurerMinionsByMastery(summonMastery: number): number {
@@ -26,6 +48,16 @@ export function isConjurerRosterEntry(entry: CreatureRosterEntry): boolean {
 export function isFairyTamerRosterEntry(entry: CreatureRosterEntry): boolean {
     if (entry.rosterSource === "fairyTamer") return true
     return entry.id.startsWith("fairy-tamer-slot-")
+}
+
+export function isInventoryMountRosterEntry(entry: CreatureRosterEntry): boolean {
+    if (entry.rosterSource === "inventory") return true
+    return entry.id.startsWith("inventory-mount-")
+}
+
+export function isCreatureDefinitionMount(def: CreatureDefinition | undefined): boolean {
+    if (!def) return false
+    return (def.tags ?? []).some((tag) => tag.toLowerCase() === "mount")
 }
 
 /** Roster / rules role: assistants & minions share deploy caps; summons use template action list in full. */
@@ -54,7 +86,7 @@ export interface CreatureDefinition {
     defaultMaxMp?: number
     stability?: number
     speed?: number
-    size?: string
+    size?: CreatureSize
     resistances?: string[]
     /** Damage or tag keys the creature is immune to (bestiary; display / future resolution). */
     immunities?: string[]
@@ -65,11 +97,18 @@ export interface CreatureDefinition {
     defense?: number
     /** Opportunity-attack damage; omit or 0 = none. */
     opportunityAttack?: number
-    /**
-     * Conjurer catalog tier: 2 = Summon Mastery 1 pool, 4 = Mastery 2 pool.
+    /** Conjurer catalog tier: 2 = Summon Mastery 1 pool, 4 = Mastery 2 pool.
      * If omitted, derived from `catalogLevel`: 1 or 2 → tier 2 pool; 3 or 4 → tier 4 pool (matches rules `level` field).
      */
     summonTier?: 2 | 4
+    /** Max riders/passengers (mount templates). */
+    passengers?: number
+    /** Bonuses applied to the rider while mounted (Def, Stability). */
+    mountedRiderBonuses?: Partial<Record<"defense" | "stability", number>>
+    /** Logical key → inline natural weapon stats on this template. */
+    naturalWeapons?: Record<string, NaturalWeaponDefinition>
+    /** Default key for Weapon actions without explicit `natural:<key>`. */
+    defaultNaturalWeaponKey?: string
 }
 
 export interface BestiaryTraitDefinition {
@@ -86,8 +125,10 @@ export interface CreatureRosterEntry {
     deployed: boolean
     /** When this row exists because of a feat unlock (e.g. trustyCompanion). */
     unlockFeatId?: string
-    /** Feat vs Conjurer vs Fairy Tamer manual roster row. */
-    rosterSource?: "feat" | "conjurer" | "fairyTamer"
+    /** Feat vs class/inventory-backed roster row. */
+    rosterSource?: "feat" | "conjurer" | "fairyTamer" | "rider" | "inventory" | "druidAnima"
+    /** Inventory-backed creatures are removed when this item uid is no longer owned. */
+    sourceItemUid?: string
     /** Fairy Tamer: both contract spells chosen in the creator (not from template actionIDs). */
     pickedActionCardIds?: string[]
     customName?: string
@@ -143,9 +184,15 @@ export function getCreatureTemplates(rules: RulesWithBestiary): Record<string, C
         const role = normalizeCreatureRole(row)
         if (!role) continue
         const name = typeof row.name === "string" ? row.name : id
-        const rowTraits = (row as { traits?: unknown }).traits
-        const traitRefs = Array.isArray(rowTraits)
-            ? rowTraits.map((x) => String(x).trim()).filter(Boolean)
+        const rowTraitRefsRaw = (row as { traitRefs?: unknown; traits?: unknown }).traitRefs
+        const rowTraitsLegacy = (row as { traits?: unknown }).traits
+        const traitRefsSource = Array.isArray(rowTraitRefsRaw)
+            ? rowTraitRefsRaw
+            : Array.isArray(rowTraitsLegacy)
+              ? rowTraitsLegacy
+              : undefined
+        const traitRefs = traitRefsSource
+            ? traitRefsSource.map((x) => String(x).trim()).filter(Boolean)
             : undefined
         const vulnRaw = (row as { vulnerabilities?: unknown }).vulnerabilities
         const vulnerabilities = Array.isArray(vulnRaw)
@@ -191,7 +238,40 @@ export function getCreatureTemplates(rules: RulesWithBestiary): Record<string, C
         else if (catalogLevel === 3) summonTier = 4
         else if (catalogLevel === 1) summonTier = 2
 
-        out[id] = {
+        const passengersRaw = (row as { passengers?: unknown }).passengers
+        const passengers =
+            typeof passengersRaw === "number" && Number.isFinite(passengersRaw)
+                ? Math.floor(passengersRaw)
+                : undefined
+        const mrbRaw = (row as { mountedRiderBonuses?: unknown }).mountedRiderBonuses
+        let mountedRiderBonuses: CreatureDefinition["mountedRiderBonuses"]
+        if (mrbRaw && typeof mrbRaw === "object") {
+            const o = mrbRaw as Record<string, unknown>
+            mountedRiderBonuses = {
+                defense: typeof o.defense === "number" ? o.defense : undefined,
+                stability: typeof o.stability === "number" ? o.stability : undefined,
+            }
+        }
+
+        const nwRaw = (row as { naturalWeapons?: unknown }).naturalWeapons
+        let naturalWeapons: CreatureDefinition["naturalWeapons"]
+        if (nwRaw && typeof nwRaw === "object" && !Array.isArray(nwRaw)) {
+            naturalWeapons = {}
+            for (const [k, v] of Object.entries(nwRaw as Record<string, unknown>)) {
+                const key = String(k).trim()
+                if (!key) continue
+                const parsed = parseNaturalWeaponFromJson(key, v)
+                if (parsed) naturalWeapons[key] = parsed
+            }
+            if (Object.keys(naturalWeapons).length === 0) naturalWeapons = undefined
+        }
+        const defaultNaturalWeaponKeyRaw = (row as { defaultNaturalWeaponKey?: unknown }).defaultNaturalWeaponKey
+        const defaultNaturalWeaponKey =
+            typeof defaultNaturalWeaponKeyRaw === "string" && defaultNaturalWeaponKeyRaw.trim()
+                ? defaultNaturalWeaponKeyRaw.trim()
+                : undefined
+
+        const definition: CreatureDefinition = {
             name,
             description: typeof row.description === "string" ? row.description : undefined,
             role,
@@ -205,16 +285,38 @@ export function getCreatureTemplates(rules: RulesWithBestiary): Record<string, C
             defaultMaxMp: typeof row.defaultMaxMp === "number" ? row.defaultMaxMp : undefined,
             stability: typeof row.stability === "number" ? row.stability : undefined,
             speed: typeof row.speed === "number" ? row.speed : undefined,
-            size: typeof row.size === "string" ? row.size : undefined,
+            size: isCreatureSize(row.size) ? row.size : undefined,
             resistances,
             immunities,
             vulnerabilities,
             traitRefs,
             defense,
             opportunityAttack,
+            passengers,
+            mountedRiderBonuses,
+            naturalWeapons,
+            defaultNaturalWeaponKey,
         }
+        out[id] = applyRiderMountOptionToCreatureDefinition(rules, id, definition)
     }
     return out
+}
+
+function withDefaultSummonPools(base: CreatureRosterEntry, def: CreatureDefinition): CreatureRosterEntry {
+    if (def.role !== "summon") return base
+    const isMount = isCreatureDefinitionMount(def)
+    const next = { ...base }
+    if (!isMount || typeof def.defaultMaxHp === "number") {
+        const maxHp = typeof def.defaultMaxHp === "number" ? def.defaultMaxHp : 10
+        next.maxHp = maxHp
+        next.currentHp = maxHp
+    }
+    if (!isMount || typeof def.defaultMaxMp === "number") {
+        const maxMp = typeof def.defaultMaxMp === "number" ? def.defaultMaxMp : 0
+        next.maxMp = maxMp
+        next.currentMp = maxMp
+    }
+    return next
 }
 
 function normalizeSummonPools(
@@ -223,10 +325,11 @@ function normalizeSummonPools(
 ): CreatureRosterEntry {
     if (entry.kind !== "summon") return entry
     const def = templates[entry.templateId]
-    const maxHp = entry.maxHp ?? def?.defaultMaxHp ?? 10
-    const maxMp = entry.maxMp ?? def?.defaultMaxMp ?? 0
-    const currentHp = entry.currentHp ?? maxHp
-    const currentMp = entry.currentMp ?? maxMp
+    const isMount = isCreatureDefinitionMount(def)
+    const maxHp = isMount && def?.defaultMaxHp == null ? undefined : entry.maxHp ?? def?.defaultMaxHp ?? 10
+    const maxMp = isMount && def?.defaultMaxMp == null ? undefined : entry.maxMp ?? def?.defaultMaxMp ?? 0
+    const currentHp = maxHp == null ? undefined : entry.currentHp ?? maxHp
+    const currentMp = maxMp == null ? undefined : entry.currentMp ?? maxMp
     if (
         entry.maxHp === maxHp &&
         entry.maxMp === maxMp &&
@@ -235,7 +338,22 @@ function normalizeSummonPools(
     ) {
         return entry
     }
-    return { ...entry, maxHp, maxMp, currentHp, currentMp }
+    const next = { ...entry }
+    if (maxHp == null) {
+        delete next.maxHp
+        delete next.currentHp
+    } else {
+        next.maxHp = maxHp
+        next.currentHp = currentHp
+    }
+    if (maxMp == null) {
+        delete next.maxMp
+        delete next.currentMp
+    } else {
+        next.maxMp = maxMp
+        next.currentMp = currentMp
+    }
+    return next
 }
 
 export function getBestiaryTraitMap(rules: RulesWithBestiary): Record<string, BestiaryTraitDefinition> {
@@ -397,15 +515,7 @@ export function defaultRosterRowFromTemplate(
         deployed: false,
         rosterSource,
     }
-    if (def.role === "summon") {
-        const mh = typeof def.defaultMaxHp === "number" ? def.defaultMaxHp : 10
-        const mm = typeof def.defaultMaxMp === "number" ? def.defaultMaxMp : 0
-        base.maxHp = mh
-        base.currentHp = mh
-        base.maxMp = mm
-        base.currentMp = mm
-    }
-    return base
+    return withDefaultSummonPools(base, def)
 }
 
 /** Deterministic roster id for Conjurer slot `i` (matches creator `conjurerSummonTemplateIds[i]`). */
@@ -454,23 +564,60 @@ function defaultEntryFromUnlock(unlock: FeatCreatureUnlock, def: CreatureDefinit
         unlockFeatId: unlock.featId,
         rosterSource: "feat",
     }
-    if (def.role === "summon") {
-        const mh = typeof def.defaultMaxHp === "number" ? def.defaultMaxHp : 10
-        const mm = typeof def.defaultMaxMp === "number" ? def.defaultMaxMp : 0
-        base.maxHp = mh
-        base.currentHp = mh
-        base.maxMp = mm
-        base.currentMp = mm
+    return withDefaultSummonPools(base, def)
+}
+
+function getClassLevel(classes: { id: string; level: number }[], id: string): number {
+    return classes.find((c) => c.id === id)?.level ?? 0
+}
+
+function characterCanUseMagibike(classes: { id: string; level: number }[]): boolean {
+    return getClassLevel(classes, "artificer") >= 1
+}
+
+type InventoryRosterSourceItem = { id?: string; uid?: string; name?: string }
+
+function buildMagibikeMountRow(item: { uid: string; id?: string; name?: string }, def: CreatureDefinition): CreatureRosterEntry {
+    return withDefaultSummonPools(
+        {
+            id: `inventory-mount-${item.uid}`,
+            templateId: MAGIBIKE_TEMPLATE_ID,
+            kind: "summon",
+            deployed: false,
+            rosterSource: "inventory",
+            sourceItemUid: item.uid,
+            customName: item.name && item.name !== def.name ? item.name : undefined,
+        },
+        def
+    )
+}
+
+function buildDruidAnimaRow(
+    slotIndex: number,
+    templateId: string,
+    def: CreatureDefinition
+): CreatureRosterEntry {
+    return {
+        id: `druid-anima-slot-${slotIndex}`,
+        templateId,
+        kind: def.role,
+        deployed: false,
+        rosterSource: DRUID_ANIMA_ROSTER_SOURCE,
     }
-    return base
 }
 
 export type ReconcileCreatureRosterOpts = {
     classes?: { id: string; level: number }[]
+    /** Hydrated inventory; inventory-backed mounts disappear when their source item is gone. */
+    inventory?: InventoryRosterSourceItem[]
     /** Per-slot template ids from character creator (`""` = unchosen). */
     conjurerSummonTemplateIds?: string[]
     /** Fairy Tamer: contract picks from character creator. */
     fairyTamerContracts?: FairyTamerContractsSave
+    /** Rider: chosen mount type from classes.rider.mounts */
+    riderMountType?: string | null
+    /** Druid Anima: template ids chosen in character creator. */
+    druidAnimaTemplateIds?: string[]
 }
 
 /**
@@ -493,7 +640,13 @@ export function reconcileCreatureRoster(
             c.rosterSource !== "conjurer" &&
             !c.id.startsWith("conjurer-slot-") &&
             c.rosterSource !== "fairyTamer" &&
-            !c.id.startsWith("fairy-tamer-slot-")
+            !c.id.startsWith("fairy-tamer-slot-") &&
+            c.rosterSource !== "rider" &&
+            !c.id.startsWith("rider-mount-") &&
+            c.rosterSource !== "inventory" &&
+            !c.id.startsWith("inventory-mount-") &&
+            c.rosterSource !== DRUID_ANIMA_ROSTER_SOURCE &&
+            !c.id.startsWith("druid-anima-slot-")
     )
     const byId = new Map(savedList.map((c) => [c.id, c]))
 
@@ -589,6 +742,81 @@ export function reconcileCreatureRoster(
         }
     }
 
+    const animaSlots = getDruidAnimaSlots(classes, traits)
+    if (animaSlots.length > 0) {
+        const selectedAnima = sanitizeDruidAnimaTemplateIds(
+            opts?.druidAnimaTemplateIds,
+            animaSlots,
+            templates
+        )
+        for (const slot of animaSlots) {
+            const tid = String(selectedAnima[slot.slotIndex] ?? "").trim()
+            if (!tid) continue
+            const def = templates[tid]
+            if (!def) continue
+            const id = `druid-anima-slot-${slot.slotIndex}`
+            const fresh = buildDruidAnimaRow(slot.slotIndex, tid, def)
+            const prev = prevById.get(id)
+            if (prev && prev.templateId === tid) {
+                fresh.customName = prev.customName
+                fresh.notes = prev.notes
+            }
+            const existingIdx = savedList.findIndex((c) => c.id === id)
+            if (existingIdx >= 0) savedList[existingIdx] = fresh
+            else savedList.push(fresh)
+        }
+    }
+
+    const riderMountType = opts?.riderMountType ?? null
+    if (riderHasFaithfulSteed(traits, classes)) {
+        const templateId = getRiderMountTemplateId(riderMountType)
+        if (templateId) {
+            const def = templates[templateId]
+            if (def) {
+                const id = "rider-mount-0"
+                const fresh = buildRiderMountRow(templateId, def)
+                const prev = prevById.get(id)
+                if (prev && prev.templateId === templateId) {
+                    fresh.currentHp = prev.currentHp ?? fresh.currentHp
+                    fresh.currentMp = prev.currentMp ?? fresh.currentMp
+                    fresh.maxHp = prev.maxHp ?? fresh.maxHp
+                    fresh.maxMp = prev.maxMp ?? fresh.maxMp
+                    fresh.customName = prev.customName
+                    fresh.notes = prev.notes
+                    fresh.deployed = prev.deployed
+                }
+                const existingIdx = savedList.findIndex((c) => c.id === id)
+                if (existingIdx >= 0) savedList[existingIdx] = fresh
+                else savedList.push(fresh)
+            }
+        }
+    }
+
+    if (characterCanUseMagibike(classes)) {
+        const def = templates[MAGIBIKE_TEMPLATE_ID]
+        const inventory = opts?.inventory ?? []
+        if (def) {
+            for (const item of inventory) {
+                const uid = typeof item.uid === "string" ? item.uid.trim() : ""
+                if (item.id !== MAGIBIKE_ITEM_ID || !uid) continue
+                const fresh = buildMagibikeMountRow({ ...item, uid }, def)
+                const prev = prevById.get(fresh.id)
+                if (prev && prev.templateId === fresh.templateId) {
+                    fresh.currentHp = prev.currentHp ?? fresh.currentHp
+                    fresh.currentMp = prev.currentMp ?? fresh.currentMp
+                    fresh.maxHp = prev.maxHp ?? fresh.maxHp
+                    fresh.maxMp = prev.maxMp ?? fresh.maxMp
+                    fresh.customName = prev.customName ?? fresh.customName
+                    fresh.notes = prev.notes
+                    fresh.deployed = prev.deployed
+                }
+                const existingIdx = savedList.findIndex((c) => c.id === fresh.id)
+                if (existingIdx >= 0) savedList[existingIdx] = fresh
+                else savedList.push(fresh)
+            }
+        }
+    }
+
     return savedList.map((e) => normalizeSummonPools(e, templates))
 }
 
@@ -611,7 +839,7 @@ export function countDeployedAssistants(entries: CreatureRosterEntry[]): number 
 }
 
 export function countDeployedSummons(entries: CreatureRosterEntry[]): number {
-    return entries.filter((c) => c.kind === "summon" && c.deployed).length
+    return entries.filter((c) => c.kind === "summon" && c.deployed && !isDruidAnimaRosterEntry(c)).length
 }
 
 export function countDeployedConjurerMinions(entries: CreatureRosterEntry[]): number {
@@ -634,6 +862,7 @@ export function isCreatureDeployBlocked(
     maxConjurerMinions: number
 ): boolean {
     if (entry.deployed) return false
+    if (isDruidAnimaRosterEntry(entry)) return true
     const rest = allEntries.filter((c) => c.id !== entry.id)
 
     if (entry.kind === "summon") {
@@ -661,7 +890,8 @@ export function isAssistantOrMinionKind(kind: CreatureKind): boolean {
 
 /**
  * Action card ids for a roster entry.
- * - Summons: always all `actionIDs` from the creature definition (feat picks ignored).
+ * - Rider mounts: no default action cards; their signature actions are Rider class XP picks.
+ * - Other summons: always all `actionIDs` from the creature definition (feat picks ignored).
  * - Assistants / minions: feat `GrantActionCard` selections when present; else template `actionIDs`.
  */
 export function getActionCardIdsForCreatureEntry(
@@ -672,6 +902,14 @@ export function getActionCardIdsForCreatureEntry(
     const templates = getCreatureTemplates(rules)
     const tmpl = templates[entry.templateId]
     const fromTemplate = [...(tmpl?.actionIDs ?? [])]
+
+    if (isDruidAnimaRosterEntry(entry)) {
+        return []
+    }
+
+    if (isRiderRosterEntry(entry)) {
+        return []
+    }
 
     if (tmpl?.role === "summon") {
         return [...new Set(fromTemplate)]
@@ -723,6 +961,27 @@ export function getDeployedCreatureActionRefs(
         }
     }
     return [...new Set(ids)].map((id) => ({ id }))
+}
+
+export function getActiveDruidAnimaActionRefs(
+    raw:
+        | {
+              activeDruidAnimaTemplateId?: string | null
+              druidAnimaTemplateIds?: string[]
+              classes?: { id: string; level: number }[]
+              traits?: TraitRef[]
+          }
+        | null
+        | undefined,
+    rules: RulesWithCards
+): { id: string }[] {
+    const activeId = String(raw?.activeDruidAnimaTemplateId ?? "").trim()
+    if (!activeId) return []
+    const templates = getCreatureTemplates(rules)
+    const slots = getDruidAnimaSlots(raw?.classes ?? [], raw?.traits ?? [])
+    const selected = new Set(getSelectedDruidAnimaTemplateIds(raw?.druidAnimaTemplateIds, slots, templates))
+    if (!selected.has(activeId)) return []
+    return getDruidAnimaActionCardIds(templates[activeId]).map((id) => ({ id }))
 }
 
 /**

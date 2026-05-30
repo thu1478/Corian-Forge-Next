@@ -30,8 +30,10 @@ import type { TraitRef } from "@/lib/baseRefs";
 import { buildWeaponBondContext, isBondedWeapon } from "@/lib/weapon-utils";
 import { getItemNameClass, type RulesWithItemRanks } from "@/lib/item-rank-display";
 import { WeaponBondBadge } from "@/components/equipment/weapon-bond-badge";
-import { martialProficiencyDeficitMessage } from "@/lib/equipment-proficiency";
+import { heavyMightRequirementDeficitMessage, martialProficiencyDeficitMessage } from "@/lib/equipment-proficiency";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { getCreatureTemplates, type RulesWithBestiary } from "@/lib/creature-roster";
+import { buildAnimaWeaponSlotUid, listNaturalWeaponOptionsForTemplate, type RulesWithNaturalWeapons } from "@/lib/natural-weapons";
 
 export function ProficiencyAlert({ message }: { message: string | null }) {
     if (!message) return null;
@@ -65,11 +67,15 @@ interface EquipmentPanelProps {
     onEquipmentChange: (slot: "activeWeapon" | "offhand" | "armor", item: any) => void;
     /** When set, martial-tagged gear without matching class proficiency shows a warning. */
     martialProficiencyIds?: ReadonlySet<string> | null;
+    /** Used for Heavy equipment requirement warnings. */
+    might?: number;
     /** When true, shields may be equipped in the main hand (Guardian Shield Master). */
     shieldMaster?: boolean;
     traits?: TraitRef[];
     bondedWeaponUids?: string[];
     rules?: RulesWithItemRanks;
+    /** When set, only natural weapon hand slots are editable; other gear is stashed. */
+    activeDruidAnimaTemplateId?: string | null;
 }
 
 function EquippedWeaponName({
@@ -112,13 +118,28 @@ export function EquipmentPanel({
     onAccessoryChange,
     onEquipmentChange,
     martialProficiencyIds = null,
+    might,
     shieldMaster = false,
     traits,
     bondedWeaponUids,
     rules,
+    activeDruidAnimaTemplateId = null,
 }: EquipmentPanelProps) {
     const [showEquipped, setShowEquipped] = useState<"all" | "equipped" | "empty">("all")
     const bondCtx = buildWeaponBondContext(traits, bondedWeaponUids ?? [])
+
+    const animaMode = Boolean(activeDruidAnimaTemplateId)
+    const animaNaturalWeapons = (() => {
+        if (!animaMode || !activeDruidAnimaTemplateId || !rules) return []
+        const template = getCreatureTemplates(rules as RulesWithBestiary)[activeDruidAnimaTemplateId]
+        return listNaturalWeaponOptionsForTemplate(template, rules as RulesWithNaturalWeapons)
+    })()
+
+    const animaHandOptions = animaNaturalWeapons.map(({ key, weapon }) => ({
+        key,
+        weapon,
+        uid: buildAnimaWeaponSlotUid(key),
+    }))
 
     const activeProfWarn =
         martialProficiencyIds != null
@@ -132,7 +153,13 @@ export function EquipmentPanel({
         martialProficiencyIds != null
             ? martialProficiencyDeficitMessage(equipment.armor, martialProficiencyIds)
             : null;
-    const anyEquipProfWarn = !!(activeProfWarn || offhandProfWarn || armorProfWarn);
+    const activeHeavyWarn = heavyMightRequirementDeficitMessage(equipment.activeWeapon, might)
+    const offhandHeavyWarn = heavyMightRequirementDeficitMessage(equipment.offhand, might)
+    const armorHeavyWarn = heavyMightRequirementDeficitMessage(equipment.armor, might)
+    const activeWarn = [activeProfWarn, activeHeavyWarn].filter(Boolean).join(" ")
+    const offhandWarn = [offhandProfWarn, offhandHeavyWarn].filter(Boolean).join(" ")
+    const armorWarn = [armorProfWarn, armorHeavyWarn].filter(Boolean).join(" ")
+    const anyEquipProfWarn = !!(activeWarn || offhandWarn || armorWarn);
 
     const filteredAccessories = accessorySlots.filter(slot => {
         if (showEquipped === "all") return true
@@ -142,6 +169,9 @@ export function EquipmentPanel({
 
     // Get items from inventory that can be equipped to a specific slot
     const getItemsForSlot = (slot: string) => {
+        if (animaMode && (slot === "activeWeapon" || slot === "offhand")) {
+            return animaHandOptions.map(({ weapon }) => weapon)
+        }
         if (slot === "activeWeapon") {
             return inventory.filter(
                 (item): item is WeaponItem | ShieldItem =>
@@ -183,14 +213,20 @@ export function EquipmentPanel({
                                 </button>
                             </TooltipTrigger>
                             <TooltipContent side="left" className="max-w-[min(92vw,280px)] text-xs leading-snug space-y-1.5">
-                                <p className="font-semibold text-background">Not proficient</p>
-                                {[activeProfWarn, offhandProfWarn, armorProfWarn].filter(Boolean).map((t, i) => (
+                                <p className="font-semibold text-background">Equipment warnings</p>
+                                {[activeWarn, offhandWarn, armorWarn].filter(Boolean).map((t, i) => (
                                     <p key={i}>{t}</p>
                                 ))}
                             </TooltipContent>
                         </Tooltip>
                     ) : null}
                 </div>
+
+                {animaMode ? (
+                    <p className="mb-3 text-xs text-muted-foreground leading-snug rounded-md border border-primary/30 bg-primary/5 px-3 py-2">
+                        Anima form — normal equipment is stashed. Choose natural weapons for each hand below.
+                    </p>
+                ) : null}
 
                 <div className="space-y-3">
                     {/* Active Weapon */}
@@ -200,7 +236,7 @@ export function EquipmentPanel({
                                 <Sword className="w-4 h-4 shrink-0"/>
                                 <span className="text-xs uppercase tracking-wider font-medium">Active Weapon</span>
                             </div>
-                            <ProficiencyAlert message={activeProfWarn} />
+                            <ProficiencyAlert message={activeWarn || null} />
                         </div>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -269,7 +305,7 @@ export function EquipmentPanel({
                                 <Shield className="w-4 h-4 shrink-0"/>
                                 <span className="text-xs uppercase tracking-wider font-medium">Offhand</span>
                             </div>
-                            <ProficiencyAlert message={offhandProfWarn} />
+                            <ProficiencyAlert message={offhandWarn || null} />
                         </div>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -299,8 +335,7 @@ export function EquipmentPanel({
 
                                 <DropdownMenuSeparator/>
 
-                                {/* Filtered for Weapons OR Shields */}
-                                {(inventory.filter(i => i.type === "weapon" || i.type === "shield") as (WeaponItem | ShieldItem)[]).map((item) => (
+                                {(getItemsForSlot("offhand") as (WeaponItem | ShieldItem)[]).map((item) => (
                                     <DropdownMenuItem
                                         key={item.uid}
                                         onClick={() => onEquipmentChange?.("offhand", item)}
@@ -334,6 +369,8 @@ export function EquipmentPanel({
                         ) : null}
                     </div>
 
+                    {!animaMode ? (
+                    <>
                     {/* Armor */}
                     <div className="p-3 rounded-lg bg-muted/20 border border-border">
                         <div className="flex items-center justify-between gap-2 text-muted-foreground mb-2">
@@ -341,7 +378,7 @@ export function EquipmentPanel({
                                 <Shirt className="w-4 h-4 shrink-0"/>
                                 <span className="text-xs uppercase tracking-wider font-medium">Armor</span>
                             </div>
-                            <ProficiencyAlert message={armorProfWarn} />
+                            <ProficiencyAlert message={armorWarn || null} />
                         </div>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -381,9 +418,13 @@ export function EquipmentPanel({
                             </p>
                         ) : null}
                     </div>
+                    </>
+                    ) : null}
                 </div>
             </div>
 
+            {!animaMode ? (
+            <>
             {/* Accessories */}
             <div className="p-4 bg-card rounded-xl border border-border">
                 <div className="flex items-center justify-between mb-4">
@@ -491,6 +532,8 @@ export function EquipmentPanel({
                     })}
                 </div>
             </div>
+            </>
+            ) : null}
         </div>
     )
 }

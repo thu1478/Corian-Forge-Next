@@ -332,19 +332,19 @@ export function ActionCardComponent({
                                 title={`Spend ${ipCost} IP`}
                                 className={cn(
                                     "flex items-center gap-1.5 rounded-full border px-3 py-1.5 transition-colors",
-                                    "bg-emerald-100 dark:bg-emerald-500/20 border-emerald-300 dark:border-emerald-500/40",
-                                    "hover:bg-emerald-200/80 dark:hover:bg-emerald-500/30 disabled:cursor-not-allowed disabled:opacity-40"
+                                    "bg-violet-200 dark:bg-violet-600/35 border-violet-400 dark:border-violet-400/70",
+                                    "hover:bg-violet-300/80 dark:hover:bg-violet-600/45 disabled:cursor-not-allowed disabled:opacity-40"
                                 )}
                             >
-                                <Wrench className="w-4 h-4 shrink-0 text-emerald-700 dark:text-emerald-400"/>
-                                <span className="text-base font-bold text-emerald-700 dark:text-emerald-400">{ipCost} IP</span>
+                                <Wrench className="w-4 h-4 shrink-0 text-violet-700 dark:text-violet-400"/>
+                                <span className="text-base font-bold text-violet-700 dark:text-violet-400">{ipCost} IP</span>
                             </button>
                         ) : (
                             <div
-                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-100 dark:bg-emerald-500/20 border border-emerald-300 dark:border-emerald-500/40">
-                                <Wrench className="w-4 h-4 text-emerald-700 dark:text-emerald-400"/>
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-violet-200 dark:bg-violet-600/35 border border-violet-400 dark:border-violet-400/70">
+                                <Wrench className="w-4 h-4 text-violet-700 dark:text-violet-400"/>
                                 <span
-                                    className="text-base font-bold text-emerald-700 dark:text-emerald-400">{ipCost} IP</span>
+                                    className="text-base font-bold text-violet-700 dark:text-violet-400">{ipCost} IP</span>
                             </div>
                         )
                     )}

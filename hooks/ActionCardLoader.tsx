@@ -8,6 +8,8 @@ import {
     hasBrawlingWeaponInHands,
     hasEquippedWeaponForWeaponAction,
 } from "@/lib/weapon-utils";
+import type { InventoryItem } from "@/lib/equipment-data";
+import { animaWeaponActionVisible } from "@/lib/natural-weapons";
 
 /**
  * Specialized hook to discover and hydrate Action Cards.
@@ -27,11 +29,23 @@ export function useActions(
     creatureGrantedActionIds?: readonly string[] | null,
     /** Character traits (e.g. Shield Master) for equipment eligibility. */
     traitRefs?: readonly TraitRef[] | null,
+    /** Pre-resolved hand items (includes anima natural weapons). */
+    resolvedHands?: {
+        activeWeapon: InventoryItem | null
+        offhandWeapon: InventoryItem | null
+    } | null,
+    /** Anima form action ids requiring natural-weapon key matching. */
+    activeAnimaActionIds?: readonly string[] | null,
+    animaEquippedNaturalKeys?: ReadonlySet<string> | null,
 ): ActionCard[] {
     return useMemo(() => {
         const creatureGranted = new Set(
             (creatureGrantedActionIds ?? []).filter((id): id is string => typeof id === "string" && id.length > 0)
         )
+        const animaActions = new Set(
+            (activeAnimaActionIds ?? []).filter((id): id is string => typeof id === "string" && id.length > 0)
+        )
+        const animaKeys = animaEquippedNaturalKeys ?? new Set<string>()
 
         const activeWeaponAttributes = inventory
             .filter((item: any) =>
@@ -41,12 +55,14 @@ export function useActions(
             )
             .flatMap((item: any) => item.attributes || []);
 
-        const activeHandItem = handSlotUids
-            ? inventory.find((item: any) => item?.uid === handSlotUids[0]) ?? null
-            : null;
-        const offhandItem = handSlotUids
-            ? inventory.find((item: any) => item?.uid === handSlotUids[1]) ?? null
-            : null;
+        const activeHandItem = resolvedHands?.activeWeapon ??
+            (handSlotUids
+                ? inventory.find((item: any) => item?.uid === handSlotUids[0]) ?? null
+                : null);
+        const offhandItem = resolvedHands?.offhandWeapon ??
+            (handSlotUids
+                ? inventory.find((item: any) => item?.uid === handSlotUids[1]) ?? null
+                : null);
 
         // 1. Gather all IDs we need to find
         const itemIds = inventory
@@ -70,6 +86,12 @@ export function useActions(
             const isWeaponAction = actionTagsIncludeCanonical(tags, "Weapon");
             const wantsBrawling = actionTagsIncludeCanonical(tags, "brawling");
 
+            if (animaActions.has(action.id) && isWeaponAction) {
+                if (!animaWeaponActionVisible(tags, action.hiddenTags, animaKeys as Set<string>)) {
+                    return false
+                }
+            }
+
             // Brawling-tagged actions (including non-Weapon) need a brawling weapon in a hand when we know hands.
             if (wantsBrawling && handSlotUids) {
                 if (!isWeaponAction) {
@@ -82,7 +104,7 @@ export function useActions(
 
             const rollStats = action.powerRoll?.rollStats || [];
 
-            if (handSlotUids) {
+            if (handSlotUids || resolvedHands) {
                 return hasEquippedWeaponForWeaponAction(
                     action.tags,
                     rollStats,
@@ -96,5 +118,16 @@ export function useActions(
             return rollStats.some((stat) => activeWeaponAttributes.includes(stat));
         });
 
-    }, [inventory, equippedUids, classNames, actionRefs, handSlotUids, creatureGrantedActionIds, traitRefs]);
+    }, [
+        inventory,
+        equippedUids,
+        classNames,
+        actionRefs,
+        handSlotUids,
+        creatureGrantedActionIds,
+        traitRefs,
+        resolvedHands,
+        activeAnimaActionIds,
+        animaEquippedNaturalKeys,
+    ]);
 }

@@ -11,6 +11,7 @@ interface AttributesPanelProps {
     willpower: number
     presence: number
   }
+  highlighted?: Partial<Record<keyof AttributesPanelProps["attributes"], boolean>>
 }
 
 const attributeConfig = {
@@ -21,7 +22,7 @@ const attributeConfig = {
   presence: { label: "Presence", abbr: "PRE", color: "text-pink-700 border-pink-300 bg-pink-50 dark:text-pink-400 dark:border-pink-800/60 dark:bg-pink-950/30" }
 }
 
-export function AttributesPanel({ attributes }: AttributesPanelProps) {
+export function AttributesPanel({ attributes, highlighted = {} }: AttributesPanelProps) {
   return (
     <div className="p-4 bg-card rounded-xl border border-border">
       <h3 className="text-base font-semibold uppercase tracking-wider text-primary mb-4">Attributes</h3>
@@ -31,6 +32,7 @@ export function AttributesPanel({ attributes }: AttributesPanelProps) {
           const config = attributeConfig[key]
           const value = attributes[key]
           const modifier = getAttributeModifier(value)
+          const isHighlighted = highlighted[key] === true
           
           return (
             <div
@@ -39,12 +41,13 @@ export function AttributesPanel({ attributes }: AttributesPanelProps) {
                 "text-center p-2.5 rounded-lg border",
                 config.color
               )}
+              title={isHighlighted ? "Changed by active mount or Anima form" : undefined}
             >
               <div className="text-xs uppercase tracking-wider font-bold mb-1">
                 {config.abbr}
               </div>
-              <div className="text-xl font-bold text-foreground">{value}</div>
-              <div className="text-sm font-mono opacity-80">
+              <div className={cn("text-xl font-bold", isHighlighted ? "text-violet-700 dark:text-violet-300" : "text-foreground")}>{value}</div>
+              <div className={cn("text-sm font-mono opacity-80", isHighlighted ? "text-violet-700 dark:text-violet-300" : "")}>
                 {formatModifier(modifier)}
               </div>
             </div>

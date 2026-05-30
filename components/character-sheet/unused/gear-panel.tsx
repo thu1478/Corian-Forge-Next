@@ -1,25 +1,24 @@
 "use client"
 
-import { useState } from "react"
-import { Equipment, InventoryItem } from "@/lib/character-data"
-import { cn } from "@/lib/utils"
-import { 
-  Backpack, 
-  Coins, 
-  Sword, 
-  Shield, 
-  Shirt, 
-  Crown,
-  Eye,
-  Ear,
-  Gem,
-  Footprints,
-  CircleDot,
-  Sparkles,
-  Filter,
-  Search
+import {useState} from "react"
+import {Equipment, InventoryItem} from "@/lib/character-data"
+import {cn} from "@/lib/utils"
+import {
+    Backpack,
+    CircleDot,
+    Coins,
+    Crown,
+    Ear,
+    Eye,
+    Footprints,
+    Gem,
+    Search,
+    Shield,
+    Shirt,
+    Sparkles,
+    Sword
 } from "lucide-react"
-import { Input } from "@/components/ui/input"
+import {Input} from "@/components/ui/input"
 
 interface GearPanelProps {
   equipment: Equipment
@@ -70,7 +69,7 @@ export function GearPanel({ equipment, inventory, money, ip }: GearPanelProps) {
             <div className="w-12 h-12 rounded-full bg-yellow-500/20 border-2 border-yellow-500/50 flex items-center justify-center mx-auto mb-1">
               <span className="text-yellow-400 font-bold">{money}</span>
             </div>
-            <span className="text-[10px] uppercase tracking-wider text-yellow-500/80">Gold</span>
+            <span className="text-[10px] uppercase tracking-wider text-yellow-500/80">Zenny</span>
           </div>
           <div className="text-center">
             <div className="w-12 h-12 rounded-full bg-violet-500/20 border-2 border-violet-500/50 flex items-center justify-center mx-auto mb-1">

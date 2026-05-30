@@ -26,6 +26,19 @@ export type PowerRollAttributes = {
     presence: number
 }
 
+const ATTRIBUTE_ABBREVIATIONS: Record<keyof PowerRollAttributes, string> = {
+    might: "M",
+    dexterity: "D",
+    reason: "R",
+    willpower: "W",
+    presence: "P",
+}
+
+function formatAttributeAbbreviationList(stats: string[] | undefined): string | null {
+    if (!stats?.length) return null
+    return stats.map((stat) => ATTRIBUTE_ABBREVIATIONS[stat as keyof PowerRollAttributes] ?? stat[0]?.toUpperCase() ?? stat).join(" or ")
+}
+
 export function PowerRollTierRow({
     label,
     roll,
@@ -117,14 +130,27 @@ export function PowerRollTierRow({
 
     const suffixLabel = tierAmountSuffix === "Barrier" ? "Barrier" : tierAmountSuffix === "HP" ? "HP" : "DMG"
 
-    const dmgDisplay =
-        powerRollDisplayMode === "formula" && (hasWpn || flat > 0) ? (
+    const formulaDmgParts = (): string[] => {
+        const parts: string[] = []
+        if (hasExplicitNumericTierDmg || baseDmg > 0 || (hasWpn && weaponBonus > 0)) {
+            parts.push(String(baseDmg))
+        }
+        if (hasWpn && weaponBonus > 0) {
+            parts.push(String(weaponBonus))
+        }
+        if (flat > 0) parts.push(String(flat))
+        return parts
+    }
+
+    const useFormulaBreakdown =
+        powerRollDisplayMode === "formula" &&
+        (hasWpn || flat > 0 || hasExplicitNumericTierDmg)
+
+    const dmgDisplay = useFormulaBreakdown ? (
             <>
                 {(() => {
-                    const parts: string[] = [String(baseDmg)]
-                    if (hasWpn && weaponBonus > 0) parts.push(String(weaponBonus))
-                    if (flat > 0) parts.push(String(flat))
-                    return parts.join(" + ")
+                    const parts = formulaDmgParts()
+                    return parts.length > 0 ? parts.join(" + ") : String(finalDmg)
                 })()}{" "}
                 <span className="text-[10px] opacity-40 uppercase ml-0.5">{suffixLabel}</span>
             </>
@@ -149,6 +175,15 @@ export function PowerRollTierRow({
     const potencyPopoverBody =
         potencyGlossaryEntry?.description?.trim() ||
         "This potency effect is not defined in rules.glossary.effectDictionary yet."
+    const potencySourceFormula =
+        potency && potency.type !== "Special"
+            ? potencySrcIsFixed
+                ? "fixed"
+                : formatAttributeAbbreviationList(potency.srcStats)
+            : null
+    const potencyTargetFormula =
+        potency && potency.type !== "Special" ? formatAttributeAbbreviationList(potency.targetStats) : null
+    const showFormulaPotency = Boolean(showPotencyDifficulty && potency && powerRollDisplayMode === "formula")
 
     return (
         <div className="flex flex-col rounded-lg bg-muted/50 dark:bg-black/30 border border-border dark:border-white/10 overflow-hidden">
@@ -161,42 +196,63 @@ export function PowerRollTierRow({
 
             {potency && (
                 <div className="px-3 py-2.5 flex flex-wrap items-center gap-x-4 gap-y-2">
-                    {showPotencyDifficulty && potency && (
+                    {showPotencyDifficulty && potency && !showFormulaPotency ? (
                         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                             {potency.targetStats && potency.targetStats.length > 0 ? (
                                 <span className="text-sm font-mono font-black text-muted-foreground uppercase tracking-tight">
                                     {potency.targetStats.map((s) => s[0]).join("/")}
                                 </span>
                             ) : null}
-                            {powerRollDisplayMode === "simple" ? (
-                                <span className="text-base font-black text-primary flex items-center gap-1 tabular-nums">
-                                    <span className="text-xs opacity-50">&lt;</span>
-                                    {potencyThreshold}
-                                </span>
-                            ) : (
-                                <span className="text-base font-black text-primary flex flex-wrap items-center gap-x-1.5 gap-y-0.5 tabular-nums">
-                                    <span className="text-xs opacity-50">&lt;</span>
-                                    <span className="font-mono">
-                                        {maxSrcMod}
-                                        {potencySrcIsFixed ? (
-                                            <span className="text-[10px] font-bold uppercase opacity-60 not-italic">
-                                                {" "}
-                                                fixed
-                                            </span>
-                                        ) : null}{" "}
-                                        {potencyStrMod}
-                                    </span>
-                                    {potencyStrengthLabel ? (
-                                        <span className="text-[10px] font-bold uppercase opacity-60">
-                                            [{potencyStrengthLabel}]
-                                        </span>
-                                    ) : null}
-                                </span>
-                            )}
+                            <span className="text-base font-black text-primary flex items-center gap-1 tabular-nums">
+                                <span className="text-xs opacity-50">&lt;</span>
+                                {potencyThreshold}
+                            </span>
                         </div>
-                    )}
+                    ) : null}
 
-                    {potencyBadge ? (
+                    {showFormulaPotency ? (
+                        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm font-mono font-black">
+                            {potencyTargetFormula ? (
+                                <span className="text-muted-foreground">{potencyTargetFormula}</span>
+                            ) : null}
+                            <span className="text-primary">&lt;</span>
+                            {potencySourceFormula || potencyStrengthLabel ? (
+                                <span className="text-primary">
+                                    [{[potencySourceFormula, potencyStrengthLabel].filter(Boolean).join(" ")}]
+                                </span>
+                            ) : null}
+                            {potencyBadge ? (
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <button
+                                            type="button"
+                                            className="rounded-sm text-foreground underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                        >
+                                            {potencyBadge}
+                                        </button>
+                                    </PopoverTrigger>
+                                    <PopoverContent
+                                        align="start"
+                                        side="top"
+                                        sideOffset={6}
+                                        className="w-[min(92vw,28rem)] max-w-none border-border p-4 text-left shadow-md"
+                                    >
+                                        <div className="space-y-2">
+                                            <p className="text-sm font-semibold leading-tight text-foreground">
+                                                {potencyPopoverTitle}
+                                            </p>
+                                            <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-line">
+                                                {potencyPopoverBody}
+                                            </p>
+                                        </div>
+                                    </PopoverContent>
+                                </Popover>
+                            ) : null}
+                            {potencyDurationLabel ? (
+                                <span className="text-muted-foreground">{potencyDurationLabel}</span>
+                            ) : null}
+                        </div>
+                    ) : potencyBadge ? (
                         <Popover>
                             <PopoverTrigger asChild>
                                 <button
@@ -230,7 +286,7 @@ export function PowerRollTierRow({
                         </Popover>
                     ) : null}
 
-                    {potencyDurationLabel ? (
+                    {potencyDurationLabel && !showFormulaPotency ? (
                         <div className="flex items-center gap-1.5 opacity-80">
                             <span className="h-1 w-1 rounded-full bg-muted-foreground/30" />
                             <span className="text-xs text-muted-foreground lowercase font-bold italic leading-none">

@@ -11,7 +11,13 @@ import {
 } from "@/components/reaction-resource-cost-badges"
 import { TraitPowerRollCollapsible } from "@/components/power-roll/trait-power-roll-collapsible"
 import { unwrapEmbeddedActionCard } from "@/lib/embedded-action-card"
-import { getDeityPassiveEntries, resolveDeityBoonDisplay } from "@/lib/priest-deities"
+import {
+    CLASS_OPTION_CONFIGS,
+    getClassOptionEntries,
+    resolveClassOptionPlaceholderPassive,
+    talentMatchesClassOption,
+} from "@/lib/class-options"
+import { ClassOptionPicker } from "@/components/character-creator/ClassOptionPicker"
 import { formatTraitEffectChoiceLabel } from "@/lib/trait-selection"
 import type { SkillChooserRequirement } from "@/lib/grant-skill-effects"
 import { allSkillChooserPicksComplete } from "@/lib/grant-skill-effects"
@@ -24,6 +30,11 @@ import {
     getSummonMastery,
     listConjurerCatalogTemplateIdsForSlot,
 } from "@/lib/creature-roster"
+import {
+    getDruidAnimaSlots,
+    listDruidAnimaCatalogTemplateIds,
+    sanitizeDruidAnimaTemplateIds,
+} from "@/lib/druid-anima"
 import {
     canAssignClassXpPicksSmallestFirst,
     calculateClassXPCost,
@@ -143,6 +154,10 @@ interface ClassSelectionProps {
     /** Priest: filters deity-specific actions in the talent grid. */
     priestDeity?: string | null;
     onPriestDeityChange?: (deityId: string | null) => void;
+    riderMountType?: string | null;
+    riderAdaptableMovement?: "swimming" | "climbing" | null;
+    onRiderMountTypeChange?: (mountTypeId: string | null) => void;
+    onRiderAdaptableMovementChange?: (movement: "swimming" | "climbing" | null) => void;
     /**
      * Total XP the character has earned (stored on save as `xp`).
      * Class budget uses `max(startingXP for adventurer level, totalXP)`.
@@ -154,6 +169,9 @@ interface ClassSelectionProps {
     /** Conjurer Summoner: template id per slot (same length as slots when Summoner is active). */
     conjurerSummonTemplateIds?: string[];
     onConjurerSummonsChange?: (templateIds: string[]) => void;
+    /** Druid Anima: template id per Anima slot. */
+    druidAnimaTemplateIds?: string[];
+    onDruidAnimaChange?: (templateIds: string[]) => void;
     fairyTamerContracts?: FairyTamerContractsSave;
     onFairyTamerContractsChange?: (contracts: FairyTamerContractsSave) => void;
     specialInvention?: SpecialInventionSave;
@@ -177,12 +195,18 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
                                                            attributes,
                                                            priestDeity = null,
                                                            onPriestDeityChange,
+                                                           riderMountType = null,
+                                                           riderAdaptableMovement = null,
+                                                           onRiderMountTypeChange,
+                                                           onRiderAdaptableMovementChange,
                                                            onUpdateLevel,
                                                            totalXP,
                                                            onUpdateTotalXP,
                                                            onUpdateClassData,
                                                            conjurerSummonTemplateIds = [],
                                                            onConjurerSummonsChange,
+                                                           druidAnimaTemplateIds = [],
+                                                           onDruidAnimaChange,
                                                            fairyTamerContracts: fairyTamerContractsProp,
                                                            onFairyTamerContractsChange,
                                                            specialInvention,
@@ -295,6 +319,39 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
     const specialInventionComplete =
         !specialInventionNeeded || isSpecialInventionSaveComplete(specialInvention);
 
+    const druidAnimaTraitSketch = useMemo(
+        () =>
+            selectedOptions
+                .filter((o) => o.source === "druid" && o.id === "anima")
+                .map((o) => ({ id: o.id, source: "class" as const })),
+        [selectedOptions]
+    );
+    const druidAnimaSlots = useMemo(
+        () => getDruidAnimaSlots(localClasses, druidAnimaTraitSketch),
+        [localClasses, druidAnimaTraitSketch]
+    );
+    const druidAnimaCatalogIdsBySlot = useMemo(
+        () =>
+            druidAnimaSlots.map((slot) =>
+                listDruidAnimaCatalogTemplateIds(creatureTemplates, slot.maxCatalogLevel)
+            ),
+        [creatureTemplates, druidAnimaSlots]
+    );
+    const sanitizedDruidAnimaTemplateIds = useMemo(
+        () => sanitizeDruidAnimaTemplateIds(druidAnimaTemplateIds, druidAnimaSlots, creatureTemplates),
+        [druidAnimaTemplateIds, druidAnimaSlots, creatureTemplates]
+    );
+    const druidAnimaHasCatalog = druidAnimaCatalogIdsBySlot.some((ids) => ids.length > 0);
+    const druidAnimaPicksComplete = useMemo(() => {
+        if (druidAnimaSlots.length === 0 || !druidAnimaHasCatalog) return true;
+        return druidAnimaSlots.every((slot, i) => {
+            const catalog = druidAnimaCatalogIdsBySlot[i] ?? [];
+            if (catalog.length === 0) return true;
+            const tid = String(sanitizedDruidAnimaTemplateIds[slot.slotIndex] ?? "").trim();
+            return Boolean(tid && catalog.includes(tid));
+        });
+    }, [druidAnimaSlots, druidAnimaHasCatalog, druidAnimaCatalogIdsBySlot, sanitizedDruidAnimaTemplateIds]);
+
     const getTalentLevelForPick = (pick: ClassOptionPick): number => {
         if (pick.source === "fairytamer" && pick.fairySpellSlot != null) {
             return getFairySpellPickMinLevel(pick.fairySpellSlot, fairyTamerContracts, pick.id)
@@ -325,9 +382,14 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
         const classData = (rulesData.classes as any)[sourceClassId]
         const passiveDef = classData?.passives?.[optionId]
         const needsPassiveChoice = passiveNeedsEffectChoice(passiveDef)
-        const actionDef = classData?.actions?.[optionId] as { deityId?: string } | undefined
-        if (sourceClassId === "priest" && actionDef?.deityId) {
-            if (!priestDeity || actionDef.deityId !== priestDeity) return
+        const actionDef = classData?.actions?.[optionId] as { deityId?: string; mountTypeId?: string } | undefined
+        const priestConfig = CLASS_OPTION_CONFIGS.priest
+        const riderConfig = CLASS_OPTION_CONFIGS.rider
+        if (sourceClassId === priestConfig.classId && actionDef) {
+            if (!talentMatchesClassOption(actionDef, priestDeity, priestConfig.filterField)) return
+        }
+        if (sourceClassId === riderConfig.classId && actionDef) {
+            if (!talentMatchesClassOption(actionDef, riderMountType, riderConfig.filterField)) return
         }
 
         const classSelections = selectedOptions.filter((o) => o.source === sourceClassId)
@@ -404,6 +466,80 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
         onUpdateClassData(updated, optionsAfterLevelChange);
     };
 
+    const renderDruidAnimaSection = () => {
+        if (expandedClassId !== "druid" || druidAnimaSlots.length === 0) return null
+
+        return (
+            <section className="rounded-2xl border border-border bg-card/80 p-6 space-y-4">
+                <h2 className="text-xl font-black uppercase italic tracking-tight text-foreground">
+                    Anima forms
+                </h2>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                    Choose your Anima forms here. Druid level 3 grants two level 2-or-lower forms; Druid level 5
+                    adds one level 4-or-lower form. These forms appear in the creature list and can be activated
+                    from the sheet.
+                </p>
+                {!druidAnimaHasCatalog ? (
+                    <p className="text-sm text-amber-700 dark:text-amber-400">
+                        No Anima creature templates are available yet. Add future bestiary templates with the{" "}
+                        <span className="font-mono text-xs">Anima</span> tag and level metadata to populate these
+                        slots.
+                    </p>
+                ) : (
+                    <div className="space-y-4">
+                        {druidAnimaSlots.map((slot, i) => {
+                            const catalog = druidAnimaCatalogIdsBySlot[i] ?? []
+                            const current = sanitizedDruidAnimaTemplateIds[slot.slotIndex] ?? ""
+                            return (
+                                <div key={slot.slotIndex} className="space-y-1.5 max-w-md">
+                                    <Label className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                                        Slot {slot.slotIndex + 1} (level {slot.maxCatalogLevel} or lower)
+                                    </Label>
+                                    <Select
+                                        value={current || undefined}
+                                        disabled={catalog.length === 0}
+                                        onValueChange={(v) => {
+                                            if (!onDruidAnimaChange) return
+                                            const next = [...sanitizedDruidAnimaTemplateIds]
+                                            while (next.length < druidAnimaSlots.length) next.push("")
+                                            for (let j = 0; j < next.length; j++) {
+                                                if (j !== slot.slotIndex && String(next[j] ?? "").trim() === v) {
+                                                    next[j] = ""
+                                                }
+                                            }
+                                            next[slot.slotIndex] = v
+                                            onDruidAnimaChange(next)
+                                        }}
+                                    >
+                                        <SelectTrigger className="h-10 text-sm">
+                                            <SelectValue placeholder={catalog.length ? "Select Anima..." : "No forms"} />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {catalog
+                                                .filter(
+                                                    (tid) =>
+                                                        !sanitizedDruidAnimaTemplateIds.some(
+                                                            (raw, idx) =>
+                                                                idx !== slot.slotIndex &&
+                                                                String(raw ?? "").trim() === tid
+                                                        ) || current === tid
+                                                )
+                                                .map((tid) => (
+                                                    <SelectItem key={tid} value={tid}>
+                                                        {creatureTemplates[tid]?.name ?? tid}
+                                                    </SelectItem>
+                                                ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            )
+                        })}
+                    </div>
+                )}
+            </section>
+        )
+    }
+
     const renderTalentSection = (classId: string, type: 'passives' | 'actions' | 'reactions', lvl: number) => {
         const classData = (rulesData.classes as any)[classId];
         let talents: any[];
@@ -414,16 +550,35 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
             talents = Object.entries(classData[type] || {})
                 .filter(([_, d]: any) => (d.minLevel || d.level || 1) === lvl)
                 .map(([id, d]: any) => ({ ...d, id }));
-            if (type === "actions" && classId === "priest") {
-                talents = talents.filter(
-                    (t: any) => !t.deityId || (priestDeity && t.deityId === priestDeity)
-                );
+            if (type === "actions") {
+                const optionConfig =
+                    classId === CLASS_OPTION_CONFIGS.priest.classId
+                        ? CLASS_OPTION_CONFIGS.priest
+                        : classId === CLASS_OPTION_CONFIGS.rider.classId
+                          ? CLASS_OPTION_CONFIGS.rider
+                          : null
+                const optionValue =
+                    classId === "priest"
+                        ? priestDeity
+                        : classId === "rider"
+                          ? riderMountType
+                          : null
+                if (optionConfig?.filterField) {
+                    talents = talents.filter((t: any) =>
+                        talentMatchesClassOption(t, optionValue, optionConfig.filterField)
+                    )
+                }
             }
             if (type === "passives" && classId === "priest") {
                 talents = talents.map((t: any) => {
-                    if (t.id !== "deityBoon") return t;
+                    if (t.id !== CLASS_OPTION_CONFIGS.priest.placeholderPassiveId) return t;
                     const base = classData.passives?.deityBoon ?? {};
-                    const merged = resolveDeityBoonDisplay(rulesData, priestDeity, base);
+                    const merged = resolveClassOptionPlaceholderPassive(
+                        rulesData,
+                        CLASS_OPTION_CONFIGS.priest,
+                        priestDeity,
+                        base
+                    );
                     return { ...t, name: merged.name, description: merged.description };
                 });
             }
@@ -579,10 +734,9 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
             currentClassLevel,
             selectedOptions.filter((o) => o.source === expandedClassId).map((o) => getTalentLevelForPick(o))
         );
-        const priestDeityL3Passives =
-            expandedClassId === "priest" && priestDeity && currentClassLevel >= 3
-                ? getDeityPassiveEntries(rulesData, priestDeity)
-                : [];
+        const riderFaithfulSteedActive = selectedOptions.some(
+            (o) => o.id === "faithfulSteed" && o.source === "rider"
+        )
 
         return (
             <div className="p-8 max-w-6xl mx-auto min-h-screen">
@@ -717,47 +871,42 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
                             </p>
                         ) : null}
                         {expandedClassId === "priest" && currentClassLevel > 0 && Array.isArray(classData.deities) && classData.deities.length > 0 ? (
-                            <div className="rounded-2xl border border-border bg-card p-5 space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block">
-                                    Deity (unlocks matching class talents)
-                                </label>
-                                <select
-                                    className="w-full max-w-md rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium"
-                                    value={priestDeity ?? ""}
-                                    onChange={(e) => onPriestDeityChange?.(e.target.value ? e.target.value : null)}
-                                >
-                                    <option value="">— Select a deity —</option>
-                                    {classData.deities.map((d: { id: string; name: string }) => (
-                                        <option key={d.id} value={d.id}>
-                                            {d.name}
-                                        </option>
-                                    ))}
-                                </select>
-                                {Array.isArray(classData.elementalAspects) && classData.elementalAspects.length > 0 ? (
-                                    <p className="text-xs text-muted-foreground">
-                                        Elemental aspects: {classData.elementalAspects.join(", ")}
-                                    </p>
-                                ) : null}
-                                {priestDeityL3Passives.length > 0 ? (
-                                    <div className="rounded-xl border border-primary/25 bg-primary/5 p-4 space-y-2">
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-primary">
-                                            Level 3 deity passive
-                                        </p>
-                                        {priestDeityL3Passives.map((p) => (
-                                            <div key={p.slug}>
-                                                <p className="text-sm font-bold text-foreground">{p.name}</p>
-                                                <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-line">
-                                                    {p.description}
-                                                </p>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : priestDeity && currentClassLevel >= 3 ? (
-                                    <p className="text-xs text-muted-foreground italic">
-                                        No passive data for this deity in rules.
-                                    </p>
-                                ) : null}
-                            </div>
+                            <ClassOptionPicker
+                                config={CLASS_OPTION_CONFIGS.priest}
+                                rulesData={rulesData}
+                                label="Deity (unlocks matching class talents)"
+                                options={getClassOptionEntries(
+                                    rulesData,
+                                    CLASS_OPTION_CONFIGS.priest.classId,
+                                    CLASS_OPTION_CONFIGS.priest.optionsKey
+                                )}
+                                value={priestDeity}
+                                onChange={(v) => onPriestDeityChange?.(v)}
+                                previewLevel={Math.min(currentClassLevel, 3)}
+                            />
+                        ) : null}
+                        {expandedClassId === "rider" &&
+                        currentClassLevel > 0 &&
+                        riderFaithfulSteedActive &&
+                        Array.isArray(classData.mounts) &&
+                        classData.mounts.length > 0 ? (
+                            <ClassOptionPicker
+                                config={CLASS_OPTION_CONFIGS.rider}
+                                rulesData={rulesData}
+                                label="Mount type (Faithful Steed)"
+                                options={getClassOptionEntries(
+                                    rulesData,
+                                    CLASS_OPTION_CONFIGS.rider.classId,
+                                    CLASS_OPTION_CONFIGS.rider.optionsKey
+                                )}
+                                value={riderMountType}
+                                onChange={(v) => onRiderMountTypeChange?.(v)}
+                                previewLevel={Math.min(currentClassLevel, 3)}
+                                subLabel="Adaptable movement (Swimming or Climbing at mount Speed while riding)"
+                                subValue={riderAdaptableMovement}
+                                onSubChange={(v) => onRiderAdaptableMovementChange?.(v)}
+                                showSubWhen={(id) => id === "adaptable"}
+                            />
                         ) : null}
                     </div>
                 </header>
@@ -766,12 +915,25 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
                     {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(lvl => {
                         const hasContent = ['passives', 'actions', 'reactions'].some(type => {
                             if (type === 'reactions') return (classData.reactions || []).some((r: any) => (r.level || r.minLevel || 1) === lvl);
-                            if (type === "actions" && expandedClassId === "priest") {
-                                return Object.entries(classData.actions || {}).some(([_, d]: any) => {
-                                    if ((d.minLevel || d.level || 1) !== lvl) return false;
-                                    if (!d.deityId) return true;
-                                    return Boolean(priestDeity && d.deityId === priestDeity);
-                                });
+                            if (type === "actions") {
+                                const filterField =
+                                    expandedClassId === CLASS_OPTION_CONFIGS.priest.classId
+                                        ? CLASS_OPTION_CONFIGS.priest.filterField
+                                        : expandedClassId === CLASS_OPTION_CONFIGS.rider.classId
+                                          ? CLASS_OPTION_CONFIGS.rider.filterField
+                                          : undefined
+                                const optionValue =
+                                    expandedClassId === "priest"
+                                        ? priestDeity
+                                        : expandedClassId === "rider"
+                                          ? riderMountType
+                                          : null
+                                if (filterField) {
+                                    return Object.entries(classData.actions || {}).some(([_, d]: any) => {
+                                        if ((d.minLevel || d.level || 1) !== lvl) return false
+                                        return talentMatchesClassOption(d, optionValue, filterField)
+                                    })
+                                }
                             }
                             return Object.values((classData[type] || {})).some((d: any) => (d.minLevel || d.level || 1) === lvl);
                         });
@@ -781,6 +943,7 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
                                 <h2 className="text-2xl font-black italic uppercase text-foreground/20">Level {lvl}</h2>
                                 <div className="space-y-12 ml-4">
                                     {renderTalentSection(expandedClassId, 'passives', lvl)}
+                                    {expandedClassId === "druid" && lvl === 3 ? renderDruidAnimaSection() : null}
                                     {renderTalentSection(expandedClassId, 'actions', lvl)}
                                     {renderTalentSection(expandedClassId, 'reactions', lvl)}
                                 </div>
@@ -1200,6 +1363,12 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
                                     Set fairy contracts inside Build.
                                 </p>
                             ) : null}
+                            {id === "druid" &&
+                            druidAnimaSlots.length > 0 ? (
+                                <p className="text-xs text-muted-foreground text-center mt-3">
+                                    Set Anima forms inside Build.
+                                </p>
+                            ) : null}
                             {id === "artificer" &&
                             artificerLevel >= 3 &&
                             selectedOptions.some(
@@ -1224,6 +1393,7 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
                         !allClassXPAssigned ||
                         !conjurerSummonPicksComplete ||
                         !fairyTamerPicksComplete ||
+                        !druidAnimaPicksComplete ||
                         !specialInventionComplete ||
                         !skillGrantsComplete
                     }
@@ -1234,6 +1404,7 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
                             allClassXPAssigned &&
                             conjurerSummonPicksComplete &&
                             fairyTamerPicksComplete &&
+                            druidAnimaPicksComplete &&
                             specialInventionComplete &&
                             skillGrantsComplete
                             ? "bg-primary text-white shadow-xl shadow-primary/20 hover:scale-105"

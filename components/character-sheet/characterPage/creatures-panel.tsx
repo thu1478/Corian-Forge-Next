@@ -35,8 +35,13 @@ import {
     getMaxConjurerMinionsByMastery,
     isConjurerRosterEntry,
     isCreatureDeployBlocked,
+    isCreatureDefinitionMount,
 } from "@/lib/creature-roster"
+import { isRiderRosterEntry } from "@/lib/rider-mounts"
+import { isSummonMountable } from "@/lib/mounted-creature"
 import type { InventoryItem } from "@/lib/equipment-data"
+import { isDruidAnimaRosterEntry } from "@/lib/druid-anima"
+import { resolveNaturalWeaponForAction, type RulesWithNaturalWeapons } from "@/lib/natural-weapons"
 
 function formatVulnerabilityBrief(v: { stat: string; value?: string }): string {
     const vu = v.value != null && v.value !== "" ? ` (+${v.value} VU)` : ""
@@ -48,7 +53,11 @@ function CreatureTemplateStatStrip({ tmpl }: { tmpl: CreatureDefinition }) {
     const hasImm = tmpl.immunities && tmpl.immunities.length > 0
     const hasVul = tmpl.vulnerabilities && tmpl.vulnerabilities.length > 0
     const hasDef = tmpl.defense != null && Number.isFinite(tmpl.defense)
-    if (!hasRes && !hasImm && !hasVul && !hasDef) return null
+    const hasSpeed = tmpl.speed != null && Number.isFinite(tmpl.speed)
+    const hasSize = Boolean(tmpl.size)
+    const hasPassengers = tmpl.passengers != null && Number.isFinite(tmpl.passengers)
+    const riderBonuses = tmpl.mountedRiderBonuses
+    if (!hasRes && !hasImm && !hasVul && !hasDef && !hasSpeed && !hasSize && !hasPassengers && !riderBonuses) return null
     return (
         <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] leading-snug text-foreground/90">
             {hasRes ? (
@@ -77,6 +86,33 @@ function CreatureTemplateStatStrip({ tmpl }: { tmpl: CreatureDefinition }) {
                     <span className="font-mono tabular-nums">{tmpl.defense}</span>
                 </span>
             ) : null}
+            {hasSpeed ? (
+                <span>
+                    <span className="font-semibold text-muted-foreground">Spd </span>
+                    <span className="font-mono tabular-nums">{tmpl.speed}</span>
+                </span>
+            ) : null}
+            {hasSize ? (
+                <span>
+                    <span className="font-semibold text-muted-foreground">Size </span>
+                    <span>{tmpl.size}</span>
+                </span>
+            ) : null}
+            {hasPassengers ? (
+                <span>
+                    <span className="font-semibold text-muted-foreground">Passengers </span>
+                    <span className="font-mono tabular-nums">{tmpl.passengers}</span>
+                </span>
+            ) : null}
+            {riderBonuses?.defense ? (
+                <span>
+                    <span className="font-semibold text-muted-foreground">Rider </span>
+                    <span className="font-mono tabular-nums">+{riderBonuses.defense} Def</span>
+                </span>
+            ) : null}
+            {riderBonuses?.stability ? (
+                <span className="font-mono tabular-nums">+{riderBonuses.stability} Stab</span>
+            ) : null}
         </div>
     )
 }
@@ -101,6 +137,11 @@ export function CreaturesPanel({
     currentWeapon,
     offhandWeapon,
     onPatchCreature,
+    mountedCreatureId = null,
+    onMountedCreatureChange,
+    activeDruidAnimaTemplateId = null,
+    onActiveDruidAnimaChange,
+    druidAnimaDisabledReason = null,
 }: {
     creatures: CreatureRosterEntry[]
     traits: TraitRef[]
@@ -110,6 +151,11 @@ export function CreaturesPanel({
     currentWeapon: InventoryItem | null
     offhandWeapon: InventoryItem | null
     onPatchCreature: (id: string, patch: Partial<CreatureRosterEntry>) => void
+    mountedCreatureId?: string | null
+    onMountedCreatureChange?: (id: string | null) => void
+    activeDruidAnimaTemplateId?: string | null
+    onActiveDruidAnimaChange?: (templateId: string | null) => void
+    druidAnimaDisabledReason?: string | null
 }) {
     const templates = useMemo(() => getCreatureTemplates(rules), [rules])
     const [openId, setOpenId] = useState<string | null>(null)
@@ -121,6 +167,8 @@ export function CreaturesPanel({
 
     const openEntry = openId ? creatures.find((c) => c.id === openId) : null
     const openTemplate = openEntry ? templates[openEntry.templateId] : null
+    const openHasHpPool = openEntry ? openEntry.currentHp != null || openEntry.maxHp != null : false
+    const openHasMpPool = openEntry ? openEntry.currentMp != null || openEntry.maxMp != null : false
     const openTraitEntries = useMemo(
         () => resolveCreatureTraitEntries(rules, openTemplate?.traitRefs),
         [rules, openTemplate?.traitRefs]
@@ -159,10 +207,26 @@ export function CreaturesPanel({
     const trySetDeployed = (entry: CreatureRosterEntry, deployed: boolean) => {
         if (!deployed) {
             onPatchCreature(entry.id, { deployed: false })
+            if (mountedCreatureId === entry.id) onMountedCreatureChange?.(null)
             return
         }
         if (isCreatureDeployBlocked(entry, creatures, maxConjurerMinions)) return
         onPatchCreature(entry.id, { deployed: true })
+    }
+
+    const trySetMounted = (entry: CreatureRosterEntry, mounted: boolean) => {
+        if (!onMountedCreatureChange || !isSummonMountable(entry)) return
+        if (!mounted) {
+            if (mountedCreatureId === entry.id) onMountedCreatureChange(null)
+            return
+        }
+        if (!entry.deployed) return
+        onMountedCreatureChange(entry.id)
+    }
+
+    const trySetAnima = (entry: CreatureRosterEntry, active: boolean) => {
+        if (!onActiveDruidAnimaChange || !isDruidAnimaRosterEntry(entry)) return
+        onActiveDruidAnimaChange(active ? entry.templateId : null)
     }
 
     const depAssistants = countDeployedFeatAssistantsAndMinions(creatures)
@@ -228,6 +292,10 @@ export function CreaturesPanel({
                             !c.deployed &&
                             (countDeployedSummons(rest) >= MAX_DEPLOYED_SUMMONS ||
                                 countDeployedConjurerMinions(rest) > 0)
+                        const hasHpPool = c.currentHp != null || c.maxHp != null
+                        const hasMpPool = c.currentMp != null || c.maxMp != null
+                        const isAnimaEntry = isDruidAnimaRosterEntry(c)
+                        const isActiveAnima = isAnimaEntry && activeDruidAnimaTemplateId === c.templateId
 
                         return (
                             <div
@@ -257,6 +325,21 @@ export function CreaturesPanel({
                                                     Deployed
                                                 </Badge>
                                             ) : null}
+                                            {mountedCreatureId === c.id ? (
+                                                <Badge variant="outline" className="text-[10px] border-primary/50">
+                                                    Mounted
+                                                </Badge>
+                                            ) : null}
+                                            {isRiderRosterEntry(c) || isCreatureDefinitionMount(tmpl) ? (
+                                                <Badge variant="secondary" className="text-[10px]">
+                                                    Mount
+                                                </Badge>
+                                            ) : null}
+                                            {isAnimaEntry ? (
+                                                <Badge variant={isActiveAnima ? "default" : "secondary"} className="text-[10px]">
+                                                    {isActiveAnima ? "Active Anima" : "Anima"}
+                                                </Badge>
+                                            ) : null}
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-1 shrink-0">
@@ -275,34 +358,57 @@ export function CreaturesPanel({
 
                                 <div className="rounded-lg border border-border bg-muted/30 dark:bg-muted/20 px-3 py-2 shadow-sm">
                                     <div className="flex flex-wrap items-center gap-3">
-                                    <div className="flex items-center gap-2.5">
-                                        <Switch
-                                            id={`deploy-${c.id}`}
-                                            className="h-5 w-9 border border-border/60 data-[state=unchecked]:bg-muted-foreground/30"
-                                            checked={c.deployed}
-                                            disabled={deployCapBlocked}
-                                            onCheckedChange={(v) => trySetDeployed(c, v)}
-                                        />
-                                        <Label
-                                            htmlFor={`deploy-${c.id}`}
-                                            className="text-xs font-semibold text-foreground cursor-pointer"
-                                        >
-                                            Deploy to combat
-                                        </Label>
-                                    </div>
-                                    {featCapBlocked ? (
+                                    {isAnimaEntry ? (
+                                        <div className="flex items-center gap-2.5">
+                                            <Switch
+                                                id={`anima-${c.id}`}
+                                                className="h-5 w-9 border border-border/60 data-[state=unchecked]:bg-muted-foreground/30"
+                                                checked={isActiveAnima}
+                                                disabled={Boolean(druidAnimaDisabledReason)}
+                                                onCheckedChange={(v) => trySetAnima(c, v)}
+                                            />
+                                            <Label
+                                                htmlFor={`anima-${c.id}`}
+                                                className="text-xs font-semibold text-foreground cursor-pointer"
+                                            >
+                                                Anima form
+                                            </Label>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-2.5">
+                                            <Switch
+                                                id={`deploy-${c.id}`}
+                                                className="h-5 w-9 border border-border/60 data-[state=unchecked]:bg-muted-foreground/30"
+                                                checked={c.deployed}
+                                                disabled={deployCapBlocked}
+                                                onCheckedChange={(v) => trySetDeployed(c, v)}
+                                            />
+                                            <Label
+                                                htmlFor={`deploy-${c.id}`}
+                                                className="text-xs font-semibold text-foreground cursor-pointer"
+                                            >
+                                                Deploy to combat
+                                            </Label>
+                                        </div>
+                                    )}
+                                    {isAnimaEntry && druidAnimaDisabledReason ? (
+                                        <span className="text-[10px] text-amber-600 dark:text-amber-400">
+                                            {druidAnimaDisabledReason}
+                                        </span>
+                                    ) : null}
+                                    {!isAnimaEntry && featCapBlocked ? (
                                         <span className="text-[10px] text-amber-600 dark:text-amber-400">
                                             Max {MAX_DEPLOYED_ASSISTANTS} feat companions deployed
                                         </span>
                                     ) : null}
-                                    {conjurerMinionCapBlocked ? (
+                                    {!isAnimaEntry && conjurerMinionCapBlocked ? (
                                         <span className="text-[10px] text-amber-600 dark:text-amber-400">
                                             {countDeployedSummons(rest) > 0
                                                 ? "Dismiss summons before deploying conjurer minions"
                                                 : `Max ${maxConjurerMinions} conjurer minions (Summon Mastery ${summonMastery})`}
                                         </span>
                                     ) : null}
-                                    {summonCapBlocked ? (
+                                    {!isAnimaEntry && summonCapBlocked ? (
                                         <span className="text-[10px] text-amber-600 dark:text-amber-400">
                                             {countDeployedConjurerMinions(rest) > 0
                                                 ? "Dismiss conjurer minions before deploying a summon"
@@ -312,20 +418,57 @@ export function CreaturesPanel({
                                     </div>
                                 </div>
 
-                                {c.kind === "summon" ? (
+                                {c.kind === "summon" && (hasHpPool || hasMpPool) ? (
                                     <div className="space-y-2 pt-1">
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                            <div className="space-y-0.5 min-w-0">
-                                                <Label className="text-[10px] text-muted-foreground">HP</Label>
-                                                <div className="flex flex-wrap items-end gap-x-2 gap-y-1">
-                                                    <div className="flex gap-1 items-center shrink-0">
+                                            {hasHpPool ? (
+                                                <div className="space-y-0.5 min-w-0">
+                                                    <Label className="text-[10px] text-muted-foreground">HP</Label>
+                                                    <div className="flex flex-wrap items-end gap-x-2 gap-y-1">
+                                                        <div className="flex gap-1 items-center shrink-0">
+                                                            <Input
+                                                                type="number"
+                                                                className="h-8 text-xs w-[4.5rem]"
+                                                                value={c.currentHp ?? ""}
+                                                                onChange={(e) =>
+                                                                    onPatchCreature(c.id, {
+                                                                        currentHp: Math.max(
+                                                                            0,
+                                                                            Math.floor(Number(e.target.value) || 0)
+                                                                        ),
+                                                                    })
+                                                                }
+                                                            />
+                                                            <span className="text-muted-foreground text-xs">/</span>
+                                                            <Input
+                                                                type="number"
+                                                                className="h-8 text-xs w-[4.5rem]"
+                                                                value={c.maxHp ?? ""}
+                                                                onChange={(e) =>
+                                                                    onPatchCreature(c.id, {
+                                                                        maxHp: Math.max(
+                                                                            1,
+                                                                            Math.floor(Number(e.target.value) || 1)
+                                                                        ),
+                                                                    })
+                                                                }
+                                                            />
+                                                        </div>
+                                                        {tmpl ? <CreatureTemplateStatStrip tmpl={tmpl} /> : null}
+                                                    </div>
+                                                </div>
+                                            ) : null}
+                                            {hasMpPool ? (
+                                                <div className="space-y-0.5">
+                                                    <Label className="text-[10px] text-muted-foreground">MP</Label>
+                                                    <div className="flex gap-1 items-center">
                                                         <Input
                                                             type="number"
                                                             className="h-8 text-xs w-[4.5rem]"
-                                                            value={c.currentHp ?? ""}
+                                                            value={c.currentMp ?? ""}
                                                             onChange={(e) =>
                                                                 onPatchCreature(c.id, {
-                                                                    currentHp: Math.max(
+                                                                    currentMp: Math.max(
                                                                         0,
                                                                         Math.floor(Number(e.target.value) || 0)
                                                                     ),
@@ -336,54 +479,26 @@ export function CreaturesPanel({
                                                         <Input
                                                             type="number"
                                                             className="h-8 text-xs w-[4.5rem]"
-                                                            value={c.maxHp ?? ""}
+                                                            value={c.maxMp ?? ""}
                                                             onChange={(e) =>
                                                                 onPatchCreature(c.id, {
-                                                                    maxHp: Math.max(
-                                                                        1,
-                                                                        Math.floor(Number(e.target.value) || 1)
+                                                                    maxMp: Math.max(
+                                                                        0,
+                                                                        Math.floor(Number(e.target.value) || 0)
                                                                     ),
                                                                 })
                                                             }
                                                         />
                                                     </div>
-                                                    {tmpl ? <CreatureTemplateStatStrip tmpl={tmpl} /> : null}
                                                 </div>
-                                            </div>
-                                            <div className="space-y-0.5">
-                                                <Label className="text-[10px] text-muted-foreground">MP</Label>
-                                                <div className="flex gap-1 items-center">
-                                                    <Input
-                                                        type="number"
-                                                        className="h-8 text-xs w-[4.5rem]"
-                                                        value={c.currentMp ?? ""}
-                                                        onChange={(e) =>
-                                                            onPatchCreature(c.id, {
-                                                                currentMp: Math.max(
-                                                                    0,
-                                                                    Math.floor(Number(e.target.value) || 0)
-                                                                ),
-                                                            })
-                                                        }
-                                                    />
-                                                    <span className="text-muted-foreground text-xs">/</span>
-                                                    <Input
-                                                        type="number"
-                                                        className="h-8 text-xs w-[4.5rem]"
-                                                        value={c.maxMp ?? ""}
-                                                        onChange={(e) =>
-                                                            onPatchCreature(c.id, {
-                                                                maxMp: Math.max(
-                                                                    0,
-                                                                    Math.floor(Number(e.target.value) || 0)
-                                                                ),
-                                                            })
-                                                        }
-                                                    />
-                                                </div>
-                                            </div>
+                                            ) : null}
                                         </div>
                                         {tmpl ? <OpportunityAttackNote tmpl={tmpl} /> : null}
+                                    </div>
+                                ) : c.kind === "summon" && tmpl ? (
+                                    <div className="space-y-2 pt-1">
+                                        <CreatureTemplateStatStrip tmpl={tmpl} />
+                                        <OpportunityAttackNote tmpl={tmpl} />
                                     </div>
                                 ) : tmpl?.opportunityAttack != null &&
                                   Number.isFinite(tmpl.opportunityAttack) &&
@@ -571,19 +686,56 @@ export function CreaturesPanel({
                                         </div>
                                     ) : null}
 
-                                    {openEntry.kind === "summon" ? (
+                                    {openEntry.kind === "summon" && (openHasHpPool || openHasMpPool) ? (
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                            <div className="space-y-1 min-w-0">
-                                                <Label className="text-xs">HP</Label>
-                                                <div className="flex flex-wrap items-end gap-x-2 gap-y-1">
-                                                    <div className="flex gap-1 items-center shrink-0">
+                                            {openHasHpPool ? (
+                                                <div className="space-y-1 min-w-0">
+                                                    <Label className="text-xs">HP</Label>
+                                                    <div className="flex flex-wrap items-end gap-x-2 gap-y-1">
+                                                        <div className="flex gap-1 items-center shrink-0">
+                                                            <Input
+                                                                type="number"
+                                                                className="h-9 w-[4.5rem]"
+                                                                value={openEntry.currentHp ?? ""}
+                                                                onChange={(e) =>
+                                                                    onPatchCreature(openEntry.id, {
+                                                                        currentHp: Math.max(
+                                                                            0,
+                                                                            Math.floor(Number(e.target.value) || 0)
+                                                                        ),
+                                                                    })
+                                                                }
+                                                            />
+                                                            <span className="text-muted-foreground">/</span>
+                                                            <Input
+                                                                type="number"
+                                                                className="h-9 w-[4.5rem]"
+                                                                value={openEntry.maxHp ?? ""}
+                                                                onChange={(e) =>
+                                                                    onPatchCreature(openEntry.id, {
+                                                                        maxHp: Math.max(
+                                                                            1,
+                                                                            Math.floor(Number(e.target.value) || 1)
+                                                                        ),
+                                                                    })
+                                                                }
+                                                            />
+                                                        </div>
+                                                        <CreatureTemplateStatStrip tmpl={openTemplate} />
+                                                    </div>
+                                                </div>
+                                            ) : null}
+                                            {openHasMpPool ? (
+                                                <div className="space-y-1">
+                                                    <Label className="text-xs">MP</Label>
+                                                    <div className="flex gap-1 items-center">
                                                         <Input
                                                             type="number"
                                                             className="h-9 w-[4.5rem]"
-                                                            value={openEntry.currentHp ?? ""}
+                                                            value={openEntry.currentMp ?? ""}
                                                             onChange={(e) =>
                                                                 onPatchCreature(openEntry.id, {
-                                                                    currentHp: Math.max(
+                                                                    currentMp: Math.max(
                                                                         0,
                                                                         Math.floor(Number(e.target.value) || 0)
                                                                     ),
@@ -594,56 +746,23 @@ export function CreaturesPanel({
                                                         <Input
                                                             type="number"
                                                             className="h-9 w-[4.5rem]"
-                                                            value={openEntry.maxHp ?? ""}
+                                                            value={openEntry.maxMp ?? ""}
                                                             onChange={(e) =>
                                                                 onPatchCreature(openEntry.id, {
-                                                                    maxHp: Math.max(
-                                                                        1,
-                                                                        Math.floor(Number(e.target.value) || 1)
+                                                                    maxMp: Math.max(
+                                                                        0,
+                                                                        Math.floor(Number(e.target.value) || 0)
                                                                     ),
                                                                 })
                                                             }
                                                         />
                                                     </div>
-                                                    <CreatureTemplateStatStrip tmpl={openTemplate} />
                                                 </div>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <Label className="text-xs">MP</Label>
-                                                <div className="flex gap-1 items-center">
-                                                    <Input
-                                                        type="number"
-                                                        className="h-9 w-[4.5rem]"
-                                                        value={openEntry.currentMp ?? ""}
-                                                        onChange={(e) =>
-                                                            onPatchCreature(openEntry.id, {
-                                                                currentMp: Math.max(
-                                                                    0,
-                                                                    Math.floor(Number(e.target.value) || 0)
-                                                                ),
-                                                            })
-                                                        }
-                                                    />
-                                                    <span className="text-muted-foreground">/</span>
-                                                    <Input
-                                                        type="number"
-                                                        className="h-9 w-[4.5rem]"
-                                                        value={openEntry.maxMp ?? ""}
-                                                        onChange={(e) =>
-                                                            onPatchCreature(openEntry.id, {
-                                                                maxMp: Math.max(
-                                                                    0,
-                                                                    Math.floor(Number(e.target.value) || 0)
-                                                                ),
-                                                            })
-                                                        }
-                                                    />
-                                                </div>
-                                            </div>
+                                            ) : null}
                                         </div>
                                     ) : null}
 
-                                    <div className="rounded-lg border border-border bg-muted/30 dark:bg-muted/20 px-3 py-2 shadow-sm">
+                                    <div className="rounded-lg border border-border bg-muted/30 dark:bg-muted/20 px-3 py-2 shadow-sm space-y-2">
                                         <div className="flex items-center gap-2.5">
                                             <Switch
                                                 id={`sheet-deploy-${openEntry.id}`}
@@ -662,6 +781,44 @@ export function CreaturesPanel({
                                                 Deploy to combat
                                             </Label>
                                         </div>
+                                        {isSummonMountable(openEntry) && onMountedCreatureChange ? (
+                                            <div className="space-y-1">
+                                                <div className="flex items-center gap-2.5">
+                                                    <Switch
+                                                        id={`sheet-mounted-${openEntry.id}`}
+                                                        className="h-5 w-9 border border-border/60 data-[state=unchecked]:bg-muted-foreground/30"
+                                                        checked={mountedCreatureId === openEntry.id}
+                                                        disabled={!openEntry.deployed}
+                                                        onCheckedChange={(v) => trySetMounted(openEntry, v)}
+                                                    />
+                                                    <Label
+                                                        htmlFor={`sheet-mounted-${openEntry.id}`}
+                                                        className="text-sm font-semibold text-foreground cursor-pointer"
+                                                    >
+                                                        Mounted (riding)
+                                                    </Label>
+                                                </div>
+                                                {!openEntry.deployed ? (
+                                                    <p className="text-[10px] text-muted-foreground pl-12">
+                                                        Deploy this creature first.
+                                                    </p>
+                                                ) : openTemplate.mountedRiderBonuses ? (
+                                                    <p className="text-[10px] text-muted-foreground pl-12">
+                                                        While mounted: Speed {openTemplate.speed ?? "—"}
+                                                        {openTemplate.mountedRiderBonuses.defense
+                                                            ? `, +${openTemplate.mountedRiderBonuses.defense} Def`
+                                                            : ""}
+                                                        {openTemplate.mountedRiderBonuses.stability
+                                                            ? `, +${openTemplate.mountedRiderBonuses.stability} Stability`
+                                                            : ""}
+                                                    </p>
+                                                ) : openTemplate.speed != null ? (
+                                                    <p className="text-[10px] text-muted-foreground pl-12">
+                                                        While mounted: your Speed becomes {openTemplate.speed}.
+                                                    </p>
+                                                ) : null}
+                                            </div>
+                                        ) : null}
                                     </div>
 
                                     <OpportunityAttackNote tmpl={openTemplate} />
@@ -682,12 +839,20 @@ export function CreaturesPanel({
                                                             </p>
                                                         )
                                                     }
+                                                    const tmpl = getCreatureTemplates(rules)[openEntry.templateId ?? ""]
+                                                    const actionWeapon =
+                                                        resolveNaturalWeaponForAction(
+                                                            tmpl,
+                                                            rules as RulesWithNaturalWeapons,
+                                                            ac.tags,
+                                                            ac.hiddenTags
+                                                        ) ?? currentWeapon
                                                     return (
                                                         <ActionCardComponent
                                                             key={aid}
                                                             action={ac}
                                                             attributes={attributes}
-                                                            currentWeapon={currentWeapon}
+                                                            currentWeapon={actionWeapon}
                                                             offhandWeapon={offhandWeapon}
                                                             forceCollapsed={false}
                                                             powerRollDisplayMode="simple"

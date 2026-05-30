@@ -1,6 +1,7 @@
 import {Equipment, InventoryContainer, InventoryEntry,} from "@/lib/equipment-data";
 import {BondTarget, CharacterClass, FocusFeature, Skill} from "@/lib/rules";
 import {ActionRef, ReactionRef, TraitRef} from "@/lib/baseRefs";
+import { traitRefsIncludeId } from "@/lib/trait-helpers";
 import type {CreatureRosterEntry} from "@/lib/creature-roster";
 import type {FairyTamerContractsSave} from "@/lib/fairy-tamer";
 import {emptyFairyTamerContracts} from "@/lib/fairy-tamer";
@@ -109,6 +110,15 @@ export interface CharacterSaveData {
     /** Priest: chosen deity id from `rules.classes.priest.deities` (filters deity-specific class talents in the creator). */
     priestDeity?: string | null
 
+    /** Rider: chosen mount type from classes.rider.mounts */
+    riderMountType?: string | null
+
+    /** Rider Adaptable: swimming | climbing */
+    riderAdaptableMovement?: "swimming" | "climbing" | null
+
+    /** Roster entry id of the summon the character is currently riding. */
+    mountedCreatureId?: string | null
+
     /** Assistants and summons; feat unlocks may add rows via reconciliation on the sheet. */
     creatures?: CreatureRosterEntry[]
 
@@ -117,6 +127,21 @@ export interface CharacterSaveData {
      * Reconciled to `creatures` as `conjurer-slot-0`, … alongside class traits.
      */
     conjurerSummonTemplateIds?: string[]
+
+    /**
+     * Druid Anima: one selected creature template id per Anima slot.
+     * Slots are reconciled to `creatures` as `druid-anima-slot-0`, …
+     */
+    druidAnimaTemplateIds?: string[]
+
+    /** Currently active Druid Anima template id, if transformed. */
+    activeDruidAnimaTemplateId?: string | null
+
+    /** Equipment snapshot taken when entering Anima; restored when leaving. */
+    equipmentBeforeAnima?: Equipment | null
+
+    /** Barrier added by the current Anima transform (Druid level × 3); removed on revert. */
+    animaBarrierBonus?: number | null
 
     /** Fairy Tamer (Fairy Contract passive): creature + two spells per unlock level. */
     fairyTamerContracts?: FairyTamerContractsSave
@@ -226,6 +251,10 @@ export const defaultCharacter: CharacterSaveData = {
 
     creatures: [],
     conjurerSummonTemplateIds: [],
+    druidAnimaTemplateIds: [],
+    activeDruidAnimaTemplateId: null,
+    equipmentBeforeAnima: null,
+    animaBarrierBonus: null,
     fairyTamerContracts: emptyFairyTamerContracts(),
     creatorSkillGrantPicks: {},
 }
@@ -372,6 +401,15 @@ export function sumTraitStatChangeEffects(
     }, 0)
 }
 
+/** Cross Block (feat): +1 Stability while dual wielding. */
+export function getCrossBlockStabilityBonus(
+    traitRefs: readonly { id?: string }[] | undefined,
+    isDualWielding: boolean
+): number {
+    if (!isDualWielding) return 0
+    return traitRefsIncludeId(traitRefs, "crossBlock") ? 1 : 0
+}
+
 /**
  * Gear bonuses from equipped items. Slots may be hydrated item objects or inventory UIDs
  * (same resolution as the character sheet after item hydration).
@@ -422,9 +460,9 @@ export function computeMaxHP(params: {
     //     params.traitMaxHpBonus
     // );
     return (
-        Math.floor(params.effectiveMight / 2) +
+        Math.floor((params.effectiveMight-10) / 2) +
         2 * params.characterLevel +
-        7 +
+        16 +
         params.classHpBonus +
         params.gearHpBonus +
         params.traitMaxHpBonus

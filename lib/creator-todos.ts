@@ -294,6 +294,30 @@ export function listCreatorTodoItems(ctx: CreatorTodoContext): CreatorTodoItem[]
         })
     }
 
+    const hasRider = classes.some((c) => c.id === "rider" && c.level > 0)
+    const riderFaithfulSteed = classSelections.some((o) => o.id === "faithfulSteed" && o.source === "rider")
+    if (hasRider && riderFaithfulSteed && !charData.riderMountType) {
+        pushTodo(out, {
+            id: "class-rider-mount",
+            stepIndex: classStep,
+            message: "Select a mount type for your Faithful Steed",
+            kind: "required",
+        })
+    }
+    if (
+        hasRider &&
+        riderFaithfulSteed &&
+        charData.riderMountType === "adaptable" &&
+        !charData.riderAdaptableMovement
+    ) {
+        pushTodo(out, {
+            id: "class-rider-adaptable-movement",
+            stepIndex: classStep,
+            message: "Choose swimming or climbing for your Adaptable mount",
+            kind: "required",
+        })
+    }
+
     if (
         !isConjurerSummonPicksComplete(classes, classSelections, charData.conjurerSummonTemplateIds)
     ) {
