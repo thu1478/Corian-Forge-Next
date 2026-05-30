@@ -158,36 +158,6 @@ export function useDerivedStats(character: any, rulesData: any) {
         ? [...activeTraits.filter((trait) => trait.source !== "racial"), ...activeAnimaTraits]
         : activeTraits;
 
-    // #region agent log
-    if (character?.activeDruidAnimaTemplateId) {
-        const slots = getDruidAnimaSlots(character.classes ?? [], character.traitRefs ?? character.traits ?? [])
-        const selected = new Set(
-            sanitizeDruidAnimaTemplateIds(character.druidAnimaTemplateIds, slots, getCreatureTemplates(rulesData))
-        )
-        fetch("http://127.0.0.1:7550/ingest/244c033b-3205-4e88-b1a7-446a0537a4c2", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "f4e9fe" },
-            body: JSON.stringify({
-                sessionId: "f4e9fe",
-                runId: "post-fix",
-                hypothesisId: "A,B",
-                location: "statCalculator.tsx:animaTraits",
-                message: "Anima trait merge",
-                data: {
-                    activeTemplateId: character.activeDruidAnimaTemplateId,
-                    templateResolved: Boolean(activeAnimaTemplate),
-                    templateTraitRefs: activeAnimaTemplate?.traitRefs ?? null,
-                    activeAnimaTraitsCount: activeAnimaTraits.length,
-                    activeAnimaTraitIds: activeAnimaTraits.map((t) => t.id),
-                    effectiveTraitsCount: effectiveTraits.length,
-                    inSelectedSet: selected.has(String(character.activeDruidAnimaTemplateId ?? "").trim()),
-                },
-                timestamp: Date.now(),
-            }),
-        }).catch(() => {})
-    }
-    // #endregion
-
     const characterLevel = getCharacterLevelForStats(character.classes || []);
 
     const { activeWeapon: handActive, offhandWeapon: handOff } = resolveEquippedHands(character, {
