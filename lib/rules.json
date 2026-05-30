@@ -1173,27 +1173,6 @@
           ]
         }
       },
-      "crossBlock": {
-        "name": "Cross Block",
-        "minLevel": 3,
-        "description": "While dual wielding you gain +1 Stability",
-        "effects": [
-          {
-            "type": "StatChange",
-            "stat": "stability",
-            "value": "1",
-            "when": "dualWielding"
-          }
-        ],
-        "prereqs": {
-          "classes": {
-            "3": [
-              "brawler",
-              "weaponmaster"
-            ]
-          }
-        }
-      },
       "executioner": {
         "name": "Executioner",
         "minLevel": 3,
@@ -2056,7 +2035,7 @@
     },
     "bard": {
       "name": "Bard",
-      "description": "The Bard uses the power of music to control the tempo of battle.",
+      "description": "The Bard uses the power of music to control the tempo of battle.Bard: You can draw a crowd by performing, maybe even earning some Zenny! Non-elite and non-Boss creatures who really like your songs may be Charmed by you.\n\t- You can sing Songs which are non-magical and last until the start of your next turn unless you unequip your instrument. You may only have one Song active at a given time. Songs with Emanation tags affect all creatures that can hear them. Usually all creatures in combat can hear these songs. The effects of the same Song do not stack. Songs do not affect certain creatures such as most Undead and Constructs.\n\t- You gain 2 Skills, one of which must be an Intrigue skill",
       "proficiencies": [],
       "primaryAttribute": "presence",
       "statBonus": {
@@ -3111,7 +3090,7 @@
       "primaryAttribute": "willpower",
       "statBonus": {
         "stat": "mp",
-        "amount": 1,
+        "amount": 2,
         "frequency": 1
       },
       "focusFeat": {
@@ -7495,7 +7474,7 @@
           "actionCard": {
             "name": "Blitz",
             "type": "action",
-            "description": "You may immediately shift up to your Speed to an an unoccupied tile adjacent to a hostile creature and attack them with your weapon. If you are not wearing martial armor you may warp up to twice your Speed instead",
+            "description": "You may immediately shift up to your Speed to an an unoccupied tile adjacent to a hostile creature and attack them with your weapon. If you are not wearing martial armor you may warp up to twice your Speed instead. Cannot be used with Heavy weapons",
             "apCost": 2,
             "focusCost": 1,
             "mpCost": 0,
@@ -7944,7 +7923,7 @@
           "type": "Reaction",
           "level": 1,
           "trigger": "An ally besides you damages a hostile creature reachable within 3 tiles",
-          "description": "If you have a 1H melee weapon equipped and are not wearing martial armor then you may shift 3 to any tile that puts them in your melee range. You must then make an Opportunity Attack on them.",
+          "description": "If you have a 1H melee weapon or a ranged weapon equipped and are not wearing martial armor then you may shift 3 to any tile that puts them in your range. You must then make an Opportunity Attack on them. If you are using a ranged weapon use half your weapon's damage (round down)",
           "focusCost": 1
         },
         {
@@ -8713,7 +8692,7 @@
           "actionCard": {
             "name": "Take a Breather",
             "type": "action",
-            "description": "You strike a target to distract them, giving you team time to recover. You and all allies adjacent to the target gain 6 Barrier",
+            "description": "You strike a target to distract them, giving your team time to recover. You and all allies adjacent to the target gain 6 Barrier",
             "apCost": 2,
             "focusCost": 5,
             "mpCost": 0,
@@ -10635,6 +10614,79 @@
           "description": "Your Willpower modifier gains a -1 penalty only for the sake of resisting Potencies."
         }
       }
+    },
+    "orc": {
+      "name": "Orc",
+      "description": "One of the Common Corrupted that are permanently tainted with the influence of Chaos. Orcs are straightforward and physically strong.",
+      "passives": {
+        "orc_survival_instinct": {
+          "name": "Survival Instinct",
+          "type": "innate",
+          "description": "While Bloodied your Speed increases by 1"
+        },
+        "orc_vengeance": {
+          "name": "Vengeance",
+          "type": "selectable",
+          "ptCost": 1,
+          "description": "The first time per combat you become Bloodied you can make an Opportunity attack on a hostile creature in melee range"
+        },
+        "orc_low_light_vision": {
+          "name": "Low-light vision",
+          "type": "selectable",
+          "ptCost": 1,
+          "description": "Gain low-light vision",
+          "effects": [
+            {
+              "type": "GrantSight",
+              "stat": "low-light"
+            }
+          ]
+        },
+        "orc_large_stature": {
+          "name": "Large Stature",
+          "type": "selectable",
+          "ptCost": 1,
+          "description": "Your size is 1L"
+        },
+        "orc_bloodlusted": {
+          "name": "Bloodlusted",
+          "type": "selectable",
+          "ptCost": 2,
+          "description": "If you kill a non-Minion class creature within 5 tiles of you you may shift 2"
+        },
+        "orc_persistence": {
+          "name": "Persistence",
+          "type": "selectable",
+          "ptCost": 2,
+          "description": "Increase Max HP by 4",
+          "effects": [
+            {
+              "type": "StatChange",
+              "stat": "maxHP",
+              "value": "4"
+            }
+          ]
+        },
+        "orc_vulnerability": {
+          "name": "Vulnerability",
+          "type": "selectable",
+          "ptCost": -1,
+          "description": "Gain VU (2) to air or nature damage",
+          "selectAmount": 1,
+          "effects": [
+            {
+              "type": "Vulnerability",
+              "stat": "air",
+              "value": "2"
+            },
+            {
+              "type": "Vulnerability",
+              "stat": "nature",
+              "value": "2"
+            }
+          ]
+        }
+      }
     }
   },
   "items": {
@@ -10778,7 +10830,7 @@
       "type": "weapon",
       "damage": 2,
       "damageType": "piercing",
-      "range": 5,
+      "range": 7,
       "attributes": [
         "dexterity"
       ],
@@ -10957,7 +11009,7 @@
       "type": "weapon",
       "damage": 3,
       "damageType": "piercing",
-      "range": 8,
+      "range": 12,
       "attributes": [
         "dexterity"
       ],
@@ -11007,7 +11059,7 @@
       "type": "weapon",
       "damage": 4,
       "damageType": "piercing",
-      "range": 8,
+      "range": 12,
       "attributes": [
         "dexterity"
       ],
@@ -11031,7 +11083,7 @@
       "type": "weapon",
       "damage": 4,
       "damageType": "piercing",
-      "range": 7,
+      "range": 10,
       "attributes": [
         "dexterity"
       ],
@@ -11230,7 +11282,7 @@
       "type": "weapon",
       "damage": 6,
       "damageType": "piercing",
-      "range": 15,
+      "range": 22,
       "attributes": [
         "dexterity"
       ],
@@ -11281,7 +11333,7 @@
       "type": "weapon",
       "damage": 6,
       "damageType": "piercing",
-      "range": 11,
+      "range": 16,
       "attributes": [
         "dexterity"
       ],
@@ -12755,7 +12807,7 @@
     "monster/clayFist": {
       "name": "Clay Fist",
       "type": "action",
-      "description": "The golem punches the target to deal crushing damage",
+      "description": "The golem punches the target to deal crushing damage. Its opportunity attacks deal 1 DMG.",
       "apCost": 2,
       "focusCost": 0,
       "mpCost": 0,
@@ -12837,19 +12889,19 @@
         "rollStats": [
           "might"
         ],
-        "tier1Dmg": 4,
+        "tier1Dmg": 5,
         "tier1Effect": {
           "type": "ForcedMovement",
           "effect": "push",
           "distance": 1
         },
-        "tier2Dmg": 5,
+        "tier2Dmg": 6,
         "tier2Effect": {
           "type": "ForcedMovement",
           "effect": "push",
           "distance": 2
         },
-        "tier3Dmg": 7,
+        "tier3Dmg": 8,
         "tier3Effect": {
           "type": "Condition",
           "fixedSrcVal": 2,
@@ -13125,7 +13177,7 @@
     "fairy/shockingGrasp": {
       "name": "Shocking Grasp",
       "type": "action",
-      "description": "Will o wisp charges one of your melee attacks with electricityl; to deal magical Volt damage instead. If used on the surface of a body of water the attack becomes an area attack instead, targeting all creatures within 5 tiles of you, but loses the damage bonus from your weapon.",
+      "description": "Will o wisp charges one of your melee attacks with electricity to deal magical Volt damage. If used on the surface of a body of water the attack becomes an area attack instead, targeting all creatures within 5 tiles of you, but deals 2 less damage",
       "apCost": 2,
       "focusCost": 1,
       "mpCost": 8,
@@ -13836,7 +13888,7 @@
       },
       "defenderSummon": {
         "name": "Defender Type",
-        "description": "This summon can have 2 AP max per round and can make opportunity attacks"
+        "description": "This summon can have 2 AP max per round and can make opportunity attacks. They act as Cover to allies."
       },
       "marksmanSummon": {
         "name": "Marksman Type",
@@ -14394,7 +14446,7 @@
       },
       "clayGolem": {
         "name": "Clay Golem",
-        "description": "Striker. Max 3 AP",
+        "description": "Striker. Max 3 AP. Opportunity attacks deal 1 DMG",
         "role": "summon",
         "level": 2,
         "creatureTypes": [
@@ -14406,15 +14458,15 @@
         "attributes": {
           "might": 12,
           "dexterity": 10,
-          "reason": 6,
-          "willpower": 6,
+          "reason": 3,
+          "willpower": 10,
           "presence": 6
         },
         "actionIDs": [
           "monster/clayFist"
         ],
-        "defaultMaxHp": 16,
-        "defaultMaxMp": 20,
+        "defaultMaxHp": 20,
+        "defaultMaxMp": 18,
         "stability": 1,
         "speed": 5,
         "size": "1M",
@@ -14425,11 +14477,11 @@
         "vulnerabilities": [
           {
             "stat": "crushing",
-            "value": "3"
+            "value": "1"
           },
           {
             "stat": "water",
-            "value": "3"
+            "value": "1"
           }
         ],
         "defense": 1,
@@ -14441,7 +14493,7 @@
       },
       "strawBird": {
         "name": "Straw bird",
-        "description": "Geomancy utility Max 3 AP. Little to no damage; provides support. Assign actions when ready.",
+        "description": "Geomancy utility Max 3 AP. Little to no damage; provides support. Cannot make Opportunity attacks",
         "role": "summon",
         "level": 2,
         "creatureTypes": [
@@ -14460,8 +14512,8 @@
         "actionIDs": [
           "monster/strawPeck"
         ],
-        "defaultMaxHp": 10,
-        "defaultMaxMp": 14,
+        "defaultMaxHp": 14,
+        "defaultMaxMp": 21,
         "defense": 0,
         "stability": 0,
         "speed": 5,
@@ -14473,11 +14525,11 @@
         "vulnerabilities": [
           {
             "stat": "slashing",
-            "value": "3"
+            "value": "1"
           },
           {
             "stat": "fire",
-            "value": "3"
+            "value": "1"
           }
         ],
         "traits": [
@@ -14490,7 +14542,7 @@
       },
       "waxGolem": {
         "name": "Wax golem",
-        "description": "Geomancy minion Max 2 AP. Dies in one hit and fails all potencies; group minions share a turn in the slow phase. Typical mana cost 3 (rebalance as needed). Assign actions when ready.",
+        "description": "Geomancy minion Max 2 AP. Dies in one hit and fails all potencies; group minions share a turn in the slow phase. Typical mana cost 3 (rebalance as needed).",
         "role": "minion",
         "level": 2,
         "creatureTypes": [
@@ -14539,7 +14591,7 @@
       },
       "snowGolem": {
         "name": "Snow golem",
-        "description": "Geomancy minion Max 2 AP. Dies in one hit and fails all potencies; group minions share a turn. Typical mana cost 3. Assign actions when ready.",
+        "description": "Geomancy minion Max 2 AP. Dies in one hit and fails all potencies; group minions share a turn. Typical mana cost 3.",
         "role": "minion",
         "level": 2,
         "creatureTypes": [
@@ -14586,7 +14638,7 @@
       },
       "woodGolem": {
         "name": "Wood golem",
-        "description": "Geomancy defender (rank 2). Tougher; cannot disengage; max 2 AP; attacks can slow or push. Assign actions when ready.",
+        "description": "Geomancy defender (rank 2). Tougher; cannot disengage; max 2 AP; attacks can slow or push. Opportunity attacks deal 2 DMG",
         "role": "summon",
         "level": 4,
         "creatureTypes": [
@@ -14605,8 +14657,8 @@
         "actionIDs": [
           "monster/woodFist"
         ],
-        "defaultMaxHp": 32,
-        "defaultMaxMp": 20,
+        "defaultMaxHp": 26,
+        "defaultMaxMp": 24,
         "defense": 3,
         "stability": 2,
         "speed": 3,
@@ -14618,11 +14670,11 @@
         "vulnerabilities": [
           {
             "stat": "slashing",
-            "value": "3"
+            "value": "2"
           },
           {
             "stat": "fire",
-            "value": "3"
+            "value": "2"
           }
         ],
         "traits": [
@@ -14634,7 +14686,7 @@
       },
       "clayGolemChampion": {
         "name": "Clay golem champion",
-        "description": "Geomancy striker (rank 2). Mobile striker; max 3 AP. Assign actions when ready.",
+        "description": "Geomancy striker (rank 2). Mobile striker; max 3 AP. Opportunity attacks deal 4 DMG",
         "role": "summon",
         "level": 4,
         "creatureTypes": [
@@ -14653,8 +14705,8 @@
         "actionIDs": [
           "monster/claySword"
         ],
-        "defaultMaxHp": 27,
-        "defaultMaxMp": 20,
+        "defaultMaxHp": 24,
+        "defaultMaxMp": 24,
         "defense": 2,
         "stability": 1,
         "speed": 5,
@@ -14666,11 +14718,11 @@
         "vulnerabilities": [
           {
             "stat": "crushing",
-            "value": "3"
+            "value": "2"
           },
           {
             "stat": "water",
-            "value": "3"
+            "value": "2"
           }
         ],
         "traits": [
@@ -14681,7 +14733,7 @@
       },
       "strawGolem": {
         "name": "Straw golem",
-        "description": "Geomancy minion (rank 2). Typical mana cost 5. Assign actions when ready.",
+        "description": "Geomancy minion (rank 2). Typical mana cost 5",
         "role": "minion",
         "level": 4,
         "creatureTypes": [
@@ -14729,7 +14781,7 @@
       },
       "shielding": {
         "name": "Shielding",
-        "description": "Geomancy minion (rank 2). Typical mana cost 5. Assign actions when ready.",
+        "description": "Geomancy minion (rank 2). Typical mana cost 5.",
         "role": "minion",
         "level": 4,
         "creatureTypes": [
@@ -14776,7 +14828,7 @@
       },
       "skeletonMarksman": {
         "name": "Skeleton marksman",
-        "description": "Necromancy marksman (rank 1). Ranged physical damage; max 2 AP. Assign actions when ready.",
+        "description": "Necromancy marksman (rank 1). Ranged physical damage; max 2 AP.",
         "role": "summon",
         "level": 2,
         "creatureTypes": [
@@ -14808,7 +14860,7 @@
         "vulnerabilities": [
           {
             "stat": "crushing",
-            "value": "3"
+            "value": "2"
           },
           {
             "stat": "light",
@@ -14823,7 +14875,7 @@
       },
       "shade": {
         "name": "Shade",
-        "description": "Necromancy utility (rank 1). Little to no damage; support-focused. Assign actions when ready.",
+        "description": "Necromancy utility (rank 1). Little to no damage; support-focused.",
         "role": "summon",
         "level": 2,
         "creatureTypes": [
@@ -14842,8 +14894,8 @@
         "actionIDs": [
           "monster/possess"
         ],
-        "defaultMaxHp": 10,
-        "defaultMaxMp": 24,
+        "defaultMaxHp": 16,
+        "defaultMaxMp": 26,
         "defense": 0,
         "stability": 0,
         "speed": 4,
@@ -14854,7 +14906,7 @@
         "vulnerabilities": [
           {
             "stat": "earth",
-            "value": "3"
+            "value": "2"
           },
           {
             "stat": "light",
@@ -14873,7 +14925,7 @@
       },
       "zombie": {
         "name": "Zombie",
-        "description": "Necromancy minion (rank 1). Typical mana cost 3. Assign actions when ready.",
+        "description": "Necromancy minion (rank 1). Typical mana cost 3.",
         "role": "minion",
         "level": 2,
         "creatureTypes": [
@@ -14921,7 +14973,7 @@
       },
       "crawlingHands": {
         "name": "Crawling hands",
-        "description": "Necromancy minion (rank 1). Typical mana cost 3. Assign actions when ready.",
+        "description": "Necromancy minion (rank 1). Typical mana cost 3.",
         "role": "minion",
         "level": 2,
         "creatureTypes": [
@@ -14970,7 +15022,7 @@
       },
       "wight": {
         "name": "Wight",
-        "description": "Necromancy defender (rank 2). Cannot disengage; max 2 AP; attacks can slow or push. Assign actions when ready.",
+        "description": "Necromancy defender (rank 2). Cannot disengage; max 2 AP; attacks can push. Opportunity attacks deal 4 DMG",
         "role": "summon",
         "level": 4,
         "creatureTypes": [
@@ -14989,8 +15041,8 @@
         "actionIDs": [
           "monster/filthyMace"
         ],
-        "defaultMaxHp": 32,
-        "defaultMaxMp": 12,
+        "defaultMaxHp": 26,
+        "defaultMaxMp": 16,
         "defense": 2,
         "stability": 2,
         "speed": 3,
@@ -15002,7 +15054,7 @@
         "vulnerabilities": [
           {
             "stat": "water",
-            "value": "3"
+            "value": "2"
           },
           {
             "stat": "light",
@@ -15018,7 +15070,7 @@
       },
       "wraith": {
         "name": "Wraith",
-        "description": "Necromancy striker (rank 2). Mobile; max 3 AP. Assign actions when ready.",
+        "description": "Necromancy striker (rank 2). Mobile; max 3 AP. Opportunity attacks deal 2 DMG",
         "role": "summon",
         "level": 4,
         "creatureTypes": [
@@ -15038,7 +15090,7 @@
           "monster/spectralClaws"
         ],
         "defaultMaxHp": 22,
-        "defaultMaxMp": 12,
+        "defaultMaxMp": 16,
         "defense": 0,
         "stability": 0,
         "speed": 5,
@@ -15049,7 +15101,7 @@
         "vulnerabilities": [
           {
             "stat": "earth",
-            "value": "3"
+            "value": "2"
           },
           {
             "stat": "light",
@@ -15069,7 +15121,7 @@
       },
       "ghost": {
         "name": "Ghost",
-        "description": "Necromancy minion (rank 2). Typical mana cost 5. Assign actions when ready.",
+        "description": "Necromancy minion (rank 2). Typical mana cost 5.",
         "role": "minion",
         "level": 4,
         "creatureTypes": [
@@ -15120,7 +15172,7 @@
       },
       "poltergeist": {
         "name": "Poltergeist",
-        "description": "Necromancy minion (rank 2). Typical mana cost 5. Assign actions when ready.",
+        "description": "Necromancy minion (rank 2). Typical mana cost 5.",
         "role": "minion",
         "level": 4,
         "creatureTypes": [

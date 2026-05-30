@@ -10,7 +10,8 @@ import { unwrapEmbeddedActionCard } from "@/lib/embedded-action-card"
 import { hydrateActionCardById } from "@/lib/action-hydrate"
 import type { InventoryItem } from "@/lib/equipment-data"
 import { formatWeaponAttribLabel } from "@/lib/equipment-stats-display"
-import { formatModifier, getAttributeModifier } from "@/lib/character-data"
+import { formatModifier, getAttributeModifier, type ClassBonusRule } from "@/lib/character-data"
+import { MARTIAL_PROFICIENCY_ROWS } from "@/lib/equipment-proficiency"
 import {
     type CreatureDefinition,
     getCreatureTemplates,
@@ -166,6 +167,98 @@ function collectGrantActionCardIds(effects: unknown): string[] {
 function matchesQuery(text: string, q: string): boolean {
     if (!q) return true
     return text.toLowerCase().includes(q)
+}
+
+const EXTRA_PROFICIENCY_LABELS: Record<string, string> = {
+    firearms: "Firearms",
+    brawling: "Brawling weapons",
+}
+
+const STAT_BONUS_LABELS: Record<string, string> = {
+    hp: "Max HP",
+    mp: "Max MP",
+    ip: "Max IP",
+    defense: "Defense",
+    stability: "Stability",
+    speed: "Speed",
+}
+
+function classProficiencyLabel(id: string): string {
+    const martial = MARTIAL_PROFICIENCY_ROWS.find((row) => row.id === id)
+    if (martial) return martial.label
+    if (EXTRA_PROFICIENCY_LABELS[id]) return EXTRA_PROFICIENCY_LABELS[id]
+    return id
+        .replace(/([a-z])([A-Z])/g, "$1 $2")
+        .replace(/^./, (c) => c.toUpperCase())
+}
+
+function classStatBonusRules(classData: Record<string, unknown>): ClassBonusRule[] {
+    if (Array.isArray(classData.statBonuses)) {
+        return classData.statBonuses as ClassBonusRule[]
+    }
+    const single = classData.statBonus
+    if (single && typeof single === "object") return [single as ClassBonusRule]
+    return []
+}
+
+function formatClassStatBonusRule(rule: ClassBonusRule): string {
+    const statLabel = STAT_BONUS_LABELS[rule.stat] ?? rule.stat
+    if (rule.once) {
+        return `+${rule.amount} ${statLabel} (once, from 1st class level)`
+    }
+    const freq = typeof rule.frequency === "number" && rule.frequency > 1 ? rule.frequency : 1
+    if (freq === 1) {
+        return `+${rule.amount} ${statLabel} per class level`
+    }
+    return `+${rule.amount} ${statLabel} every ${freq} class levels`
+}
+
+function ClassLibraryGrantsSummary({ classData }: { classData: Record<string, any> }) {
+    const proficiencies = Array.isArray(classData.proficiencies)
+        ? (classData.proficiencies as string[]).filter(Boolean)
+        : []
+    const statBonuses = classStatBonusRules(classData)
+    const freeFeaturesNote =
+        typeof classData.freeFeaturesNote === "string" ? classData.freeFeaturesNote.trim() : ""
+
+    if (proficiencies.length === 0 && statBonuses.length === 0 && !freeFeaturesNote) {
+        return null
+    }
+
+    return (
+        <div className="mt-4 space-y-4 rounded-lg border border-border/60 bg-muted/10 p-4">
+            {proficiencies.length > 0 ? (
+                <div className="space-y-2">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-primary">Proficiencies</h4>
+                    <ul className="list-inside list-disc space-y-0.5 text-sm text-muted-foreground">
+                        {proficiencies.map((id) => (
+                            <li key={id}>{classProficiencyLabel(id)}</li>
+                        ))}
+                    </ul>
+                </div>
+            ) : null}
+            {statBonuses.length > 0 ? (
+                <div className="space-y-2">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-primary">Innate bonuses</h4>
+                    <ul className="list-inside list-disc space-y-0.5 text-sm text-muted-foreground">
+                        {statBonuses.map((rule, i) => (
+                            <li key={`${rule.stat}-${rule.amount}-${i}`}>{formatClassStatBonusRule(rule)}</li>
+                        ))}
+                    </ul>
+                </div>
+            ) : null}
+            {freeFeaturesNote ? (
+                <div className="space-y-2">
+                    {proficiencies.length === 0 && statBonuses.length === 0 ? (
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-primary">Class features</h4>
+                    ) : null}
+                    <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-line border-l-2 border-primary/40 pl-3">
+                        {freeFeaturesNote}
+                    </p>
+                </div>
+            ) : null}
+        </div>
+    )
 }
 
 const EQUIPMENT_TYPE_ORDER = ["weapon", "armor", "shield", "consumable", "misc", "container"] as const
@@ -1124,6 +1217,7 @@ export function RulesLibraryView() {
                                         <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line">
                                             {selectedClass.description}
                                         </p>
+                                        <ClassLibraryGrantsSummary classData={selectedClass} />
                                     </div>
 
                                     <section

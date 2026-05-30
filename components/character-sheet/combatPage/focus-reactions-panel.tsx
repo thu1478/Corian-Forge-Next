@@ -1,5 +1,6 @@
 "use client"
 
+import { useCallback, useState } from "react"
 import { ChargePips } from "@/components/character-sheet/charge-pips"
 import {
     lookupChargeDefinition,
@@ -12,7 +13,7 @@ import {
     getReactionResourceCostsForInlineRow,
     ReactionResourceCostBadges,
 } from "@/components/reaction-resource-cost-badges"
-import {ChevronDown, Lock, Plus, Target, Zap} from "lucide-react"
+import {ChevronDown, Check, Lock, Plus, RotateCcw, Target, Zap} from "lucide-react"
 import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger} from "@/components/ui/dropdown-menu";
 import {Button} from "@/components/ui/button";
 import {cn} from "@/lib/utils";
@@ -37,28 +38,53 @@ function startOfTurnFocusGain(adventurerLevel?: number): number {
     return 1;
 }
 
+const FOCUS_SOURCE_START_OF_TURN = "startOfTurn"
+
+function focusSlotSourceId(slotIndex: number): string {
+    return `slot:${slotIndex}`
+}
+
 function FocusAddButton({
+    sourceId,
     amount,
     ariaLabel,
+    used,
     onAddFocus,
 }: {
-    amount: number;
-    ariaLabel: string;
-    onAddFocus?: (amount: number) => void;
+    sourceId: string
+    amount: number
+    ariaLabel: string
+    used: boolean
+    onAddFocus?: (sourceId: string, amount: number) => void
 }) {
-    if (!onAddFocus || amount <= 0) return null;
+    if (!onAddFocus || amount <= 0) return null
     return (
-        <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            className="h-7 w-7 shrink-0 rounded-lg border-2 border-orange-400/50 text-orange-600 hover:bg-orange-100 dark:border-orange-500/50 dark:text-orange-400 dark:hover:bg-orange-950/30"
-            aria-label={ariaLabel}
-            onClick={() => onAddFocus(amount)}
-        >
-            <Plus className="h-4 w-4" />
-        </Button>
-    );
+        <div className="flex items-center gap-1.5 shrink-0">
+            {used ? (
+                <span
+                    className="flex items-center gap-1 rounded-md border border-orange-400/40 bg-orange-100/80 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-orange-700 dark:border-orange-500/40 dark:bg-orange-950/50 dark:text-orange-400"
+                    title="Used this round"
+                >
+                    <Check className="h-3 w-3 shrink-0" aria-hidden />
+                    Used
+                </span>
+            ) : null}
+            <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                disabled={used}
+                className={cn(
+                    "h-7 w-7 shrink-0 rounded-lg border-2 border-orange-400/50 text-orange-600 hover:bg-orange-100 dark:border-orange-500/50 dark:text-orange-400 dark:hover:bg-orange-950/30",
+                    used && "opacity-40"
+                )}
+                aria-label={used ? `${ariaLabel} (already used this round)` : ariaLabel}
+                onClick={() => onAddFocus(sourceId, amount)}
+            >
+                <Plus className="h-4 w-4" />
+            </Button>
+        </div>
+    )
 }
 
 interface FocusReactionsPanelProps {
@@ -100,6 +126,37 @@ export function FocusReactionsPanel({
                                         adventurerLevel,
                                         onAddFocus,
                                     }: FocusReactionsPanelProps) {
+    const [usedSources, setUsedSources] = useState<Set<string>>(() => new Set())
+
+    const handleFocusAdd = useCallback(
+        (sourceId: string, amount: number) => {
+            if (usedSources.has(sourceId) || !onAddFocus || amount <= 0) return
+            onAddFocus(amount)
+            setUsedSources((prev) => new Set(prev).add(sourceId))
+        },
+        [usedSources, onAddFocus]
+    )
+
+    const resetFocusSources = useCallback(() => {
+        setUsedSources(new Set())
+    }, [])
+
+    const clearSlotUsed = useCallback((slotIndex: number) => {
+        setUsedSources((prev) => {
+            const next = new Set(prev)
+            next.delete(focusSlotSourceId(slotIndex))
+            return next
+        })
+    }, [])
+
+    const selectFocusFeat = useCallback(
+        (slotIndex: number, classSrc: string) => {
+            clearSlotUsed(slotIndex)
+            onSelectFeat(slotIndex, classSrc)
+        },
+        [clearSlotUsed, onSelectFeat]
+    )
+
     // Get the default focus feat start of turn
     const globalFocus = rules?.system?.defaults?.focusFeat
     const startOfTurnGain = startOfTurnFocusGain(adventurerLevel)
@@ -111,21 +168,41 @@ export function FocusReactionsPanel({
         <div className="space-y-4">
             {/* Focus Features */}
             <div className="p-4 bg-card rounded-xl border border-border">
-                <h3 className="text-base font-semibold uppercase tracking-wider text-primary mb-4 flex items-center gap-2">
-                    <Target className="w-5 h-5"/>
-                    Focus Features
-                </h3>
+                <div className="flex items-center justify-between gap-2 mb-4">
+                    <h3 className="text-base font-semibold uppercase tracking-wider text-primary flex items-center gap-2">
+                        <Target className="w-5 h-5"/>
+                        Focus Features
+                    </h3>
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 shrink-0 text-muted-foreground hover:text-primary"
+                        aria-label="Reset focus feature usage for new round"
+                        title="Reset for new round"
+                        onClick={resetFocusSources}
+                    >
+                        <RotateCcw className="h-4 w-4" />
+                    </Button>
+                </div>
 
                 {/* --- SLOT 0: SYSTEM DEFAULT (Fixed) --- */}
                 {
-                    <div className="p-4 rounded-lg border bg-blue-500/5 border-blue-500/20 opacity-90">
+                    <div
+                        className={cn(
+                            "p-4 rounded-lg border bg-blue-500/5 border-blue-500/20 transition-opacity",
+                            usedSources.has(FOCUS_SOURCE_START_OF_TURN) ? "opacity-70" : "opacity-90"
+                        )}
+                    >
                         <div className="flex items-center justify-between gap-2 mb-2">
                             <span className="font-bold text-foreground text-base">{globalFocus?.name}</span>
                             <div className="flex items-center gap-1 shrink-0">
                                 <FocusAddButton
+                                    sourceId={FOCUS_SOURCE_START_OF_TURN}
                                     amount={startOfTurnGain}
                                     ariaLabel={`Add ${startOfTurnGain} Focus (Start of Turn)`}
-                                    onAddFocus={onAddFocus}
+                                    used={usedSources.has(FOCUS_SOURCE_START_OF_TURN)}
+                                    onAddFocus={handleFocusAdd}
                                 />
                                 <Lock className="w-3 h-3 text-blue-400/50"/>
                             </div>
@@ -142,6 +219,8 @@ export function FocusReactionsPanel({
                     const currentFeat = knownFocusFeats.find(f => f.slotIndex === slotIndex);
                     const currentFeatRule = rules?.classes?.[currentFeat?.classSrc || ""]?.focusFeat;
                     const currentFeatName = currentFeatRule?.name || "";
+                    const slotSourceId = focusSlotSourceId(slotIndex)
+                    const slotUsed = usedSources.has(slotSourceId)
 
                     return (
                         <div key={slotIndex} className="space-y-2">
@@ -161,7 +240,7 @@ export function FocusReactionsPanel({
                                 <DropdownMenuContent align="start" className="w-[250px]">
                                     {/* Option to unequip */}
                                     <DropdownMenuItem
-                                        onClick={() => onSelectFeat(slotIndex, "")}
+                                        onClick={() => selectFocusFeat(slotIndex, "")}
                                         className="text-muted-foreground italic"
                                     >
                                         No Selection
@@ -177,7 +256,7 @@ export function FocusReactionsPanel({
                                         return (
                                             <DropdownMenuItem
                                                 key={feat.classSrc}
-                                                onClick={() => onSelectFeat(slotIndex, feat.classSrc)}
+                                                onClick={() => selectFocusFeat(slotIndex, feat.classSrc)}
                                                 disabled={isDisabled}
                                             >
                                                 {thisOptionName}
@@ -189,15 +268,20 @@ export function FocusReactionsPanel({
                             {/* Display description if a valid feat is selected */}
                             {(currentFeat?.slotIndex ?? -1) >= 0 && (
                                 <div
-                                    className="p-4 rounded-lg border transition-all bg-orange-100 dark:bg-orange-950/30 border-orange-300 dark:border-orange-700/50">
+                                    className={cn(
+                                        "p-4 rounded-lg border transition-all bg-orange-100 dark:bg-orange-950/30 border-orange-300 dark:border-orange-700/50",
+                                        slotUsed && "opacity-70"
+                                    )}>
                                     <div className="flex items-center justify-between gap-2 mb-2">
                                         <span className="font-bold text-foreground text-base">
                                             {currentFeatName}
                                         </span>
                                         <FocusAddButton
+                                            sourceId={slotSourceId}
                                             amount={1}
                                             ariaLabel={`Add 1 Focus (${currentFeatName})`}
-                                            onAddFocus={onAddFocus}
+                                            used={slotUsed}
+                                            onAddFocus={handleFocusAdd}
                                         />
                                     </div>
                                     <p className="text-base text-foreground/80 leading-relaxed whitespace-pre-line">
