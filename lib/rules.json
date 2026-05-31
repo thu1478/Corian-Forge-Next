@@ -1132,22 +1132,6 @@
         "minLevel": 3,
         "description": "Once per round if a creature enters your melee range and you have a polearm equipped you may make an Opportunity Attack on them with the polearm as a free Reaction."
       },
-      "waveSwing": {
-        "name": "Wave Swing",
-        "minLevel": 3,
-        "description": "You can use Wave Swing action",
-        "effects": [
-          {
-            "type": "GrantActionCard",
-            "value": "feat/waveSwing"
-          }
-        ],
-        "prereqs": {
-          "other": [
-            "manaStrike"
-          ]
-        }
-      },
       "wellTimedBlock": {
         "name": "Well-timed Block",
         "minLevel": 3,
@@ -10623,6 +10607,17 @@
           "name": "Survival Instinct",
           "type": "innate",
           "description": "While Bloodied your Speed increases by 1"
+        },
+        "orc_chaotic": {
+          "name": "Chaotic",
+          "type": "innate",
+          "description": "You are fluent in written and verbal communications in Chaotic",
+          "effects": [
+            {
+              "type": "Language",
+              "value": "Chaotic"
+            }
+          ]
         },
         "orc_vengeance": {
           "name": "Vengeance",
