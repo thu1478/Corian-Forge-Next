@@ -1,14 +1,14 @@
 "use client"
 
-import { useCallback, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { ChargePips } from "@/components/character-sheet/charge-pips"
 import {
     lookupChargeDefinition,
     resolveCurrentCharges,
     resolveMaxCharges,
     type RulesWithCharges,
-} from "@/lib/charge-helpers"
-import {getAttributeModifier} from "@/lib/character-data"
+} from "@/logic/traits/charge-helpers"
+import {getAttributeModifier} from "@/logic/character/stats"
 import {
     getReactionResourceCostsForInlineRow,
     ReactionResourceCostBadges,
@@ -17,7 +17,8 @@ import {ChevronDown, Check, Lock, Plus, RotateCcw, Target, Zap} from "lucide-rea
 import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger} from "@/components/ui/dropdown-menu";
 import {Button} from "@/components/ui/button";
 import {cn} from "@/lib/utils";
-import {FocusFeature, Reaction, type ActionCard} from "@/lib/rules"
+import {FocusFeature, Reaction, type ActionCard, type Trait} from "@/lib/rules"
+import { applyEnhancementsToCard } from "@/logic/actions/action-enhancements"
 import type {InventoryItem} from "@/lib/equipment-data"
 import {
     ActionCardComponent,
@@ -25,8 +26,8 @@ import {
     type ActionSpendResourceKind,
     type CombatRuleContext,
 } from "@/components/character-sheet/combatPage/action-card-manager";
-import { unwrapEmbeddedActionCard } from "@/lib/embedded-action-card";
-import { hydrateActionCardById } from "@/lib/action-hydrate";
+import { unwrapEmbeddedActionCard } from "@/logic/actions/embedded-action-card";
+import { hydrateActionCardById } from "@/logic/actions/hydrate";
 
 function startOfTurnFocusGain(adventurerLevel?: number): number {
     const lvl =
@@ -106,6 +107,12 @@ interface FocusReactionsPanelProps {
     /** When set, Start of Turn description includes your current gain by Adventurer level. */
     adventurerLevel?: number;
     onAddFocus?: (amount: number) => void;
+    /** Reaction ids that require a hand-equipped granting item (from rules catalog). */
+    itemGrantedReactionIds?: ReadonlySet<string>;
+    /** Reaction ids currently granted by hand-equipped items. */
+    handEquippedReactionIds?: ReadonlySet<string>;
+    /** Hydrated traits for EnhanceAction overlays on embedded reaction cards. */
+    hydratedTraits?: Trait[];
 }
 
 export function FocusReactionsPanel({
@@ -125,6 +132,9 @@ export function FocusReactionsPanel({
                                         combatRuleContext,
                                         adventurerLevel,
                                         onAddFocus,
+                                        itemGrantedReactionIds = new Set(),
+                                        handEquippedReactionIds = new Set(),
+                                        hydratedTraits = [],
                                     }: FocusReactionsPanelProps) {
     const [usedSources, setUsedSources] = useState<Set<string>>(() => new Set())
 
@@ -163,6 +173,20 @@ export function FocusReactionsPanel({
     const startOfTurnDescription = `Gain ${startOfTurnGain} Focus at the start of your turn`
     // Get the default opp atk reaction
     const globalReaction = rules?.system?.defaults?.reactions[0]
+
+    const isEquipmentReactionAvailable = useCallback(
+        (reactionId: string | undefined) => {
+            if (!reactionId) return true
+            if (!itemGrantedReactionIds.has(reactionId)) return true
+            return handEquippedReactionIds.has(reactionId)
+        },
+        [itemGrantedReactionIds, handEquippedReactionIds]
+    )
+
+    const selectableReactions = useMemo(
+        () => knownReactions.filter((rx) => isEquipmentReactionAvailable(rx.id)),
+        [knownReactions, isEquipmentReactionAvailable]
+    )
 
     return (
         <div className="space-y-4">
@@ -352,6 +376,7 @@ export function FocusReactionsPanel({
                 <div className="space-y-4">
                     {[0, 1].map((slotIndex) => {
                         const currentReaction = knownReactions.find(f => f.slotIndex === slotIndex);
+                        const reactionAvailable = isEquipmentReactionAvailable(currentReaction?.id);
 
                         const chargeDef = currentReaction?.id
                             ? lookupChargeDefinition(
@@ -380,6 +405,16 @@ export function FocusReactionsPanel({
                         } else if (currentReaction?.id) {
                             actionCardData = hydrateActionCardById(currentReaction.id, rules as any)
                         }
+                        if (actionCardData && currentReaction?.id && !actionCardData.id) {
+                            actionCardData = { ...actionCardData, id: currentReaction.id }
+                        }
+                        if (actionCardData && currentReaction?.id) {
+                            actionCardData = applyEnhancementsToCard(
+                                currentReaction.id,
+                                actionCardData,
+                                hydratedTraits
+                            )
+                        }
 
                         const resourceCostsInline = currentReaction
                             ? getReactionResourceCostsForInlineRow(
@@ -404,8 +439,7 @@ export function FocusReactionsPanel({
                                                           className="italic text-muted-foreground">
                                             No Selection
                                         </DropdownMenuItem>
-                                        {knownReactions.map((rx) => {
-                                            // const rule = knownReactions.find(r => r.id === rx.id);
+                                        {selectableReactions.map((rx) => {
                                             const isDisabled = rx.slotIndex >= 0 && rx.slotIndex !== slotIndex;
                                             return (
                                                 <DropdownMenuItem key={rx.id}
@@ -418,7 +452,13 @@ export function FocusReactionsPanel({
                                     </DropdownMenuContent>
                                 </DropdownMenu>
 
-                                {currentReaction && (
+                                {currentReaction && !reactionAvailable ? (
+                                    <p className="text-sm text-muted-foreground italic border-t border-orange-200 dark:border-orange-800 pt-2">
+                                        Requires the granting item to be equipped in a hand slot.
+                                    </p>
+                                ) : null}
+
+                                {currentReaction && reactionAvailable && (
                                     <div className="space-y-2 border-t border-orange-200 dark:border-orange-800 pt-2">
                                         {/* CHARGE PIPS */}
                                         {showChargePips && currentReaction ? (

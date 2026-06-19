@@ -1,5 +1,5 @@
 import React from "react";
-import rulesData from "@/lib/rules.json";
+import { getPointBuy } from "@/lib/rules-data";;
 import { ChevronRightIcon, ChevronLeftIcon, MinusIcon, PlusIcon } from "lucide-react";
 
 type Attribute = "might" | "dexterity" | "reason" | "willpower" | "presence";
@@ -31,7 +31,7 @@ export function AbilityScores({
   onNext,
   onBack
 }: AbilityScoresProps) {
-  const pointBuy = rulesData.system.pointBuy as Record<string, number>;
+  const pointBuy = getPointBuy();
 
   const calculatePointsUsed = () => {
     return Object.values(scores).reduce((total, score) => {

@@ -1,17 +1,17 @@
 import React, { useMemo, useState } from "react";
-import rulesData from "@/lib/rules.json";
+import { rulesData } from "@/lib/rules-data";
 import { CharacterClass } from "@/lib/rules";
 import { FeatLevelPick, TraitRef } from "@/lib/baseRefs";
-import { formatTraitEffectChoiceLabel } from "@/lib/trait-selection";
+import { formatTraitEffectChoiceLabel } from "@/logic/traits/selection";
 import { TraitPowerRollCollapsible } from "@/components/power-roll/trait-power-roll-collapsible";
 import {
   evaluateFeatPrerequisitesForCreator,
   describeFeatPrerequisitesForCreator,
   type CreatorFeatPrereqContext,
-} from "@/lib/feat-prereqs";
-import { compareFeatsAlphabetically, featMinLevelNumeric } from "@/lib/feat-sort";
+} from "@/logic/feats/prereqs";
+import { compareFeatsAlphabetically, featMinLevelNumeric } from "@/logic/feats/sort";
 import { SkillGrantPickBlocks } from "@/components/character-creator/skill-grant-pick-blocks";
-import type { SkillChooserRequirement } from "@/lib/grant-skill-effects";
+import type { SkillChooserRequirement } from "@/logic/traits/grant-skill-effects";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Switch } from "@/components/ui/switch";
 import { ChevronDown, ChevronLeftIcon, ChevronRightIcon, LockIcon } from "lucide-react";

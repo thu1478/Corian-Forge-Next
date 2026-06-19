@@ -1,10 +1,10 @@
 import {Equipment, InventoryContainer, InventoryEntry,} from "@/lib/equipment-data";
+import { emptyAccessories } from "@/logic/equipment/accessory-slots";
 import {BondTarget, CharacterClass, FocusFeature, Skill} from "@/lib/rules";
 import {ActionRef, ReactionRef, TraitRef} from "@/lib/baseRefs";
-import { traitRefsIncludeId } from "@/lib/trait-helpers";
-import type {CreatureRosterEntry} from "@/lib/creature-roster";
-import type {FairyTamerContractsSave} from "@/lib/fairy-tamer";
-import {emptyFairyTamerContracts} from "@/lib/fairy-tamer";
+import type {CreatureRosterEntry} from "@/logic/creatures/roster";
+import type {FairyTamerContractsSave} from "@/logic/creatures/fairy-tamer";
+import {emptyFairyTamerContracts} from "@/logic/creatures/fairy-tamer";
 
 export type InventionVariant =
     | "potionLauncher"
@@ -24,6 +24,21 @@ export type SpecialInventionSave = {
     backpackModules?: string[];
     weaponInfusionDamageType?: WeaponInfusionDamageType;
 };
+
+export type ActionLayoutEntry =
+    | { type: "action"; key: string }
+    | { type: "folder"; id: string };
+
+export interface ActionFolder {
+    id: string;
+    name: string;
+    items: ActionLayoutEntry[];
+}
+
+export interface ActionLayout {
+    root: ActionLayoutEntry[];
+    folders: Record<string, ActionFolder>;
+}
 
 export interface CharacterSaveData {
     // Character Info
@@ -79,6 +94,9 @@ export interface CharacterSaveData {
 
     // Actions
     actions: ActionRef[]
+
+    /** Combat tab: nested folders and manual ordering for action cards (UI layout only). */
+    actionLayout?: ActionLayout
 
     // Traits
     traits: TraitRef[]
@@ -228,18 +246,7 @@ export const defaultCharacter: CharacterSaveData = {
         activeWeapon: null,
         offhand: null,
         armor: null,
-        accessories: {
-            head: null,
-            face: null,
-            ears: null,
-            neck: null,
-            back: null,
-            hands: null,
-            ringLeft: null,
-            ringRight: null,
-            waist: null,
-            feet: null,
-        }
+        accessories: emptyAccessories(),
     },
 
     bondTargets: [],
@@ -257,14 +264,6 @@ export const defaultCharacter: CharacterSaveData = {
     animaBarrierBonus: null,
     fairyTamerContracts: emptyFairyTamerContracts(),
     creatorSkillGrantPicks: {},
-}
-
-export function getAttributeModifier(score: number): number {
-    return Math.floor((score - 10) / 2)
-}
-
-export function formatModifier(modifier: number): string {
-    return modifier >= 0 ? `+${modifier}` : `${modifier}`
 }
 
 export interface CharacterStats {
@@ -290,29 +289,6 @@ export interface ClassSkillTrainingRule {
     unlockCategories?: string[]
 }
 
-/** Flatten class rule `skillTraining` / `skillTrainings` into a concrete list for grant-skill-effects. */
-export function classSkillTrainingEntries(
-    classRule: { skillTraining?: ClassSkillTrainingRule; skillTrainings?: ClassSkillTrainingRule[] } | undefined
-): ClassSkillTrainingRule[] {
-    if (!classRule) return []
-    if (Array.isArray(classRule.skillTrainings) && classRule.skillTrainings.length > 0) {
-        return classRule.skillTrainings
-    }
-    const single = classRule.skillTraining
-    if (single && typeof single === "object") return [single]
-    return []
-}
-
-/** How many times a skill-training rule triggers for `classLevel` (same stacking as HP statBonus). */
-export function countClassSkillTrainingApplications(classLevel: number, rule: ClassSkillTrainingRule): number {
-    const lvl = Math.max(0, Math.floor(Number(classLevel) || 0))
-    if (rule.once === true) {
-        return lvl >= 1 ? 1 : 0
-    }
-    const freq = typeof rule.frequency === "number" && rule.frequency > 0 ? rule.frequency : 1
-    return Math.floor(lvl / freq)
-}
-
 /** Class-level max stat contributions from `rules.classes[*].statBonus` or `.statBonuses`. */
 export interface ClassBonusRule {
     stat: string
@@ -323,174 +299,6 @@ export interface ClassBonusRule {
     once?: boolean
 }
 
-function classStatBonusEntries(classRule: {
-    statBonus?: ClassBonusRule;
-    statBonuses?: ClassBonusRule[]
-} | undefined): ClassBonusRule[] {
-    if (!classRule) return []
-    if (Array.isArray(classRule.statBonuses) && classRule.statBonuses.length > 0) {
-        return classRule.statBonuses
-    }
-    const single = classRule.statBonus
-    if (single && typeof single === "object") return [single]
-    return []
-}
-
-/** Matches character sheet: max class level, or 1 if multiclass list is empty. */
-export function getCharacterLevelForStats(classes: ClassLevel[]): number {
-    return classes.length > 0
-        ? Math.max(...classes.map(c => c.level))
-        : 1;
-}
-
-export function sumClassStatBonus(
-    classes: ClassLevel[],
-    rulesData: any,
-    statName: string
-): number {
-    return classes.reduce((total: number, cls: ClassLevel) => {
-        const classRule = rulesData?.classes?.[cls.id]
-        let row = 0
-        for (const bonus of classStatBonusEntries(classRule)) {
-            if (bonus.stat !== statName) continue
-            if (bonus.once) {
-                if (cls.level >= 1) row += bonus.amount
-            } else {
-                const applications = Math.floor(cls.level / (bonus.frequency || 1))
-                row += applications * bonus.amount
-            }
-        }
-        return total + row
-    }, 0)
-}
-
-type TraitLike = {
-    effects?: Array<{ type: string; stat?: string; value?: string; when?: string }>
-}
-
 export type StatChangeContext = {
     isDualWielding?: boolean
-}
-
-function statChangeApplies(
-    effect: { when?: string },
-    context: StatChangeContext | undefined
-): boolean {
-    const when = effect.when?.trim()
-    if (!when) return true
-    if (when === "dualWielding") return context?.isDualWielding === true
-    return false
-}
-
-/** Sums StatChange effects for a stat key (e.g. might, maxHP). */
-export function sumTraitStatChangeEffects(
-    traits: TraitLike[],
-    statName: string,
-    context?: StatChangeContext
-): number {
-    return traits.reduce((total, trait) => {
-        const bonuses =
-            trait.effects?.filter(
-                (e) =>
-                    e.type === "StatChange" &&
-                    e.stat === statName &&
-                    statChangeApplies(e, context)
-            ) || []
-        const sum = bonuses.reduce((s, b) => s + parseInt(b.value ?? "0", 10), 0)
-        return total + sum
-    }, 0)
-}
-
-/** Cross Block (feat): +1 Stability while dual wielding. */
-export function getCrossBlockStabilityBonus(
-    traitRefs: readonly { id?: string }[] | undefined,
-    isDualWielding: boolean
-): number {
-    if (!isDualWielding) return 0
-    return traitRefsIncludeId(traitRefs, "crossBlock") ? 1 : 0
-}
-
-/**
- * Gear bonuses from equipped items. Slots may be hydrated item objects or inventory UIDs
- * (same resolution as the character sheet after item hydration).
- */
-export function sumGearStatBonus(
-    character: { equipment?: any; inventory?: any[] } | null | undefined,
-    statName: string
-): number {
-    if (!character?.equipment) return 0;
-    const eq = character.equipment;
-    const inv = character.inventory || [];
-
-    const resolve = (slot: unknown): any => {
-        if (slot == null) return null;
-        if (typeof slot === "object" && slot !== null && "statBonuses" in (slot as object)) {
-            return slot;
-        }
-        const uid = typeof slot === "string" ? slot : (slot as { uid?: string })?.uid;
-        if (!uid) return null;
-        return inv.find((i: any) => String(i.uid) === String(uid)) ?? null;
-    };
-
-    const equipped = [
-        resolve(eq.activeWeapon),
-        resolve(eq.armor),
-        ...Object.values(eq.accessories || {}).map(resolve),
-    ].filter(Boolean);
-
-    return equipped.reduce(
-        (total: number, item: any) => total + (item.statBonuses?.[statName] ?? 0),
-        0
-    );
-}
-
-/** Character sheet formula for max HP (effective might already includes trait/gear attribute bonuses). */
-export function computeMaxHP(params: {
-    effectiveMight: number;
-    characterLevel: number;
-    classHpBonus: number;
-    gearHpBonus: number;
-    traitMaxHpBonus: number;
-}): number {
-    // return (
-    //     params.effectiveMight +
-    //     5 * params.characterLevel +
-    //     params.classHpBonus +
-    //     params.gearHpBonus +
-    //     params.traitMaxHpBonus
-    // );
-    return (
-        Math.floor((params.effectiveMight-10) / 2) +
-        2 * params.characterLevel +
-        16 +
-        params.classHpBonus +
-        params.gearHpBonus +
-        params.traitMaxHpBonus
-    );
-}
-
-/** Character sheet formula for max MP. */
-export function computeMaxMP(params: {
-    effectiveWillpower: number;
-    characterLevel: number;
-    classMpBonus: number;
-    gearMpBonus: number;
-    traitMaxMpBonus: number;
-}): number {
-    return (
-        params.characterLevel +
-        2 * params.effectiveWillpower +
-        params.classMpBonus +
-        params.gearMpBonus +
-        params.traitMaxMpBonus
-    );
-}
-
-/** Character sheet formula for Speed (base 4 + class + gear + trait StatChange on "speed"). */
-export function computeSpeed(params: {
-    classSpeedBonus: number;
-    gearSpeedBonus: number;
-    traitSpeedBonus: number;
-}): number {
-    return 4 + params.classSpeedBonus + params.gearSpeedBonus + params.traitSpeedBonus;
 }

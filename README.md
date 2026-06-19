@@ -1,5 +1,19 @@
 # READ ME
 
+## Documentation
+
+Architecture, data model, contributor workflows, and the cleanup roadmap live in [`docs/`](./docs/README.md).
+
+| Doc | Description |
+|-----|-------------|
+| [docs/README.md](./docs/README.md) | Documentation index |
+| [docs/architecture-overview.md](./docs/architecture-overview.md) | App structure, hydration, layering |
+| [docs/data-model.md](./docs/data-model.md) | Save schema and rules topology |
+| [docs/contributor-guide.md](./docs/contributor-guide.md) | How to add features |
+| [docs/rules-json-authoring.md](./docs/rules-json-authoring.md) | `rules.json` field reference |
+| [docs/folder-structure.md](./docs/folder-structure.md) | Code placement rules |
+| [docs/testing.md](./docs/testing.md) | Test commands |
+
 ## NPM Commands
 ### Build project
 ```npm run build```

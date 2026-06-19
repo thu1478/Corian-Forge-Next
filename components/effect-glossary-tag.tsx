@@ -3,7 +3,7 @@
 import { useMemo } from "react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
-import { findEffectGlossaryEntry } from "@/lib/glossary-lookup"
+import { findEffectGlossaryEntry } from "@/logic/display/glossary-lookup"
 
 /** Clickable tag chip with glossary definition (action cards, library equipment, etc.). */
 export function EffectGlossaryTag({ tag, className }: { tag: string; className?: string }) {

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo } from "react";
-import rulesData from "@/lib/rules.json";
+import { getOccupationRules, getRulesLanguages, getRulesSkills } from "@/lib/rules-data";
 import type { PowerRoll } from "@/lib/rules";
 import type { PowerRollAttributes } from "@/components/power-roll/power-roll-tier-row";
 import { TraitPowerRollCollapsible } from "@/components/power-roll/trait-power-roll-collapsible";
@@ -12,7 +12,7 @@ import {
     resolveOccupationLanguagePicks,
     resolveOccupationSkillsCount,
     skillSourceChipClassName,
-} from "@/lib/occupation";
+} from "@/logic/classes/occupation";
 
 type SkillCatalogRow = {
     name: string;
@@ -46,14 +46,9 @@ export function OccupationStep({
     onNext,
     onBack,
 }: OccupationStepProps) {
-    const system = rulesData.system as {
-        occupation?: Record<string, OccupationRule>;
-        skills: Record<string, SkillCatalogRow>;
-        languages: Record<string, { name: string; description?: string }>;
-    };
-    const occupationRoot = system.occupation ?? {};
-    const allSkills = system.skills;
-    const allLanguages = system.languages;
+    const occupationRoot = getOccupationRules()
+    const allSkills = getRulesSkills() as Record<string, SkillCatalogRow>
+    const allLanguages = getRulesLanguages()
 
     const def = useMemo(
         () => getOccupationDefinition(occupationRoot, occupationId),

@@ -3,24 +3,33 @@
 import React, { useEffect, useMemo, useState } from "react"
 import { ArrowLeftIcon, PlusIcon, MinusIcon, CheckCircleIcon, ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils"
-import rulesData from "@/lib/rules.json"
+import { getRulesClasses, getRulesItems, getStartingXPPerLevel, getXPCostPerLevel, rulesData } from "@/lib/rules-data"
 import { ActionCardComponent } from "@/components/character-sheet/combatPage/action-card-manager"
 import {
     getReactionResourceCostsForInlineRow,
     ReactionResourceCostBadges,
 } from "@/components/reaction-resource-cost-badges"
 import { TraitPowerRollCollapsible } from "@/components/power-roll/trait-power-roll-collapsible"
-import { unwrapEmbeddedActionCard } from "@/lib/embedded-action-card"
+import { unwrapEmbeddedActionCard } from "@/logic/actions/embedded-action-card"
+import { isActionCardInteractiveTarget } from "@/logic/actions/action-card-interaction"
 import {
     CLASS_OPTION_CONFIGS,
     getClassOptionEntries,
     resolveClassOptionPlaceholderPassive,
     talentMatchesClassOption,
-} from "@/lib/class-options"
+} from "@/logic/classes/class-options"
 import { ClassOptionPicker } from "@/components/character-creator/ClassOptionPicker"
-import { formatTraitEffectChoiceLabel } from "@/lib/trait-selection"
-import type { SkillChooserRequirement } from "@/lib/grant-skill-effects"
-import { allSkillChooserPicksComplete } from "@/lib/grant-skill-effects"
+import { formatTraitEffectChoiceLabel } from "@/logic/traits/selection"
+import {
+    type ClassOptionPick,
+    passiveNeedsEffectChoice,
+    skillGrantRequirementsForClass,
+} from "@/components/character-creator/logic/class-selection-helpers"
+import { DruidAnimaSection } from "@/components/character-creator/steps/class-archetypes/DruidAnimaSection"
+import { ConjurerSummonsSection } from "@/components/character-creator/steps/class-archetypes/ConjurerSummonsSection"
+import { SpecialInventionSection } from "@/components/character-creator/steps/class-archetypes/SpecialInventionSection"
+import type { SkillChooserRequirement } from "@/logic/traits/grant-skill-effects"
+import { allSkillChooserPicksComplete } from "@/logic/traits/grant-skill-effects"
 import { SkillGrantPickBlocks } from "@/components/character-creator/skill-grant-pick-blocks"
 import {
     conjurerClassTraitRefsFromPicks,
@@ -29,12 +38,12 @@ import {
     getCreatureTemplates,
     getSummonMastery,
     listConjurerCatalogTemplateIdsForSlot,
-} from "@/lib/creature-roster"
+} from "@/logic/creatures/roster"
 import {
     getDruidAnimaSlots,
     listDruidAnimaCatalogTemplateIds,
     sanitizeDruidAnimaTemplateIds,
-} from "@/lib/druid-anima"
+} from "@/logic/creatures/druid-anima"
 import {
     canAssignClassXpPicksSmallestFirst,
     calculateClassXPCost,
@@ -42,7 +51,7 @@ import {
     getMaxClassXP,
     getStartingXpForAdventurerLevel,
     summarizeClassXpByAdventurerCutoff,
-} from "@/lib/class-xp-display"
+} from "@/logic/display/class-xp-display"
 import {
     canAddFairytamerTalentPick,
     emptyFairyTamerContracts,
@@ -50,18 +59,13 @@ import {
     isFairySpellAllowedForContractSlot,
     isFairyTamerPicksComplete,
     type FairyTamerContractsSave,
-} from "@/lib/fairy-tamer"
+} from "@/logic/creatures/fairy-tamer"
 import { FairyTamerContractsSection } from "@/components/character-creator/steps/FairyTamerContractsSection"
 import {
     artificerHasSpecialInventionPassive,
-    formatWeaponInfusionDamageLabel,
     isSpecialInventionSaveComplete,
-} from "@/lib/creator-import"
-import type {
-    InventionVariant,
-    SpecialInventionSave,
-    WeaponInfusionDamageType,
-} from "@/lib/character-data"
+} from "@/components/character-creator/logic/import"
+import type { SpecialInventionSave } from "@/lib/character-data"
 import { Label } from "@/components/ui/label"
 import {
     Select,
@@ -84,60 +88,7 @@ type SpecialInventionRulesUi = {
     modules?: Record<string, { label?: string }>;
 };
 
-function toggleInventionModulePick(
-    current: string[] | undefined,
-    moduleId: string,
-    max: number
-): string[] {
-    const list = [...(current ?? [])];
-    const idx = list.indexOf(moduleId);
-    if (idx >= 0) {
-        list.splice(idx, 1);
-        return list;
-    }
-    if (list.length >= max) return list;
-    return [...list, moduleId];
-}
-
-export type ClassOptionPick = {
-    id: string
-    source: string
-    selectedEffectIndices?: number[]
-    /** Fairy contract spell: counts as a Fairy Tamer class XP pick (same budget as other class talents). */
-    fairySpellSlot?: 0 | 1 | 2 | 3
-}
-
-function passiveNeedsEffectChoice(passiveDef: { selectAmount?: number; effects?: unknown[] } | null | undefined) {
-    const n = passiveDef?.selectAmount
-    return (
-        typeof n === "number" &&
-        n > 0 &&
-        Array.isArray(passiveDef?.effects) &&
-        passiveDef!.effects!.length > n
-    )
-}
-
-/** True if `templateId` is chosen on a conjurer slot other than `slotIndex`. */
-function isConjurerSummonTakenOnOtherSlot(
-    picks: string[] | undefined,
-    slotIndex: number,
-    templateId: string
-): boolean {
-    const tid = templateId.trim()
-    if (!tid) return false
-    return (picks ?? []).some((raw, j) => j !== slotIndex && String(raw ?? "").trim() === tid)
-}
-
-function skillGrantRequirementsForClass(
-    classId: string,
-    requirements: SkillChooserRequirement[]
-): SkillChooserRequirement[] {
-    const passivePrefix = `classPassive::${classId}::`
-    const trainingPrefix = `classTraining::${classId}::`
-    return requirements.filter(
-        (r) => r.key.startsWith(passivePrefix) || r.key.startsWith(trainingPrefix)
-    )
-}
+export type { ClassOptionPick } from "@/components/character-creator/logic/class-selection-helpers"
 
 interface ClassSelectionProps {
     selectedOptions: ClassOptionPick[];
@@ -235,8 +186,8 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
     }, [currentAdventurerLevel]);
 
     // --- SYSTEM MATH ---
-    const startingXPPerLvl = rulesData.system.startingXPPerLvl as Record<LevelKey, number>;
-    const xpCostPerLvl = rulesData.system.xpCostPerLvl as Record<LevelKey, number>;
+    const startingXPPerLvl = getStartingXPPerLevel() as Record<LevelKey, number>;
+    const xpCostPerLvl = getXPCostPerLevel() as Record<LevelKey, number>;
     const getStartingXP = (lvl: number) => getStartingXpForAdventurerLevel(lvl, startingXPPerLvl);
 
     // Use the character's actual XP when provided so an imported character with
@@ -466,80 +417,6 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
         onUpdateClassData(updated, optionsAfterLevelChange);
     };
 
-    const renderDruidAnimaSection = () => {
-        if (expandedClassId !== "druid" || druidAnimaSlots.length === 0) return null
-
-        return (
-            <section className="rounded-2xl border border-border bg-card/80 p-6 space-y-4">
-                <h2 className="text-xl font-black uppercase italic tracking-tight text-foreground">
-                    Anima forms
-                </h2>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                    Choose your Anima forms here. Druid level 3 grants two level 2-or-lower forms; Druid level 5
-                    adds one level 4-or-lower form. These forms appear in the creature list and can be activated
-                    from the sheet.
-                </p>
-                {!druidAnimaHasCatalog ? (
-                    <p className="text-sm text-amber-700 dark:text-amber-400">
-                        No Anima creature templates are available yet. Add future bestiary templates with the{" "}
-                        <span className="font-mono text-xs">Anima</span> tag and level metadata to populate these
-                        slots.
-                    </p>
-                ) : (
-                    <div className="space-y-4">
-                        {druidAnimaSlots.map((slot, i) => {
-                            const catalog = druidAnimaCatalogIdsBySlot[i] ?? []
-                            const current = sanitizedDruidAnimaTemplateIds[slot.slotIndex] ?? ""
-                            return (
-                                <div key={slot.slotIndex} className="space-y-1.5 max-w-md">
-                                    <Label className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                                        Slot {slot.slotIndex + 1} (level {slot.maxCatalogLevel} or lower)
-                                    </Label>
-                                    <Select
-                                        value={current || undefined}
-                                        disabled={catalog.length === 0}
-                                        onValueChange={(v) => {
-                                            if (!onDruidAnimaChange) return
-                                            const next = [...sanitizedDruidAnimaTemplateIds]
-                                            while (next.length < druidAnimaSlots.length) next.push("")
-                                            for (let j = 0; j < next.length; j++) {
-                                                if (j !== slot.slotIndex && String(next[j] ?? "").trim() === v) {
-                                                    next[j] = ""
-                                                }
-                                            }
-                                            next[slot.slotIndex] = v
-                                            onDruidAnimaChange(next)
-                                        }}
-                                    >
-                                        <SelectTrigger className="h-10 text-sm">
-                                            <SelectValue placeholder={catalog.length ? "Select Anima..." : "No forms"} />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {catalog
-                                                .filter(
-                                                    (tid) =>
-                                                        !sanitizedDruidAnimaTemplateIds.some(
-                                                            (raw, idx) =>
-                                                                idx !== slot.slotIndex &&
-                                                                String(raw ?? "").trim() === tid
-                                                        ) || current === tid
-                                                )
-                                                .map((tid) => (
-                                                    <SelectItem key={tid} value={tid}>
-                                                        {creatureTemplates[tid]?.name ?? tid}
-                                                    </SelectItem>
-                                                ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            )
-                        })}
-                    </div>
-                )}
-            </section>
-        )
-    }
-
     const renderTalentSection = (classId: string, type: 'passives' | 'actions' | 'reactions', lvl: number) => {
         const classData = (rulesData.classes as any)[classId];
         let talents: any[];
@@ -631,7 +508,13 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
                                         <CheckCircleIcon size={16} />
                                     </div>
                                 )}
-                                <div onClick={() => !isLocked && handleToggleTalent(id, classId)} className={cn("transition-all h-full cursor-pointer", isSelected && "ring-2 ring-primary rounded-xl ring-offset-2 ring-offset-background", isLocked && "opacity-30 grayscale pointer-events-none")}>
+                                <div
+                                    onClick={(e) => {
+                                        if (isLocked || isActionCardInteractiveTarget(e.target)) return
+                                        handleToggleTalent(id, classId)
+                                    }}
+                                    className={cn("transition-all h-full cursor-pointer", isSelected && "ring-2 ring-primary rounded-xl ring-offset-2 ring-offset-background", isLocked && "opacity-30 grayscale pointer-events-none")}
+                                >
                                     {showReactionRuleBlock ? (
                                         <div className={cn("p-5 rounded-xl border-2 transition-all bg-card h-full flex flex-col gap-3", isSelected ? "border-primary" : "border-border hover:border-primary/40")}>
                                             <div>
@@ -653,7 +536,7 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
                                                     </p>
                                                 ) : null}
                                             </div>
-                                            <div className="pointer-events-none border-t border-border/60 pt-3 mt-1 min-h-0">
+                                            <div className="border-t border-border/60 pt-3 mt-1 min-h-0">
                                                 <ActionCardComponent
                                                     action={cardData as any}
                                                     attributes={attributes}
@@ -711,9 +594,7 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
                                             ) : null}
                                         </div>
                                     ) : (
-                                        <div className="pointer-events-none">
-                                            <ActionCardComponent action={cardData as any} attributes={attributes} forceCollapsed={false} disabled={isLocked} currentWeapon={null} />
-                                        </div>
+                                        <ActionCardComponent action={cardData as any} attributes={attributes} forceCollapsed={false} disabled={isLocked} currentWeapon={null} />
                                     )}
                                 </div>
                             </div>
@@ -943,7 +824,16 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
                                 <h2 className="text-2xl font-black italic uppercase text-foreground/20">Level {lvl}</h2>
                                 <div className="space-y-12 ml-4">
                                     {renderTalentSection(expandedClassId, 'passives', lvl)}
-                                    {expandedClassId === "druid" && lvl === 3 ? renderDruidAnimaSection() : null}
+                                    {expandedClassId === "druid" && lvl === 3 ? (
+                                        <DruidAnimaSection
+                                            slots={druidAnimaSlots}
+                                            catalogIdsBySlot={druidAnimaCatalogIdsBySlot}
+                                            selectedTemplateIds={sanitizedDruidAnimaTemplateIds}
+                                            creatureTemplates={creatureTemplates}
+                                            hasCatalog={druidAnimaHasCatalog}
+                                            onChange={onDruidAnimaChange}
+                                        />
+                                    ) : null}
                                     {renderTalentSection(expandedClassId, 'actions', lvl)}
                                     {renderTalentSection(expandedClassId, 'reactions', lvl)}
                                 </div>
@@ -953,266 +843,28 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
                 </div>
 
                 {expandedClassId === "conjurer" && conjurerSummonerTaken && conjurerSlots > 0 ? (
-                    <section className="mt-16 rounded-2xl border border-border bg-card/80 p-6 space-y-4">
-                        <h2 className="text-xl font-black uppercase italic tracking-tight text-foreground">
-                            Conjurer summons
-                        </h2>
-                        <p className="text-sm text-muted-foreground leading-relaxed">
-                            Choose one summon or minion per slot here (not on the character sheet). Slots 1–2 use rank-1
-                            (level 2) creatures only; each creature can fill only one slot. Summon Mastery{" "}
-                            <span className="font-mono font-semibold text-foreground">{conjurerMastery}</span>
-                            {conjurerMastery >= 2
-                                ? " — slot 3 also lists level 4 creatures (Great Summoner at Conjurer 5+)."
-                                : " — tier 4 unlocks on slot 3 with Great Summoner once class level meets that passive."}
-                        </p>
-                        {!conjurerSchoolTag ? (
-                            <p className="text-sm text-amber-700 dark:text-amber-400">
-                                Select <strong>Golemancy</strong> or <strong>Necromancy</strong> on the Summoner passive
-                                above, then assign your creatures.
-                            </p>
-                        ) : (
-                            <div className="space-y-4">
-                                {Array.from({ length: conjurerSlots }, (_, i) => (
-                                    <div key={i} className="space-y-1.5 max-w-md">
-                                        <Label className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                                            Slot {i + 1} ({conjurerSchoolTag === "geomancy" ? "Geomancy" : "Necromancy"})
-                                        </Label>
-                                        <Select
-                                            value={conjurerSummonTemplateIds[i]?.trim() || undefined}
-                                            onValueChange={(v) => {
-                                                if (!onConjurerSummonsChange) return;
-                                                const next = [...conjurerSummonTemplateIds];
-                                                while (next.length < conjurerSlots) next.push("");
-                                                for (let j = 0; j < conjurerSlots; j++) {
-                                                    if (j !== i && String(next[j] ?? "").trim() === v) next[j] = "";
-                                                }
-                                                next[i] = v;
-                                                onConjurerSummonsChange(next);
-                                            }}
-                                        >
-                                            <SelectTrigger className="h-10 text-sm">
-                                                <SelectValue placeholder="Select creature…" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {(conjurerCatalogIdsBySlot[i] ?? [])
-                                                    .filter(
-                                                        (tid) =>
-                                                            !isConjurerSummonTakenOnOtherSlot(
-                                                                conjurerSummonTemplateIds,
-                                                                i,
-                                                                tid
-                                                            ) ||
-                                                            String(conjurerSummonTemplateIds[i] ?? "").trim() === tid
-                                                    )
-                                                    .map((tid) => (
-                                                        <SelectItem key={tid} value={tid}>
-                                                            {creatureTemplates[tid]?.name ?? tid}
-                                                        </SelectItem>
-                                                    ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </section>
+                    <ConjurerSummonsSection
+                        slotCount={conjurerSlots}
+                        schoolTag={conjurerSchoolTag}
+                        mastery={conjurerMastery}
+                        catalogIdsBySlot={conjurerCatalogIdsBySlot}
+                        summonTemplateIds={conjurerSummonTemplateIds}
+                        creatureTemplates={creatureTemplates}
+                        onChange={onConjurerSummonsChange}
+                    />
                 ) : null}
 
                 {expandedClassId === "artificer" &&
                 specialInventionNeeded &&
                 onSpecialInventionChange ? (
-                    (() => {
-                        const si = (rulesData.classes as Record<string, { specialInvention?: SpecialInventionRulesUi }>)
-                            .artificer?.specialInvention;
-                        const variant = specialInvention?.variant;
-                        const armorPool =
-                            (rulesData.items as Record<string, { inventionModulePool?: string[] }>)
-                                .arm_artificer_armor?.inventionModulePool ?? [];
-                        const backpackPool =
-                            (rulesData.items as Record<string, { inventionModulePool?: string[] }>)
-                                .gear_support_backpack?.inventionModulePool ?? [];
-                        const armorModules = specialInvention?.armorModules ?? [];
-                        const backpackModules = specialInvention?.backpackModules ?? [];
-                        const modulePick =
-                            si?.variants?.modularArmor?.modulePick ??
-                            si?.variants?.supportBackpack?.modulePick ??
-                            2;
-                        const needsInfusionType = backpackModules.includes("weaponInfusion");
-                        const infusionTypes = (si?.weaponInfusionDamageTypes ?? []).filter((d) =>
-                            ["volt", "water", "fire", "earth"].includes(String(d))
-                        ) as WeaponInfusionDamageType[];
-
-                        return (
-                            <section className="mt-16 rounded-2xl border border-border bg-card/80 p-6 space-y-6">
-                                <div>
-                                    <h2 className="text-xl font-black uppercase italic tracking-tight text-foreground">
-                                        Special Invention
-                                    </h2>
-                                    <p className="text-sm text-muted-foreground leading-relaxed mt-2">
-                                        Choose one invention at Artificer level 3. Modular Armor and Support
-                                        Backpack each require exactly {modulePick} modules; Weapon Infusion also
-                                        needs a damage type.
-                                    </p>
-                                </div>
-                                <div className="grid gap-3 sm:grid-cols-2">
-                                    {Object.entries(si?.variants ?? {}).map(([id, def]) => (
-                                        <button
-                                            key={id}
-                                            type="button"
-                                            onClick={() =>
-                                                onSpecialInventionChange({
-                                                    variant: id as InventionVariant,
-                                                    armorModules:
-                                                        id === "modularArmor"
-                                                            ? specialInvention?.armorModules
-                                                            : undefined,
-                                                    backpackModules:
-                                                        id === "supportBackpack"
-                                                            ? specialInvention?.backpackModules
-                                                            : undefined,
-                                                    weaponInfusionDamageType:
-                                                        id === "supportBackpack"
-                                                            ? specialInvention?.weaponInfusionDamageType
-                                                            : undefined,
-                                                })
-                                            }
-                                            className={cn(
-                                                "rounded-xl border p-4 text-left transition-colors",
-                                                variant === id
-                                                    ? "border-primary bg-primary/10"
-                                                    : "border-border hover:border-primary/40"
-                                            )}
-                                        >
-                                            <div className="font-bold text-sm">{def.name ?? id}</div>
-                                            <div className="text-xs text-muted-foreground mt-1">
-                                                {def.description ?? ""}
-                                            </div>
-                                        </button>
-                                    ))}
-                                </div>
-                                {variant === "modularArmor" ? (
-                                    <div className="space-y-3">
-                                        <Label className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                                            Armor modules (pick {modulePick})
-                                        </Label>
-                                        <div className="flex flex-wrap gap-2">
-                                            {armorPool.map((mid) => {
-                                                const selected = armorModules.includes(mid);
-                                                const disabled =
-                                                    !selected && armorModules.length >= modulePick;
-                                                return (
-                                                    <button
-                                                        key={mid}
-                                                        type="button"
-                                                        disabled={disabled}
-                                                        onClick={() =>
-                                                            onSpecialInventionChange({
-                                                                variant: "modularArmor",
-                                                                armorModules: toggleInventionModulePick(
-                                                                    armorModules,
-                                                                    mid,
-                                                                    modulePick
-                                                                ),
-                                                                backpackModules: undefined,
-                                                                weaponInfusionDamageType: undefined,
-                                                            })
-                                                        }
-                                                        className={cn(
-                                                            "rounded-lg border px-3 py-2 text-xs font-semibold",
-                                                            selected
-                                                                ? "border-primary bg-primary text-primary-foreground"
-                                                                : "border-border disabled:opacity-40"
-                                                        )}
-                                                    >
-                                                        {si?.modules?.[mid]?.label ?? mid}
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                ) : null}
-                                {variant === "supportBackpack" ? (
-                                    <div className="space-y-4">
-                                        <div className="space-y-3">
-                                            <Label className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                                                Backpack modules (pick {modulePick})
-                                            </Label>
-                                            <div className="flex flex-wrap gap-2">
-                                                {backpackPool.map((mid) => {
-                                                    const selected = backpackModules.includes(mid);
-                                                    const disabled =
-                                                        !selected &&
-                                                        backpackModules.length >= modulePick;
-                                                    return (
-                                                        <button
-                                                            key={mid}
-                                                            type="button"
-                                                            disabled={disabled}
-                                                            onClick={() => {
-                                                                const nextMods = toggleInventionModulePick(
-                                                                    backpackModules,
-                                                                    mid,
-                                                                    modulePick
-                                                                );
-                                                                onSpecialInventionChange({
-                                                                    variant: "supportBackpack",
-                                                                    backpackModules: nextMods,
-                                                                    armorModules: undefined,
-                                                                    weaponInfusionDamageType:
-                                                                        nextMods.includes("weaponInfusion")
-                                                                            ? specialInvention?.weaponInfusionDamageType
-                                                                            : undefined,
-                                                                });
-                                                            }}
-                                                            className={cn(
-                                                                "rounded-lg border px-3 py-2 text-xs font-semibold",
-                                                                selected
-                                                                    ? "border-primary bg-primary text-primary-foreground"
-                                                                    : "border-border disabled:opacity-40"
-                                                            )}
-                                                        >
-                                                            {si?.modules?.[mid]?.label ?? mid}
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-                                        {needsInfusionType ? (
-                                            <div className="space-y-1.5 max-w-xs">
-                                                <Label className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                                                    Weapon Infusion damage type
-                                                </Label>
-                                                <Select
-                                                    value={
-                                                        specialInvention?.weaponInfusionDamageType ?? ""
-                                                    }
-                                                    onValueChange={(v) =>
-                                                        onSpecialInventionChange({
-                                                            variant: "supportBackpack",
-                                                            backpackModules,
-                                                            weaponInfusionDamageType:
-                                                                v as WeaponInfusionDamageType,
-                                                        })
-                                                    }
-                                                >
-                                                    <SelectTrigger className="h-10 text-sm">
-                                                        <SelectValue placeholder="Select type…" />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        {infusionTypes.map((dt) => (
-                                                            <SelectItem key={dt} value={dt}>
-                                                                {formatWeaponInfusionDamageLabel(dt)}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-                                        ) : null}
-                                    </div>
-                                ) : null}
-                            </section>
-                        );
-                    })()
+                    <SpecialInventionSection
+                        inventionRules={
+                            (rulesData.classes as Record<string, { specialInvention?: SpecialInventionRulesUi }>)
+                                .artificer?.specialInvention
+                        }
+                        specialInvention={specialInvention}
+                        onChange={onSpecialInventionChange}
+                    />
                 ) : null}
 
                 {expandedClassId === "fairytamer" &&

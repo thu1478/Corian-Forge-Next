@@ -61,40 +61,57 @@ import {
 import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger} from "@/components/ui/dropdown-menu"
 import {capitalizeFirstLetter, cn} from "@/lib/utils"
 import {Button} from "@/components/ui/button"
-import {makeContainerId, makeInventoryUid} from "@/lib/inventory-filters"
-import {unequipInventoryUids} from "@/lib/inventory-helpers"
-import { itemStackQuantity, sumDirectChildQuantities } from "@/lib/inventory-container-rules"
-import rulesData from "@/lib/rules.json";
-import {traitRefsIncludeId} from "@/lib/trait-helpers";
-import {actionTagMatchesFilterChip, actionTagMatchesSearchQuery} from "@/lib/action-tag-utils";
-import {Equipment, EQUIPMENT_RULES, type InventoryContainer} from "@/lib/equipment-data";
-import {useDataLoader} from "@/components/character-sheet/hooks/DataLoader";
+import {makeContainerId, makeInventoryUid} from "@/logic/equipment/inventory-filters"
+import {unequipInventoryUids} from "@/logic/equipment/inventory-helpers"
+import { itemStackQuantity, sumDirectChildQuantities } from "@/logic/equipment/inventory-container-rules"
+import {
+    getDamageTypes,
+    getRulesClasses,
+    getRulesItems,
+    getRulesSkills,
+    getRulesSystem,
+    getStartingXPPerLevel,
+    getXPCostPerLevel,
+    rulesData,
+} from "@/lib/rules-data";
+import {traitRefsIncludeId} from "@/logic/traits/helpers";
+import {actionTagMatchesFilterChip, actionTagMatchesSearchQuery} from "@/logic/actions/tag-utils";
+import {Equipment, type InventoryContainer} from "@/lib/equipment-data";
+import { EQUIPMENT_RULES } from "@/logic/equipment/equipment-slot-state";
+import {useDataLoader} from "@/hooks/character/use-data-loader";
 import {CharacterClass} from "@/lib/rules";
 import {
     applyRestChargeEffects,
     initialChargesForNewEntry,
     isChargesDepleted,
     lookupChargeDefinition,
-} from "@/lib/charge-helpers";
-import {applyEndOfCombatEffects} from "@/lib/rest-helpers";
-import {getCharacterLevelForStats} from "@/lib/character-data";
-import {listCatalogActionCardIds, listCatalogReactionCardIds} from "@/lib/generic-catalog";
+} from "@/logic/traits/charge-helpers";
+import {applyEndOfCombatEffects} from "@/logic/traits/rest-helpers";
+import {getCharacterLevelForStats} from "@/logic/character/stats";
+import {listCatalogActionCardIds, listCatalogReactionCardIds} from "@/logic/display/generic-catalog";
+import {
+    collectItemGrantedReactionIds,
+    getHandEquippedEquipmentReactionIds,
+} from "@/logic/equipment/granted-actions";
 import {
     collectClassProficiencies,
     heavyMightRequirementDeficitMessage,
     martialProficiencyDeficitMessage,
-} from "@/lib/equipment-proficiency";
+} from "@/logic/equipment/proficiency";
 import {
     buildWeaponBondContext,
     isBondedWeapon,
     parseWeaponBaseDamage,
     getEffectiveWeaponDamage,
+    resolveEquippedHands,
+    isWeaponItem,
     type WeaponDamageContext,
-} from "@/lib/weapon-utils";
-import { getItemNameClass } from "@/lib/item-rank-display";
+} from "@/logic/equipment/weapon-utils";
+import { getItemNameClass } from "@/logic/equipment/item-rank-display";
+import { animaWeaponActionVisible, getEquippedAnimaNaturalKeys, listNaturalWeaponOptionsForTemplate } from "@/logic/equipment/natural-weapons";
 import { WeaponBondBadge } from "@/components/equipment/weapon-bond-badge";
-import { statDeltaTextClass } from "@/lib/stat-delta-display";
-import type {WeaponItem} from "@/lib/equipment-data";
+import { statDeltaTextClass } from "@/logic/display/stat-delta-display";
+import type {WeaponItem, InventoryItem} from "@/lib/equipment-data";
 import {ProficienciesPanel} from "@/components/character-sheet/characterPage/proficiencies-panel";
 import {CreaturesPanel} from "@/components/character-sheet/characterPage/creatures-panel";
 import {
@@ -103,15 +120,25 @@ import {
     getDeployedCreatureActionRefs,
     reconcileCreatureRoster,
     type CreatureRosterEntry,
-} from "@/lib/creature-roster";
+} from "@/logic/creatures/roster";
 import {
     druidAnimaDisabledReason,
     isDruidAnimaRosterEntry,
     applyAnimaTransformEquipment,
     applyAnimaTransformBarrier,
-} from "@/lib/druid-anima";
-import { resolveEquippedHands } from "@/lib/weapon-utils";
-import { animaWeaponActionVisible, getEquippedAnimaNaturalKeys, listNaturalWeaponOptionsForTemplate } from "@/lib/natural-weapons";
+} from "@/logic/creatures/druid-anima";
+import {
+    ActionCardOrganizer,
+} from "@/components/character-sheet/combatPage/action-card-organizer"
+import { emptyActionLayout, sanitizeActionLayout } from "@/logic/actions/action-layout"
+import {
+    getActionItemChargeCost,
+    inventoryItemChargeCurrent,
+    isItemChargeDepletedForAction,
+    itemChargeRulesFromCatalog,
+    updateInventoryItemCharges,
+} from "@/logic/equipment/item-charges";
+import { resolveMaxCharges } from "@/logic/traits/charge-helpers";
 
 type ActionFilter = string;
 type ViewMode = "grid" | "list"
@@ -346,14 +373,7 @@ export function CharacterSheetView() {
             }
             return true;
         });
-        return [...filtered].sort((a: any, b: any) => {
-            const fa = a.focusCost ?? 0;
-            const fb = b.focusCost ?? 0;
-            if (fa !== fb) return fa - fb;
-            const aa = a.apCost ?? 0;
-            const ab = b.apCost ?? 0;
-            return aa - ab;
-        });
+        return filtered;
     }, [character, actionFilter, actionSearch, creatureGrantedActionIds, activeAnimaActionIds, equippedAnimaNaturalKeys]);
 
     const catalogActionIds = useMemo(() => listCatalogActionCardIds(rulesData as any), []);
@@ -362,18 +382,50 @@ export function CharacterSheetView() {
         () =>
             collectClassProficiencies(
                 (character?.classes ?? []) as { id: string; level: number }[],
-                rulesData.classes as Record<string, { proficiencies?: string[] }>
+                getRulesClasses(rulesData)
             ),
         [character?.classes]
     );
-    const catalogReactionOptions = useMemo(
-        () =>
-            listCatalogReactionCardIds(rulesData as any).map((id) => ({
-                id,
-                label: String((rulesData as any).actionCards?.[id]?.name ?? id),
-            })),
+    const itemGrantedReactionIds = useMemo(
+        () => collectItemGrantedReactionIds(rulesData as Parameters<typeof collectItemGrantedReactionIds>[0]),
         []
     );
+    const catalogReactionOptions = useMemo(
+        () =>
+            listCatalogReactionCardIds(rulesData as any)
+                .filter((id) => !itemGrantedReactionIds.has(id))
+                .map((id) => ({
+                    id,
+                    label: String((rulesData as any).actionCards?.[id]?.name ?? id),
+                })),
+        [itemGrantedReactionIds]
+    );
+
+    const handEquippedReactionIds = useMemo(() => {
+        if (!character) return new Set<string>()
+        const activeWeaponUid =
+            (character as { activeWeaponUid?: string | null }).activeWeaponUid ??
+            character.equipment?.activeWeapon?.uid ??
+            null
+        const offhandUid =
+            (character as { offhandUid?: string | null }).offhandUid ??
+            character.equipment?.offhand?.uid ??
+            null
+        return getHandEquippedEquipmentReactionIds(
+            {
+                equipment: { activeWeapon: activeWeaponUid, offhand: offhandUid },
+                inventory: character.inventory,
+            },
+            rulesData as Parameters<typeof getHandEquippedEquipmentReactionIds>[1]
+        )
+    }, [
+        character,
+        character?.inventory,
+        character?.equipment?.activeWeapon,
+        character?.equipment?.offhand,
+        (character as { activeWeaponUid?: string | null } | null)?.activeWeaponUid,
+        (character as { offhandUid?: string | null } | null)?.offhandUid,
+    ]);
 
     if (isLoading || !character) return <div className="p-8 text-center">Loading...</div>;
 
@@ -752,7 +804,7 @@ export function CharacterSheetView() {
                 const chargeDef = lookupChargeDefinition(
                     "reaction",
                     newID,
-                    rulesData as import("@/lib/charge-helpers").RulesWithCharges
+                    rulesData as import("@/logic/traits/charge-helpers").RulesWithCharges
                 )
                 const charges = initialChargesForNewEntry(chargeDef, derived.attributes)
                 next.push({id: newID, slotIndex: index, charges})
@@ -781,7 +833,7 @@ export function CharacterSheetView() {
             const chargeDef = lookupChargeDefinition(
                 "action",
                 id,
-                rulesData as import("@/lib/charge-helpers").RulesWithCharges
+                rulesData as import("@/logic/traits/charge-helpers").RulesWithCharges
             )
             const charges = initialChargesForNewEntry(chargeDef, derived.attributes)
             return {...prev, actions: [...actions, {id, charges}]};
@@ -794,7 +846,7 @@ export function CharacterSheetView() {
             const chargeDef = lookupChargeDefinition(
                 "reaction",
                 id,
-                rulesData as import("@/lib/charge-helpers").RulesWithCharges
+                rulesData as import("@/logic/traits/charge-helpers").RulesWithCharges
             )
             const charges = initialChargesForNewEntry(chargeDef, derived.attributes)
             return {
@@ -831,9 +883,25 @@ export function CharacterSheetView() {
         }))
     }
 
+    const handleUpdateItemCharges = (itemUid: string, newCount: number) => {
+        setCharacter((prev: any) => ({
+            ...prev,
+            inventory: updateInventoryItemCharges(prev.inventory ?? [], itemUid, newCount),
+        }))
+    }
+
+    const handleActionLayoutChange = (layout: import("@/lib/character-data").ActionLayout) => {
+        setCharacter((prev: any) => ({
+            ...prev,
+            actionLayout: layout,
+        }))
+    }
+
+    const actionLayout = sanitizeActionLayout(character?.actionLayout ?? emptyActionLayout())
+
     const handleEndOfCombat = () => {
         setCharacter((prev: any) =>
-            applyEndOfCombatEffects(prev, derived.attributes, rulesData as import("@/lib/charge-helpers").RulesWithCharges)
+            applyEndOfCombatEffects(prev, derived.attributes, rulesData as import("@/logic/traits/charge-helpers").RulesWithCharges)
         );
     };
 
@@ -850,7 +918,7 @@ export function CharacterSheetView() {
                 prev,
                 "shortRest",
                 derived.attributes,
-                rulesData as import("@/lib/charge-helpers").RulesWithCharges
+                rulesData as import("@/logic/traits/charge-helpers").RulesWithCharges
             )
             return {
                 ...withCharges,
@@ -871,13 +939,13 @@ export function CharacterSheetView() {
             let next = applyEndOfCombatEffects(
                 prev,
                 derived.attributes,
-                rulesData as import("@/lib/charge-helpers").RulesWithCharges
+                rulesData as import("@/logic/traits/charge-helpers").RulesWithCharges
             )
             next = applyRestChargeEffects(
                 next,
                 "longRest",
                 derived.attributes,
-                rulesData as import("@/lib/charge-helpers").RulesWithCharges
+                rulesData as import("@/logic/traits/charge-helpers").RulesWithCharges
             )
             return {
                 ...next,
@@ -1281,36 +1349,116 @@ export function CharacterSheetView() {
                                         ))}
                                     </div>
                                     <ScrollArea className="h-[calc(100vh-150px)]">
-                                        <div
-                                            className={cn(viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 gap-4" : "space-y-4")}>
-                                            {filteredActions.map((action) => (
-                                                <ActionCardComponent
-                                                    key={action.id}
-                                                    action={action}
-                                                    attributes={derived.attributes}
-                                                    disabled={
-                                                        (action.focusCost || 0) > character.focus ||
-                                                        isChargesDepleted(
-                                                            "action",
-                                                            action.id,
-                                                            action.charges,
-                                                            derived.attributes,
-                                                            rulesData as import("@/lib/charge-helpers").RulesWithCharges
-                                                        )
-                                                    }
-                                                    currentWeapon={currentWeapon}
-                                                    offhandWeapon={offhandWeapon}
-                                                    forceCollapsed={allCollapsed}
-                                                    actionCostBudget={actionCostBudget}
-                                                    onSpendActionCost={handleSpendActionCost}
-                                                    powerRollDisplayMode={powerRollShowFormula ? "formula" : "simple"}
-                                                    combatRuleContext={combatRuleContext}
-                                                    onUpdateCharges={(n) =>
-                                                        handleUpdateActionCharges(action.id, n)
-                                                    }
-                                                />
-                                            ))}
-                                        </div>
+                                        <ActionCardOrganizer
+                                            visibleActions={filteredActions}
+                                            actionLayout={actionLayout}
+                                            onLayoutChange={handleActionLayoutChange}
+                                            viewMode={viewMode}
+                                            renderActionCard={(action, opts) => {
+                                                const grantingItem = action.grantingItemUid
+                                                    ? (character.inventory ?? []).find(
+                                                          (i: InventoryItem) =>
+                                                              i.uid === action.grantingItemUid
+                                                      ) ?? null
+                                                    : null
+                                                const itemRules = grantingItem
+                                                    ? itemChargeRulesFromCatalog(
+                                                          grantingItem.id,
+                                                          rulesData
+                                                      )
+                                                    : undefined
+                                                const itemChargeCost = getActionItemChargeCost(action)
+                                                const itemChargeMax = itemRules
+                                                    ? resolveMaxCharges(
+                                                          itemRules,
+                                                          derived.attributes
+                                                      )
+                                                    : 0
+                                                const itemChargeCurrent =
+                                                    inventoryItemChargeCurrent(
+                                                        grantingItem ?? undefined
+                                                    )
+                                                const itemChargeDepleted =
+                                                    !!grantingItem &&
+                                                    isItemChargeDepletedForAction(
+                                                        itemRules,
+                                                        action,
+                                                        typeof grantingItem.charges === "number"
+                                                            ? grantingItem.charges
+                                                            : grantingItem.charges?.current,
+                                                        derived.attributes
+                                                    )
+                                                const grantingWeapon =
+                                                    grantingItem && isWeaponItem(grantingItem)
+                                                        ? grantingItem
+                                                        : null
+
+                                                return (
+                                                            <ActionCardComponent
+                                                                action={action}
+                                                                attributes={derived.attributes}
+                                                                forceCollapsed={opts.isEditMode || allCollapsed}
+                                                                collapseAllSignal={
+                                                                    opts.isEditMode
+                                                                        ? opts.editCollapseSignal
+                                                                        : undefined
+                                                                }
+                                                                disabled={
+                                                                    (action.focusCost || 0) >
+                                                                        character.focus ||
+                                                                    (!action.grantingItemUid &&
+                                                                        isChargesDepleted(
+                                                                            "action",
+                                                                            action.id,
+                                                                            action.charges,
+                                                                            derived.attributes,
+                                                                            rulesData as import("@/logic/traits/charge-helpers").RulesWithCharges
+                                                                        )) ||
+                                                                    itemChargeDepleted
+                                                                }
+                                                                currentWeapon={currentWeapon}
+                                                                offhandWeapon={offhandWeapon}
+                                                                grantingWeapon={grantingWeapon}
+                                                                actionCostBudget={actionCostBudget}
+                                                                onSpendActionCost={
+                                                                    handleSpendActionCost
+                                                                }
+                                                                powerRollDisplayMode={
+                                                                    powerRollShowFormula
+                                                                        ? "formula"
+                                                                        : "simple"
+                                                                }
+                                                                combatRuleContext={
+                                                                    combatRuleContext
+                                                                }
+                                                                onUpdateCharges={
+                                                                    action.grantingItemUid
+                                                                        ? undefined
+                                                                        : (n) =>
+                                                                              handleUpdateActionCharges(
+                                                                                  action.id,
+                                                                                  n
+                                                                              )
+                                                                }
+                                                                itemChargeCost={itemChargeCost}
+                                                                itemChargeCurrent={
+                                                                    itemChargeCurrent
+                                                                }
+                                                                itemChargeMax={itemChargeMax}
+                                                                onSpendItemCharge={
+                                                                    action.grantingItemUid &&
+                                                                    itemChargeCost != null
+                                                                        ? (n) =>
+                                                                              handleUpdateItemCharges(
+                                                                                  action.grantingItemUid!,
+                                                                                  n
+                                                                              )
+                                                                        : undefined
+                                                                }
+                                                            />
+                                                )
+                                            }}
+                                        />
                                     </ScrollArea>
                                 </div>
                             </div>
@@ -1337,6 +1485,9 @@ export function CharacterSheetView() {
                                     combatRuleContext={combatRuleContext}
                                     adventurerLevel={adventurerLevel}
                                     onAddFocus={handleAddFocus}
+                                    itemGrantedReactionIds={itemGrantedReactionIds}
+                                    handEquippedReactionIds={handEquippedReactionIds}
+                                    hydratedTraits={(character as { hydratedTraits?: import("@/lib/rules").Trait[] }).hydratedTraits ?? []}
                                 />
                             </div>
                         </div>
@@ -1366,7 +1517,7 @@ export function CharacterSheetView() {
                                 maxIp={derived.maxIP}
                                 onAdjustMoney={adjustMoneyBy}
                                 onAdjustIp={adjustIpBy}
-                                itemCatalog={rulesData.items as Record<string, Record<string, unknown>>}
+                                itemCatalog={getRulesItems(rulesData)}
                                 rules={rulesData as Record<string, unknown>}
                                 attributes={derived.attributes}
                                 onAddInventoryItem={handleAddInventoryItem}
@@ -1384,6 +1535,7 @@ export function CharacterSheetView() {
                                 onToggleWeaponBond={handleToggleWeaponBond}
                                 activeWeapon={currentWeapon}
                                 offhandWeapon={offhandWeapon}
+                                onUpdateItemCharges={handleUpdateItemCharges}
                             />
                         </div>
                     </TabsContent>
@@ -1393,7 +1545,7 @@ export function CharacterSheetView() {
                             <div className="space-y-4 min-w-0">
                                 <ClassesPanel
                                     classes={character.classes}
-                                    rules={rulesData.classes}
+                                    rules={getRulesClasses(rulesData)}
                                     priestDeity={character.priestDeity ?? null}
                                 />
                                 <CreaturesPanel
@@ -1419,7 +1571,7 @@ export function CharacterSheetView() {
                                     cultureOrganization={character.cultureOrganization ?? null}
                                     cultureUpbringing={character.cultureUpbringing ?? null}
                                     occupation={character.occupation ?? null}
-                                    system={rulesData.system}
+                                    system={getRulesSystem(rulesData)}
                                 />
                                 <LanguagesPanel languages={derived.languages}/>
                             </div>
@@ -1436,10 +1588,7 @@ export function CharacterSheetView() {
                                 <SkillsPanel
                                     skills={character.skills ?? []}
                                     attributes={derived.attributes}
-                                    skillCatalog={
-                                        (rulesData.system as { skills?: Record<string, Record<string, unknown>> })
-                                            ?.skills ?? {}
-                                    }
+                                    skillCatalog={getRulesSkills(rulesData)}
                                 />
                                 <ProficienciesPanel proficiencies={classProficiencies} />
                             </div>
@@ -1460,7 +1609,7 @@ export function CharacterSheetView() {
                                 />
                                 <BondsPanel
                                     bondTargets={character.bondTargets ?? []}
-                                    rulesSystem={rulesData.system}
+                                    rulesSystem={getRulesSystem(rulesData)}
                                     onBondTargetsChange={(next) =>
                                         setCharacter((prev: any) => ({...prev, bondTargets: next}))
                                     }
@@ -1486,7 +1635,9 @@ export function CharacterSheetView() {
                 barrier={character.barrier}
                 onApplyDamage={handleApplyDamage}
                 damageTypes={
-                    (rulesData.system as { damageTypes?: string[] }).damageTypes ?? [
+                    getDamageTypes(rulesData).length > 0
+                        ? getDamageTypes(rulesData)
+                        : [
                         "crushing",
                         "slashing",
                         "piercing",

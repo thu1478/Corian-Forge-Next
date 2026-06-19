@@ -1,8 +1,9 @@
 "use client"
 
 import { ActionCardComponent } from "@/components/character-sheet/combatPage/action-card-manager"
-import { hydrateActionCardById } from "@/lib/action-hydrate"
-import rulesData from "@/lib/rules.json"
+import { hydrateActionCardById } from "@/logic/actions/hydrate"
+import { isActionCardInteractiveTarget } from "@/logic/actions/action-card-interaction"
+import { rulesData } from "@/lib/rules-data"
 import { cn } from "@/lib/utils"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -19,7 +20,7 @@ import {
     resolveUpgradedFairySlotIndex,
     setFairySlotAt,
     type FairyTamerContractsSave,
-} from "@/lib/fairy-tamer"
+} from "@/logic/creatures/fairy-tamer"
 
 type CreatorAttributes = {
     might: number
@@ -71,8 +72,9 @@ export function FairyTamerContractsSection({
                 tabIndex={allowed ? 0 : -1}
                 aria-disabled={!allowed}
                 aria-pressed={selected}
-                onClick={() => {
-                    if (allowed) onToggleFairySpell(aid, slotIdx)
+                onClick={(e) => {
+                    if (!allowed || isActionCardInteractiveTarget(e.target)) return
+                    onToggleFairySpell(aid, slotIdx)
                 }}
                 onKeyDown={(e) => {
                     if (!allowed) return
@@ -99,7 +101,10 @@ export function FairyTamerContractsSection({
                     </span>
                     <span className="font-mono text-[10px] text-muted-foreground/90">{aid}</span>
                 </div>
-                <div className="p-2 max-h-[min(70vh,520px)] overflow-y-auto pointer-events-none">
+                <div
+                    className="p-2 max-h-[min(70vh,520px)] overflow-y-auto"
+                    data-action-no-edit
+                >
                     {ac ? (
                         <ActionCardComponent
                             action={ac}

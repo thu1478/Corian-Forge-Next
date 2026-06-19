@@ -8,12 +8,10 @@ import {
     Shield,
     Shirt,
     Crown,
-    Eye,
-    Ear,
     Gem,
     Footprints,
     CircleDot,
-    Sparkles,
+    Watch,
     ChevronDown,
     X
 } from "lucide-react"
@@ -24,16 +22,17 @@ import {
     DropdownMenuItem, DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import {ArmorItem, Equipment, InventoryItem, MiscItem, ShieldItem, WeaponItem} from "@/lib/equipment-data";
-import {armorStatSummary, shieldStatSummary, weaponStatSummary} from "@/lib/equipment-stats-display";
+import {ArmorItem, ContainerItem, Equipment, InventoryItem, MiscItem, ShieldItem, WeaponItem} from "@/lib/equipment-data";
+import {armorStatSummary, shieldStatSummary, weaponStatSummary} from "@/logic/equipment/stats-display";
 import type { TraitRef } from "@/lib/baseRefs";
-import { buildWeaponBondContext, isBondedWeapon } from "@/lib/weapon-utils";
-import { getItemNameClass, type RulesWithItemRanks } from "@/lib/item-rank-display";
+import { buildWeaponBondContext, isBondedWeapon } from "@/logic/equipment/weapon-utils";
+import { getItemNameClass, type RulesWithItemRanks } from "@/logic/equipment/item-rank-display";
 import { WeaponBondBadge } from "@/components/equipment/weapon-bond-badge";
-import { heavyMightRequirementDeficitMessage, martialProficiencyDeficitMessage } from "@/lib/equipment-proficiency";
+import { heavyMightRequirementDeficitMessage, martialProficiencyDeficitMessage } from "@/logic/equipment/proficiency";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { getCreatureTemplates, type RulesWithBestiary } from "@/lib/creature-roster";
-import { buildAnimaWeaponSlotUid, listNaturalWeaponOptionsForTemplate, type RulesWithNaturalWeapons } from "@/lib/natural-weapons";
+import { getCreatureTemplates, type RulesWithBestiary } from "@/logic/creatures/roster";
+import { buildAnimaWeaponSlotUid, listNaturalWeaponOptionsForTemplate, type RulesWithNaturalWeapons } from "@/logic/equipment/natural-weapons";
+import { ACCESSORY_SLOT_UI, itemAllowedInAccessorySlot, type AccessorySlotKey } from "@/logic/equipment/accessory-slots";
 
 export function ProficiencyAlert({ message }: { message: string | null }) {
     if (!message) return null;
@@ -99,18 +98,23 @@ function EquippedWeaponName({
     )
 }
 
-const accessorySlots: { key: keyof Equipment["accessories"]; label: string; icon: React.ReactNode }[] = [
-    {key: "head", label: "Head", icon: <Crown className="w-4 h-4"/>},
-    {key: "face", label: "Face", icon: <Eye className="w-4 h-4"/>},
-    {key: "ears", label: "Ears", icon: <Ear className="w-4 h-4"/>},
-    {key: "neck", label: "Neck", icon: <Gem className="w-4 h-4"/>},
-    {key: "back", label: "Back", icon: <Sparkles className="w-4 h-4"/>},
-    {key: "hands", label: "Hands", icon: <CircleDot className="w-4 h-4"/>},
-    {key: "ringLeft", label: "Ring (L)", icon: <CircleDot className="w-4 h-4"/>},
-    {key: "ringRight", label: "Ring (R)", icon: <CircleDot className="w-4 h-4"/>},
-    {key: "waist", label: "Waist", icon: <CircleDot className="w-4 h-4"/>},
-    {key: "feet", label: "Feet", icon: <Footprints className="w-4 h-4"/>}
-]
+const accessorySlots = ACCESSORY_SLOT_UI.map(({ key, label, hint }) => ({
+    key,
+    label,
+    hint,
+    icon:
+        key === "head" ? (
+            <Crown className="w-4 h-4" />
+        ) : key === "neck" ? (
+            <Gem className="w-4 h-4" />
+        ) : key === "waist" ? (
+            <CircleDot className="w-4 h-4" />
+        ) : key === "feet" ? (
+            <Footprints className="w-4 h-4" />
+        ) : (
+            <Watch className="w-4 h-4" />
+        ),
+}))
 
 export function EquipmentPanel({
     equipment,
@@ -187,8 +191,10 @@ export function EquipmentPanel({
         if (slot === "armor") {
             return inventory.filter((item): item is ArmorItem => item.type === "armor");
         }
-        return inventory.filter((item): item is MiscItem =>
-            item.allowedSlots?.includes(slot as any) ?? false
+        return inventory.filter(
+            (item): item is MiscItem | ContainerItem =>
+                (item.type === "misc" || item.type === "container") &&
+                itemAllowedInAccessorySlot(item.allowedSlots, slot as AccessorySlotKey),
         );
     };
 
@@ -450,7 +456,7 @@ export function EquipmentPanel({
                 </div>
 
                 <div className="space-y-2 max-h-96 overflow-y-auto pr-1 custom-scrollbar">
-                    {filteredAccessories.map(({key, label, icon}) => {
+                    {filteredAccessories.map(({key, label, hint, icon}) => {
                         // item is now a full MiscItem object from your HydratedCharacter
                         const item = equipment.accessories[key];
                         const availableItems = getItemsForSlot(key);
@@ -472,9 +478,10 @@ export function EquipmentPanel({
                                     {icon}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                        <span className="text-xs uppercase tracking-wider text-muted-foreground font-medium block mb-1">
+                        <span className="text-xs uppercase tracking-wider text-muted-foreground font-medium block mb-0.5">
                             {label}
                         </span>
+                        <span className="text-[10px] text-muted-foreground/80 block mb-1">{hint}</span>
 
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>

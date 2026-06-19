@@ -2,8 +2,8 @@
 
 import {useMemo, useState} from "react"
 import {cn} from "@/lib/utils"
-import { normalizeDamageTypeKey } from "@/lib/damage-type-key"
-import { conflictingDamageTypeKeys } from "@/lib/damage-resolution"
+import { normalizeDamageTypeKey } from "@/logic/combat/damage-type-key"
+import { conflictingDamageTypeKeys } from "@/logic/combat/damage-resolution"
 import {
     Award,
     Calculator,
@@ -19,7 +19,7 @@ import {
 } from "lucide-react"
 import {Button} from "@/components/ui/button"
 import {Input} from "@/components/ui/input"
-import { statDeltaTextClass } from "@/lib/stat-delta-display"
+import { statDeltaTextClass } from "@/logic/display/stat-delta-display"
 
 interface ResourceBarProps {
     label: string

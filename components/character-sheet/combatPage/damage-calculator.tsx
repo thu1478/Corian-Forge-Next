@@ -5,8 +5,8 @@ import {cn} from "@/lib/utils"
 import {X, GripHorizontal, Shield, Heart, Sparkles, Swords} from "lucide-react"
 import {Button} from "@/components/ui/button"
 import {Input} from "@/components/ui/input"
-import {resolveIncomingDamage, type DamageChannel} from "@/lib/damage-resolution"
-import { statDeltaTextClass } from "@/lib/stat-delta-display"
+import {resolveIncomingDamage, type DamageChannel} from "@/logic/combat/damage-resolution"
+import { statDeltaTextClass } from "@/logic/display/stat-delta-display"
 
 interface DamageCalculatorProps {
     isOpen: boolean

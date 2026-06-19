@@ -1,7 +1,7 @@
 import React, { useMemo } from "react"
 import { ChevronRightIcon, RotateCcwIcon, CheckCircle2Icon, CircleAlertIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
-import type { CreatorTodoItem } from "@/lib/creator-todos"
+import type { CreatorTodoItem } from "@/components/character-creator/logic/todos"
 
 interface WelcomeStepProps {
     todos: CreatorTodoItem[]

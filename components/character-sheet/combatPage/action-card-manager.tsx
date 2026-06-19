@@ -2,7 +2,7 @@
 
 import {useEffect, useLayoutEffect, useMemo, useState} from "react" // Added useState
 import {cn} from "@/lib/utils"
-import {ChevronDown, Clock, Crosshair, Droplets, Sword, Swords, Target, Wrench, Zap} from "lucide-react" // Added ChevronDown
+import {ChevronDown, Clock, Crosshair, Droplets, Sparkles, Sword, Swords, Target, Wrench, Zap} from "lucide-react" // Added ChevronDown
 import {InventoryItem} from "@/lib/equipment-data";
 import {ActionCard} from "@/lib/rules";
 import { EffectGlossaryTag } from "@/components/effect-glossary-tag"
@@ -10,14 +10,22 @@ import {
     PowerRollTierRow,
     type PowerRollDisplayMode,
 } from "@/components/power-roll/power-roll-tier-row"
-import { resolveWeaponForActionPowerRoll } from "@/lib/weapon-utils"
+import { resolveWeaponForActionPowerRoll, resolveWeaponForGrantedEquipmentAction } from "@/logic/equipment/weapon-utils"
 import {
     computeArcaneTraditionImplementBonus,
     computePowerRollFlatDamageBonus,
     computeShieldSubstituteWeaponDamage,
     resolvePowerRollTierAmountSuffix,
     type CombatRuleBonusInput,
-} from "@/lib/power-roll-combat-bonuses"
+} from "@/logic/combat/power-roll-combat-bonuses"
+import {
+    actionHasEnhancements,
+    getDisplayApCost,
+    getDisplayFocusCost,
+    getDisplayIpCost,
+    getDisplayMpCost,
+    getDisplayPowerRoll,
+} from "@/logic/actions/action-enhancements"
 import { ChargePips } from "@/components/character-sheet/charge-pips"
 import {
     hasChargeTracking,
@@ -25,8 +33,11 @@ import {
     resolveCurrentCharges,
     resolveMaxCharges,
     type RulesWithCharges,
-} from "@/lib/charge-helpers"
-import rulesData from "@/lib/rules.json"
+} from "@/logic/traits/charge-helpers"
+import { rulesData } from "@/lib/rules-data"
+import { getActionItemChargeCost } from "@/logic/equipment/item-charges"
+import { getActionTypeStyle } from "@/components/character-sheet/combatPage/action-tile-styles"
+import { formatActionCardSubtitle } from "@/logic/actions/action-visual-category"
 
 export type CombatRuleContext = CombatRuleBonusInput
 
@@ -55,6 +66,8 @@ interface ActionCardProps {
     currentWeapon?: InventoryItem | null
     /** Off hand; only weapons contribute to +Wpn resolution (shields ignored). */
     offhandWeapon?: InventoryItem | null
+    /** When set, +Wpn uses this item instead of hand weapon resolution. */
+    grantingWeapon?: InventoryItem | null
     forceCollapsed: boolean
     /** When set with `actionCostBudget`, cost chips spend that resource on click (e.g. combat tab). */
     onSpendActionCost?: (kind: ActionSpendResourceKind, amount: number) => void
@@ -68,30 +81,11 @@ interface ActionCardProps {
     /** When set, power rolls include Shield Master / Arcane Tradition / Reward for Faith math. */
     combatRuleContext?: CombatRuleContext
     onUpdateCharges?: (newCount: number) => void
-}
-
-const typeConfig = {
-    action: {
-        icon: Swords,
-        bg: "bg-gradient-to-br from-red-100 to-red-50 dark:from-red-950/50 dark:to-red-900/30",
-        border: "border-red-300 dark:border-red-800/60",
-        accent: "text-red-700 dark:text-red-400",
-        badge: "bg-red-200 text-red-800 dark:bg-red-900/80 dark:text-red-200"
-    },
-    reaction: {
-        icon: Zap,
-        bg: "bg-gradient-to-br from-amber-100 to-amber-50 dark:from-amber-950/50 dark:to-amber-900/30",
-        border: "border-amber-300 dark:border-amber-800/60",
-        accent: "text-amber-700 dark:text-amber-400",
-        badge: "bg-amber-200 text-amber-800 dark:bg-amber-900/80 dark:text-amber-200"
-    },
-    freeReaction: {
-        icon: Zap,
-        bg: "bg-gradient-to-br from-sky-100 to-sky-50 dark:from-sky-950/50 dark:to-sky-900/30",
-        border: "border-sky-300 dark:border-sky-800/60",
-        accent: "text-sky-700 dark:text-sky-400",
-        badge: "bg-sky-200 text-sky-800 dark:bg-sky-900/80 dark:text-sky-200"
-    }
+    /** Item charge cost for this equipment-granted action; omit when action does not spend item charges. */
+    itemChargeCost?: number | null
+    itemChargeCurrent?: number
+    itemChargeMax?: number
+    onSpendItemCharge?: (newCount: number) => void
 }
 
 export function ActionCardComponent({
@@ -100,6 +94,7 @@ export function ActionCardComponent({
                                         disabled = false,
                                         currentWeapon,
                                         offhandWeapon = null,
+                                        grantingWeapon = null,
                                         forceCollapsed = false,
                                         onSpendActionCost,
                                         actionCostBudget,
@@ -108,6 +103,10 @@ export function ActionCardComponent({
                                         collapseAllSignal,
                                         combatRuleContext,
                                         onUpdateCharges,
+                                        itemChargeCost = null,
+                                        itemChargeCurrent = 0,
+                                        itemChargeMax = 0,
+                                        onSpendItemCharge,
                                     }: ActionCardProps) {
     // Each card maintains its own independent state
     const [isExpanded, setIsExpanded] = useState(true);
@@ -119,15 +118,24 @@ export function ActionCardComponent({
     }, [action.id, defaultPowerRollExpanded])
 
     const weaponForPowerRollDamage = useMemo(
-        () =>
-            resolveWeaponForActionPowerRoll(
+        () => {
+            if (grantingWeapon) {
+                return resolveWeaponForGrantedEquipmentAction(
+                    grantingWeapon,
+                    action.tags,
+                    action.powerRoll?.rollStats,
+                    { traits: combatRuleContext?.traits }
+                )
+            }
+            return resolveWeaponForActionPowerRoll(
                 action.tags,
                 action.powerRoll?.rollStats,
                 currentWeapon ?? null,
                 offhandWeapon ?? null,
                 { traits: combatRuleContext?.traits }
-            ),
-        [action.tags, action.powerRoll?.rollStats, currentWeapon, offhandWeapon, combatRuleContext?.traits]
+            )
+        },
+        [action.tags, action.powerRoll?.rollStats, currentWeapon, offhandWeapon, grantingWeapon, combatRuleContext?.traits]
     );
 
     const shieldSubstituteWeaponDamage = useMemo(
@@ -158,10 +166,15 @@ export function ActionCardComponent({
         [action.hiddenTags]
     )
 
-    // Effect to listen to the "Global Collapse" button from parent
     useEffect(() => {
-        setIsExpanded(!forceCollapsed);
-    }, [forceCollapsed]);
+        if (forceCollapsed) {
+            setIsExpanded(false)
+            setIsPowerRollExpanded(false)
+            return
+        }
+        setIsExpanded(true)
+        setIsPowerRollExpanded(defaultPowerRollExpanded)
+    }, [forceCollapsed, defaultPowerRollExpanded])
 
     useEffect(() => {
         if (collapseAllSignal == null || collapseAllSignal < 1) return
@@ -169,10 +182,16 @@ export function ActionCardComponent({
         setIsPowerRollExpanded(false)
     }, [collapseAllSignal])
 
-    const config = typeConfig[action.type] || typeConfig.action
+    const config = getActionTypeStyle(action)
     const TypeIcon = config.icon
 
-    const pr = action.powerRoll
+    const spendInteractive = Boolean(onSpendActionCost && actionCostBudget && !disabled)
+    const apCost = getDisplayApCost(action)
+    const mpCost = getDisplayMpCost(action)
+    const focusCost = getDisplayFocusCost(action)
+    const ipCost = getDisplayIpCost(action)
+    const displayPowerRoll = getDisplayPowerRoll(action)
+    const pr = displayPowerRoll ?? action.powerRoll
     const addsWeaponDamageToPowerRoll =
         !!pr &&
         (pr.tier1Wpn === true ||
@@ -181,15 +200,12 @@ export function ActionCardComponent({
             (shieldSubstituteWeaponDamage != null && shieldSubstituteWeaponDamage > 0) ||
             flatPowerRollBonus > 0)
 
-    const spendInteractive = Boolean(onSpendActionCost && actionCostBudget && !disabled)
-    const mpCost = action.mpCost ?? 0
-    const focusCost = action.focusCost ?? 0
-    const ipCost = action.ipCost ?? 0
-
+    const isEquipmentGranted = Boolean(action.grantingItemUid)
     const chargeDef = useMemo(() => {
+        if (isEquipmentGranted) return undefined
         if (hasChargeTracking(action)) return action
         return lookupChargeDefinition("action", action.id, rulesData as RulesWithCharges)
-    }, [action])
+    }, [action, isEquipmentGranted])
     const maxCharges = useMemo(
         () => resolveMaxCharges(chargeDef, attributes),
         [chargeDef, attributes]
@@ -198,7 +214,18 @@ export function ActionCardComponent({
         () => resolveCurrentCharges(action.charges, maxCharges),
         [action.charges, maxCharges]
     )
-    const showChargePips = maxCharges > 0 && Boolean(onUpdateCharges)
+    const showChargePips = !isEquipmentGranted && maxCharges > 0 && Boolean(onUpdateCharges)
+
+    const itemChargeSpendCost = useMemo(() => {
+        const resolved =
+            itemChargeCost != null ? itemChargeCost : getActionItemChargeCost(action)
+        if (resolved == null || resolved <= 0) return 0
+        return resolved
+    }, [itemChargeCost, action])
+    const itemChargeSpendInteractive = Boolean(
+        onSpendItemCharge && itemChargeSpendCost > 0 && !disabled
+    )
+    const showItemChargePool = itemChargeSpendCost > 0 && itemChargeMax > 0
 
     const trySpend = (kind: ActionSpendResourceKind, amount: number) => {
         if (!spendInteractive || amount <= 0) return
@@ -223,6 +250,11 @@ export function ActionCardComponent({
                     <div>
                         <div className="flex items-center gap-2">
                             <h3 className="font-bold text-foreground leading-tight text-lg">{action.name}</h3>
+                            {actionHasEnhancements(action) ? (
+                                <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                                    Enhanced
+                                </span>
+                            ) : null}
                             {addsWeaponDamageToPowerRoll ? (
                                 <span
                                     className="inline-flex shrink-0 text-foreground/55 hover:text-foreground/80"
@@ -240,10 +272,29 @@ export function ActionCardComponent({
                             )}/>
                         </div>
                         <span className={cn("text-sm uppercase tracking-wider font-medium", config.accent)}>
-                            {action.type}
+                            {formatActionCardSubtitle(action)}
                         </span>
+                        {action.grantingItemName ? (
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                                via {action.grantingItemName}
+                            </p>
+                        ) : null}
                     </div>
                 </div>
+                {showItemChargePool ? (
+                    <div
+                        className="shrink-0 pt-1"
+                        data-action-no-edit
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <ChargePips
+                            readOnly
+                            showLabel={false}
+                            maxCharges={itemChargeMax}
+                            currentCharges={itemChargeCurrent}
+                        />
+                    </div>
+                ) : null}
             </div>
 
             {/* COLLAPSIBLE CONTENT CONTAINER */}
@@ -253,12 +304,12 @@ export function ActionCardComponent({
             )}>
 
                 {/* Cost Row — MP / Focus / IP clickable on combat sheet; AP is display-only */}
-                <div className="flex flex-wrap gap-2 mb-4">
-                    {action.apCost ? (
+                <div className="flex flex-wrap gap-2 mb-4" data-action-no-edit>
+                    {apCost > 0 ? (
                         <div
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/20 border border-primary/40">
                             <Zap className="w-4 h-4 text-primary"/>
-                            <span className="text-base font-bold text-primary">{action.apCost} AP</span>
+                            <span className="text-base font-bold text-primary">{apCost} AP</span>
                         </div>
                     ) : null}
 
@@ -348,10 +399,47 @@ export function ActionCardComponent({
                             </div>
                         )
                     )}
+
+                    {itemChargeSpendCost > 0 && (
+                        itemChargeSpendInteractive ? (
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation()
+                                    if (itemChargeCurrent < itemChargeSpendCost) return
+                                    onSpendItemCharge?.(itemChargeCurrent - itemChargeSpendCost)
+                                }}
+                                disabled={itemChargeCurrent < itemChargeSpendCost}
+                                title={`Spend ${itemChargeSpendCost} item charge${itemChargeSpendCost === 1 ? "" : "s"}`}
+                                className={cn(
+                                    "flex items-center gap-1.5 rounded-full border px-3 py-1.5 transition-colors",
+                                    "bg-amber-100 dark:bg-amber-500/20 border-amber-300 dark:border-amber-500/40",
+                                    "hover:bg-amber-200/80 dark:hover:bg-amber-500/30 disabled:cursor-not-allowed disabled:opacity-40"
+                                )}
+                            >
+                                <Sparkles className="w-4 h-4 shrink-0 text-amber-700 dark:text-amber-400"/>
+                                <span className="text-base font-bold text-amber-700 dark:text-amber-400">
+                                    {itemChargeSpendCost} {itemChargeSpendCost === 1 ? "Charge" : "Charges"}
+                                </span>
+                            </button>
+                        ) : (
+                            <div
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-100 dark:bg-amber-500/20 border border-amber-300 dark:border-amber-500/40">
+                                <Sparkles className="w-4 h-4 text-amber-700 dark:text-amber-400"/>
+                                <span className="text-base font-bold text-amber-700 dark:text-amber-400">
+                                    {itemChargeSpendCost} {itemChargeSpendCost === 1 ? "Charge" : "Charges"}
+                                </span>
+                            </div>
+                        )
+                    )}
                 </div>
 
                 {showChargePips ? (
-                    <div className="mb-4" onClick={(e) => e.stopPropagation()}>
+                    <div
+                        className="mb-4"
+                        data-action-no-edit
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         <ChargePips
                             maxCharges={maxCharges}
                             currentCharges={currentCharges}
@@ -384,15 +472,33 @@ export function ActionCardComponent({
                 </div>
 
                 {/* Effect Description */}
-                <div className="max-h-32 overflow-y-auto pr-2 custom-scrollbar mb-4">
+                <div
+                    className="max-h-32 overflow-y-auto pr-2 custom-scrollbar mb-4"
+                    data-action-no-edit
+                >
                     <p className="text-base text-foreground/80 leading-relaxed whitespace-pre-line">
                         {action.description}
                     </p>
+                    {action.enhancements?.notes.map((note, i) => (
+                        <div
+                            key={`${note.sourceLabel}-${i}`}
+                            className="mt-3 rounded-lg border border-primary/25 bg-primary/5 px-3 py-2"
+                        >
+                            <p className="text-xs font-semibold uppercase tracking-wide text-primary/80 mb-1">
+                                {note.sourceLabel}
+                            </p>
+                            <p className="text-sm text-foreground/75 leading-relaxed whitespace-pre-line">
+                                {note.appendDescription}
+                            </p>
+                        </div>
+                    ))}
                 </div>
 
                 {/* Power Roll (Collapsible) */}
-                {action.powerRoll && (
-                    <div className={cn(
+                {pr && (
+                    <div
+                        data-action-no-edit
+                        className={cn(
                         "mb-5 rounded-lg border-l-4 bg-muted/20 dark:bg-white/5 overflow-hidden transition-all",
                         config.border.replace('border-', 'border-l-')
                     )}>
@@ -415,7 +521,7 @@ export function ActionCardComponent({
                             </span>
                             </div>
                             <div className="flex items-center gap-1.5">
-                                {action.powerRoll.rollStats.map((stat, i) => (
+                                {pr.rollStats.map((stat, i) => (
                                     <div key={stat} className="flex items-center gap-1.5">
                                         {i > 0 && <span className="font-bold text-sm opacity-30">or</span>}
                                         <div
@@ -437,7 +543,7 @@ export function ActionCardComponent({
                         )}>
                             <PowerRollTierRow
                                 label="<=11"
-                                roll={action.powerRoll}
+                                roll={pr}
                                 tier={1}
                                 badgeStyle={config.badge}
                                 attributes={attributes}
@@ -450,7 +556,7 @@ export function ActionCardComponent({
                             />
                             <PowerRollTierRow
                                 label="12-16"
-                                roll={action.powerRoll}
+                                roll={pr}
                                 tier={2}
                                 badgeStyle={config.badge}
                                 attributes={attributes}
@@ -463,7 +569,7 @@ export function ActionCardComponent({
                             />
                             <PowerRollTierRow
                                 label=">=17"
-                                roll={action.powerRoll}
+                                roll={pr}
                                 tier={3}
                                 badgeStyle={config.badge}
                                 attributes={attributes}
@@ -479,7 +585,10 @@ export function ActionCardComponent({
                 )}
 
                 {/* Tags (glossary popover per tag) */}
-                <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-border dark:border-white/10">
+                <div
+                    className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-border dark:border-white/10"
+                    data-action-no-edit
+                >
                     {(action.tags ?? []).map((tag) => (
                         <EffectGlossaryTag key={tag} tag={tag} />
                     ))}

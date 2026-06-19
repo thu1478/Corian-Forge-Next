@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import rulesData from "@/lib/rules.json";
+import { getRulesCulture, getRulesSkills } from "@/lib/rules-data";
 import type { PowerRoll } from "@/lib/rules";
 import type { PowerRollAttributes } from "@/components/power-roll/power-roll-tier-row";
 import { TraitPowerRollCollapsible } from "@/components/power-roll/trait-power-roll-collapsible";
@@ -8,7 +8,7 @@ import {
   collectUnlockedSkillIdsForOccupation,
   getCultureSourceChips,
   skillSourceChipClassName,
-} from "@/lib/occupation";
+} from "@/logic/classes/occupation";
 
 type SkillCatalogRow = {
   name?: string;
@@ -51,29 +51,29 @@ export function CultureStep({
   const allChoicesMade =
   cultureEnvironment && cultureOrganization && cultureUpbringing;
   const isComplete = allChoicesMade && selectedSkills.length === 3;
-  const culture = rulesData.system.culture;
-  const allSkills = rulesData.system.skills as Record<string, SkillCatalogRow>;
+  const culture = getRulesCulture();
+  const allSkills = getRulesSkills();
 
   /** Same bucket rules as occupations: category names unlock all skills in that category; catalog keys unlock that skill. */
   const cultureUnlockBuckets = useMemo(() => {
     const buckets: string[] = [];
     if (cultureEnvironment) {
       buckets.push(
-        ...(culture.environment[cultureEnvironment as keyof typeof culture.environment]?.skillCategories ?? [])
+        ...(culture?.environment?.[cultureEnvironment]?.skillCategories ?? [])
       );
     }
     if (cultureOrganization) {
       buckets.push(
-        ...(culture.organization[cultureOrganization as keyof typeof culture.organization]?.skillCategories ?? [])
+        ...(culture?.organization?.[cultureOrganization]?.skillCategories ?? [])
       );
     }
     if (cultureUpbringing) {
       buckets.push(
-        ...(culture.upbringing[cultureUpbringing as keyof typeof culture.upbringing]?.skillCategories ?? [])
+        ...(culture?.upbringing?.[cultureUpbringing]?.skillCategories ?? [])
       );
     }
     return buckets;
-  }, [cultureEnvironment, cultureOrganization, cultureUpbringing, culture.environment, culture.organization, culture.upbringing]);
+  }, [cultureEnvironment, cultureOrganization, cultureUpbringing, culture]);
 
   const unlockedSkillIds = useMemo(
     () =>
@@ -177,7 +177,7 @@ export function CultureStep({
         {activeTab === 'environment' &&
         renderSection(
           'Environment',
-          culture.environment,
+          culture?.environment ?? {},
           cultureEnvironment,
           onSelectEnvironment,
           'organization'
@@ -185,7 +185,7 @@ export function CultureStep({
         {activeTab === 'organization' &&
         renderSection(
           'Organization',
-          culture.organization,
+          culture?.organization ?? {},
           cultureOrganization,
           onSelectOrganization,
           'upbringing'
@@ -193,7 +193,7 @@ export function CultureStep({
         {activeTab === 'upbringing' &&
         renderSection(
           'Upbringing',
-          culture.upbringing,
+          culture?.upbringing ?? {},
           cultureUpbringing,
           onSelectUpbringing
         )}

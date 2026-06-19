@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
-import rulesData from "@/lib/rules.json";
+import { rulesData } from "@/lib/rules-data";
+import { CharacterSaveData } from "@/lib/character-data";
 import {
-  CharacterSaveData,
   computeMaxHP,
   computeMaxMP,
   computeSpeed,
@@ -9,15 +9,14 @@ import {
   sumClassStatBonus,
   sumGearStatBonus,
   sumTraitStatChangeEffects,
-} from "@/lib/character-data";
+} from "@/logic/character/stats";
 import {
   reconcileCreatureRoster,
   getCreatureTemplates,
   getActionCardIdsForCreatureEntry,
-} from "@/lib/creature-roster";
+} from "@/logic/creatures/roster";
 import { FeatLevelPick } from "@/lib/baseRefs";
-import { discoverAllTraitRefs } from "@/components/character-sheet/hooks/DataLoader";
-import { hydrateTraitRefs } from "@/components/character-sheet/hooks/statCalculator";
+import { discoverAllTraitRefs, hydrateTraitRefs } from "@/logic/traits/trait-hydration";
 import { TraitPowerRollCollapsible } from "@/components/power-roll/trait-power-roll-collapsible";
 import type { PowerRoll } from "@/lib/rules";
 import { ChevronLeftIcon, DownloadIcon, RotateCcwIcon, Heart, Droplets, Footprints, Swords } from "lucide-react";
@@ -25,12 +24,12 @@ import {
   applySpecialInventionGrants,
   artificerHasSpecialInventionPassive,
   specialInventionIncompleteMessage,
-} from "@/lib/creator-import";
+} from "@/components/character-creator/logic/import";
 import {
   initialChargesForNewEntry,
   lookupChargeDefinition,
   type RulesWithCharges,
-} from "@/lib/charge-helpers";
+} from "@/logic/traits/charge-helpers";
 
 type AttributeKey = "might" | "dexterity" | "reason" | "willpower" | "presence";
 

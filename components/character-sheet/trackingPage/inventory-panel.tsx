@@ -39,6 +39,7 @@ import {
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Dialog,
   DialogContent,
@@ -46,6 +47,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import {
   Collapsible,
   CollapsibleContent,
@@ -61,6 +72,14 @@ import {
 } from "@/components/ui/sheet"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
+import { ChargePips } from "@/components/character-sheet/charge-pips"
+import { resolveMaxCharges } from "@/logic/traits/charge-helpers"
+import {
+  getActionItemChargeCost,
+  inventoryItemChargeCurrent,
+  itemHasChargeTracking,
+  type ItemChargeRules,
+} from "@/logic/equipment/item-charges"
 import type {
   ArmorItem,
   ContainerItem,
@@ -76,13 +95,13 @@ import {
   getContainerItemByZoneUid,
   itemStackQuantity,
   sumDirectChildQuantities,
-} from "@/lib/inventory-container-rules"
+} from "@/logic/equipment/inventory-container-rules"
 import {
   buildItemInventoryTraitBlocks,
   hydrateItemGrantedActionCards,
-} from "@/lib/item-inventory-details"
+} from "@/logic/equipment/item-inventory-details"
 import type { TraitEffect } from "@/lib/rules"
-import { formatTraitEffectChoiceLabel } from "@/lib/trait-selection"
+import { formatTraitEffectChoiceLabel } from "@/logic/traits/selection"
 import {
   ActionCardComponent,
 } from "@/components/character-sheet/combatPage/action-card-manager"
@@ -92,19 +111,28 @@ import {
   INV_DRAG_ITEM_PREFIX,
   INV_DROP_ROOT,
   invDropZoneId,
-} from "@/lib/inventory-helpers"
+} from "@/logic/equipment/inventory-helpers"
 import {
   type InventoryKindFilter,
   itemMatchesKindFilter,
   itemMatchesSearch,
-} from "@/lib/inventory-filters"
+} from "@/logic/equipment/inventory-filters"
+import {
+  ACCESSORY_SLOT_FILTER_OPTIONS,
+  accessoryItemMatchesSlotFilter,
+  formatAccessoryAllowedSlotsLabel,
+  formatEquipmentLibraryTypeLabel,
+  isAccessoryCatalogItem,
+  resolveEquipmentLibraryType,
+  type AccessorySlotFilterKey,
+} from "@/logic/equipment/accessory-catalog"
 import {
   equipmentStatSummaryFromDef,
   equipmentStatSummaryLine,
   formatWeaponAttribLabel,
-} from "@/lib/equipment-stats-display"
+} from "@/logic/equipment/stats-display"
 import { ProficiencyAlert } from "@/components/character-sheet/trackingPage/equipment-panel"
-import { heavyMightRequirementDeficitMessage } from "@/lib/equipment-proficiency"
+import { heavyMightRequirementDeficitMessage } from "@/logic/equipment/proficiency"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { Switch } from "@/components/ui/switch"
 import type { TraitRef } from "@/lib/baseRefs"
@@ -116,12 +144,25 @@ import {
     hasWeaponBondPassive,
     isMeleeWeapon,
     type WeaponDamageContext,
-} from "@/lib/weapon-utils"
-import { getItemNameClass } from "@/lib/item-rank-display"
-import type { RulesWithItemRanks } from "@/lib/item-rank-display"
+} from "@/logic/equipment/weapon-utils"
+import { getItemNameClass, getItemRankLabel } from "@/logic/equipment/item-rank-display"
+import type { RulesWithItemRanks } from "@/logic/equipment/item-rank-display"
 import { WeaponBondBadge } from "@/components/equipment/weapon-bond-badge"
-import { statDeltaTextClass } from "@/lib/stat-delta-display"
+import { statDeltaTextClass } from "@/logic/display/stat-delta-display"
 import { EffectGlossaryTag } from "@/components/effect-glossary-tag"
+import {
+    CATALOG_PREVIEW_UID,
+    catalogDefType,
+    catalogItemIsAffordable,
+    catalogItemZennyCost,
+    filterItems,
+    formatTraitEffectLine,
+    parseAdjustAmount,
+    previewInventoryItemFromCatalog,
+    resolveItemZone,
+} from "@/components/character-sheet/trackingPage/inventory/inventory-utils"
+import { InventoryItemDisplayContext } from "@/components/character-sheet/trackingPage/inventory/inventory-display-context"
+import { DraggableItemRow } from "@/components/character-sheet/trackingPage/inventory/draggable-item-row"
 
 interface InventoryPanelProps {
   inventory: InventoryItem[]
@@ -158,210 +199,25 @@ interface InventoryPanelProps {
   onToggleWeaponBond?: (uid: string, bonded: boolean) => void
   activeWeapon?: InventoryItem | null
   offhandWeapon?: InventoryItem | null
+  onUpdateItemCharges?: (uid: string, newCount: number) => void
 }
-
-const InventoryItemDisplayContext = createContext<{
-  bondedWeaponUids?: string[]
-  traits?: TraitRef[]
-  rules?: RulesWithItemRanks
-  weaponDamageContext?: WeaponDamageContext
-  attributes?: InventoryPanelProps["attributes"]
-}>({})
 
 const FILTER_TABS: { id: InventoryKindFilter; label: string }[] = [
   { id: "all", label: "All" },
   { id: "weapons", label: "Weapons" },
   { id: "armor_shield", label: "Armor & shields" },
+  { id: "accessories", label: "Accessories" },
   { id: "other", label: "Other" },
 ]
 
-function catalogDefType(def: Record<string, unknown>): InventoryItem["type"] | "misc" {
-  const t = def.type
-  if (
-    t === "weapon" ||
-    t === "shield" ||
-    t === "armor" ||
-    t === "misc" ||
-    t === "consumable" ||
-    t === "container"
-  ) {
-    return t
-  }
-  return "misc"
-}
-
-/** Synthetic uid for catalog preview rows — never used in saved inventory. */
-const CATALOG_PREVIEW_UID = "__cf_catalog_preview__"
-
-/** Same merge shape as `ItemLoader` hydration, for rules-only preview (not on the character). */
-function previewInventoryItemFromCatalog(
-  id: string,
-  def: Record<string, unknown> | undefined
-): InventoryItem | null {
-  if (!def || typeof def !== "object") return null
-  const ruleName = String(def.name ?? id)
-  const tags = Array.isArray(def.tags) ? def.tags : []
-  const qtyRaw = def.quantity
-  const quantity = typeof qtyRaw === "number" && Number.isFinite(qtyRaw) ? qtyRaw : 1
-  return {
-    ...def,
-    uid: CATALOG_PREVIEW_UID,
-    id,
-    customName: undefined,
-    rank:
-      typeof def.rank === "string" && def.rank.trim()
-        ? def.rank.trim()
-        : "common",
-    quantity,
-    containerId: null,
-    name: ruleName,
-    description: String(def.description ?? ""),
-    tags: tags as string[],
-  } as InventoryItem
-}
-
-/** Where the item belongs in the UI (invalid ids → root). */
-function resolveItemZone(item: InventoryItem, validIds: Set<string>): string | null {
-  const c = item.containerId
-  if (!c || !validIds.has(c)) return null
-  return c
-}
-
-function parseAdjustAmount(raw: string): number {
-  const n = parseInt(raw, 10)
-  if (Number.isNaN(n) || n < 1) return 1
-  return Math.min(n, 999_999)
-}
-
-function filterItems(
-  items: InventoryItem[],
-  invFilter: InventoryKindFilter,
-  inventorySearch: string
-) {
-  return items.filter((item) => {
-    if (!item) return false
-    if (!itemMatchesKindFilter(item, invFilter)) return false
-    return itemMatchesSearch(item, inventorySearch)
-  })
-}
-
-function formatTraitEffectLine(effect: unknown, rules?: Record<string, unknown>): string {
-  if (effect == null) return ""
-  if (typeof effect !== "object") return String(effect)
-  const typed = effect as { type?: string }
-  if (!typed.type || typeof typed.type !== "string") {
-    try {
-      return JSON.stringify(effect)
-    } catch {
-      return "effect"
-    }
-  }
-  return formatTraitEffectChoiceLabel(effect as TraitEffect, rules as any)
-}
-
-function DraggableItemRow({
-  item,
-  onRemove,
-  onSetQuantity,
-  onOpenDetails,
-  capacityWarningMessage = null,
-}: {
-  item: InventoryItem
-  onRemove: () => void
-  onSetQuantity: (q: number) => void
-  onOpenDetails: () => void
-  /** Shown like equipment proficiency warnings (e.g. container over max). */
-  capacityWarningMessage?: string | null
-}) {
-  const displayCtx = useContext(InventoryItemDisplayContext)
-  const bondCtx = buildWeaponBondContext(displayCtx.traits, displayCtx.bondedWeaponUids)
-  const bonded = isBondedWeapon(item.uid, bondCtx)
-  const nameClass = getItemNameClass(item, displayCtx.rules)
-  const id = `${INV_DRAG_ITEM_PREFIX}${item.uid}`
-  const equipStats = equipmentStatSummaryLine(item)
-  const heavyWarningMessage = heavyMightRequirementDeficitMessage(item, displayCtx.attributes?.might)
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id })
-  const style = transform
-    ? { transform: CSS.Translate.toString(transform), zIndex: isDragging ? 20 : undefined }
-    : undefined
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={cn(
-        "flex items-center gap-2 rounded-lg border border-border/50 bg-muted/10 p-2 pr-3",
-        isDragging && "opacity-60 ring-2 ring-primary/40"
-      )}
-    >
-      <button
-        type="button"
-        className="touch-none rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-        aria-label="Drag to move"
-        {...listeners}
-        {...attributes}
-      >
-        <GripVertical className="h-4 w-4 shrink-0" />
-      </button>
-      <div
-        className="min-w-0 flex-1 cursor-pointer rounded-md px-1 py-0.5 -mx-1 outline-none hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
-        role="button"
-        tabIndex={0}
-        onClick={onOpenDetails}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault()
-            onOpenDetails()
-          }
-        }}
-      >
-        <div className="flex flex-wrap items-center gap-2">
-          <span className={cn("text-sm font-medium", nameClass)}>{item.name}</span>
-          <WeaponBondBadge bonded={bonded} />
-          <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase text-muted-foreground">
-            {item.type}
-          </span>
-        </div>
-        {item.description ? (
-          <span className="line-clamp-1 text-xs text-muted-foreground">{item.description}</span>
-        ) : null}
-        {equipStats ? (
-          <span className="line-clamp-2 text-[11px] font-mono tabular-nums text-muted-foreground">
-            {equipStats}
-          </span>
-        ) : null}
-      </div>
-      <div className="flex shrink-0 items-center gap-1.5">
-        {heavyWarningMessage ? <ProficiencyAlert message={heavyWarningMessage} /> : null}
-        {capacityWarningMessage ? <ProficiencyAlert message={capacityWarningMessage} /> : null}
-        <label className="sr-only" htmlFor={`qty-${item.uid}`}>
-          Quantity for {item.name}
-        </label>
-        <Input
-          id={`qty-${item.uid}`}
-          type="number"
-          min={1}
-          className="h-8 w-14 px-1 text-center text-sm tabular-nums"
-          value={item.quantity}
-          onChange={(e) => {
-            const n = parseInt(e.target.value, 10)
-            if (!Number.isNaN(n)) onSetQuantity(Math.max(1, n))
-          }}
-        />
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 text-destructive hover:text-destructive"
-          title="Remove from inventory (unequips if worn)"
-          onClick={onRemove}
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
-      </div>
-    </div>
-  )
-}
+const CATALOG_FILTER_TABS: { id: InventoryKindFilter; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "weapons", label: "Weapons" },
+  { id: "armor", label: "Armor" },
+  { id: "shield", label: "Shields" },
+  { id: "accessories", label: "Accessories" },
+  { id: "other", label: "Other" },
+]
 
 const inventoryCollision: CollisionDetection = (args) => {
   const inside = pointerWithin(args)
@@ -850,6 +706,7 @@ function InventoryItemDetailSheet({
   bondedWeaponUids,
   onToggleWeaponBond,
   weaponDamageContext,
+  onUpdateItemCharges,
 }: {
   item: InventoryItem | null
   open: boolean
@@ -867,6 +724,7 @@ function InventoryItemDetailSheet({
   bondedWeaponUids?: string[]
   onToggleWeaponBond?: (uid: string, bonded: boolean) => void
   weaponDamageContext?: WeaponDamageContext
+  onUpdateItemCharges?: (uid: string, newCount: number) => void
 }) {
   const weaponBondPassive = hasWeaponBondPassive(traits)
   const bondCtx = buildWeaponBondContext(traits, bondedWeaponUids)
@@ -904,6 +762,14 @@ function InventoryItemDetailSheet({
     item?.type === "container" && item.uid !== CATALOG_PREVIEW_UID
       ? sumDirectChildQuantities(fullInventory, item.uid)
       : 0
+
+  const itemChargeDef = item as ItemChargeRules | undefined
+  const maxItemCharges = resolveMaxCharges(itemChargeDef, attributes)
+  const currentItemCharges = item?.charges?.current ?? maxItemCharges
+  const showItemChargePips =
+    !isCatalogPreview && maxItemCharges > 0 && Boolean(onUpdateItemCharges) && itemHasChargeTracking(itemChargeDef)
+  const accessoryItem = item ? isAccessoryCatalogItem(item.id, item) : false
+  const libraryType = item ? resolveEquipmentLibraryType(item.id, item) : "other"
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -962,14 +828,23 @@ function InventoryItemDetailSheet({
                 ) : (
                   <p className="text-muted-foreground">No listed gold value.</p>
                 )}
-                {item.charges != null && (
+                {showItemChargePips ? (
+                  <div className="mt-2">
+                    <ChargePips
+                      maxCharges={maxItemCharges}
+                      currentCharges={currentItemCharges}
+                      label="Charges"
+                      onChange={(n) => onUpdateItemCharges?.(item.uid, n)}
+                    />
+                  </div>
+                ) : item.charges != null ? (
                   <p className="mt-2">
                     <span className="font-medium text-foreground">Charges: </span>
                     <span className="tabular-nums">
                       {item.charges.current} / {item.charges.max}
                     </span>
                   </p>
-                )}
+                ) : null}
               </div>
             </div>
 
@@ -982,6 +857,24 @@ function InventoryItemDetailSheet({
                   {itemTags.map((tag) => (
                     <EffectGlossaryTag key={tag} tag={tag} />
                   ))}
+                </div>
+              </div>
+            ) : null}
+
+            {accessoryItem ? (
+              <div className="space-y-2">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Accessory
+                </p>
+                <div className="rounded-lg border border-border/60 bg-muted/10 p-3 text-sm space-y-2">
+                  <p>
+                    <span className="font-medium text-foreground">Category: </span>
+                    {formatEquipmentLibraryTypeLabel(libraryType)}
+                  </p>
+                  <p>
+                    <span className="font-medium text-foreground">Slots: </span>
+                    {formatAccessoryAllowedSlotsLabel(item?.allowedSlots)}
+                  </p>
                 </div>
               </div>
             ) : null}
@@ -1136,11 +1029,17 @@ function InventoryItemDetailSheet({
                         {(item as ArmorItem).defense.attribute != null && (
                           <span className="text-muted-foreground">
                             {" "}
-                            (max{" "}
-                            <span className="tabular-nums">
-                              {(item as ArmorItem).defense.attrMax ?? "—"}
-                            </span>{" "}
-                            {(item as ArmorItem).defense.attribute})
+                            + {(item as ArmorItem).defense.attribute} modifier
+                            {(item as ArmorItem).defense.attrMax != null && (
+                              <>
+                                {" "}
+                                (max +{" "}
+                                <span className="tabular-nums">
+                                  {(item as ArmorItem).defense.attrMax}
+                                </span>
+                                )
+                              </>
+                            )}
                           </span>
                         )}
                       </p>
@@ -1189,15 +1088,25 @@ function InventoryItemDetailSheet({
                   Action cards (from item)
                 </p>
                 <div className="space-y-4">
-                  {directActions.map((action) => (
-                    <ActionCardComponent
-                      key={`${item.uid}-${action.id}`}
-                      action={action}
-                      attributes={attributes}
-                      forceCollapsed={false}
-                      defaultPowerRollExpanded={false}
-                    />
-                  ))}
+                  {directActions.map((action) => {
+                    const itemChargeCost = getActionItemChargeCost(action)
+                    const showItemCharges =
+                      itemChargeCost != null && itemHasChargeTracking(itemChargeDef)
+                    return (
+                      <ActionCardComponent
+                        key={`${item.uid}-${action.id}`}
+                        action={action}
+                        attributes={attributes}
+                        forceCollapsed={false}
+                        defaultPowerRollExpanded={false}
+                        itemChargeCost={showItemCharges ? itemChargeCost : undefined}
+                        itemChargeCurrent={
+                          showItemCharges ? inventoryItemChargeCurrent(item) : undefined
+                        }
+                        itemChargeMax={showItemCharges ? maxItemCharges : undefined}
+                      />
+                    )
+                  })}
                 </div>
               </div>
             )}
@@ -1294,6 +1203,7 @@ export function InventoryPanel({
   onToggleWeaponBond,
   activeWeapon = null,
   offhandWeapon = null,
+  onUpdateItemCharges,
 }: InventoryPanelProps) {
   const [detailUid, setDetailUid] = useState<string | null>(null)
   const [catalogDetailId, setCatalogDetailId] = useState<string | null>(null)
@@ -1302,7 +1212,16 @@ export function InventoryPanel({
   const [catalogOpen, setCatalogOpen] = useState(false)
   const [catalogSearch, setCatalogSearch] = useState("")
   const [catalogFilter, setCatalogFilter] = useState<InventoryKindFilter>("all")
+  const [catalogAccessorySlotFilter, setCatalogAccessorySlotFilter] =
+    useState<AccessorySlotFilterKey>("all")
   const [catalogNotice, setCatalogNotice] = useState<{ text: string } | null>(null)
+  const [catalogAutoDeductZenny, setCatalogAutoDeductZenny] = useState(true)
+  const [catalogAffordableOnly, setCatalogAffordableOnly] = useState(false)
+  const [pendingCatalogPurchase, setPendingCatalogPurchase] = useState<{
+    id: string
+    name: string
+    cost: number
+  } | null>(null)
   const [packNotice, setPackNotice] = useState<string | null>(null)
   const [newContainerName, setNewContainerName] = useState("")
   const [newContainerPopoverOpen, setNewContainerPopoverOpen] = useState(false)
@@ -1341,6 +1260,12 @@ export function InventoryPanel({
       setCatalogDetailId(null)
     }
   }, [catalogDetailId, itemCatalog])
+
+  useEffect(() => {
+    if (catalogFilter !== "accessories") {
+      setCatalogAccessorySlotFilter("all")
+    }
+  }, [catalogFilter])
 
   const openPackItemDetails = (uid: string) => {
     setCatalogDetailId(null)
@@ -1414,9 +1339,25 @@ export function InventoryPanel({
   const catalogEntries = useMemo(() => {
     return Object.entries(itemCatalog)
       .map(([id, def]) => ({ id, def }))
-      .filter(({ def }) => {
-        const pseudo: Pick<InventoryItem, "type"> = { type: catalogDefType(def) }
+      .filter(({ id, def }) => {
+        const pseudo: Pick<InventoryItem, "type" | "id" | "allowedSlots"> = {
+          type: catalogDefType(def),
+          id,
+          allowedSlots: Array.isArray(def.allowedSlots)
+            ? (def.allowedSlots as string[])
+            : undefined,
+        }
         if (!itemMatchesKindFilter(pseudo, catalogFilter)) return false
+        if (
+          catalogFilter === "accessories" &&
+          !accessoryItemMatchesSlotFilter(
+            Array.isArray(def.allowedSlots) ? def.allowedSlots : undefined,
+            catalogAccessorySlotFilter
+          )
+        ) {
+          return false
+        }
+        if (catalogAffordableOnly && !catalogItemIsAffordable(def, money)) return false
         return itemMatchesSearch(
           {
             name: def.name as string | undefined,
@@ -1429,7 +1370,14 @@ export function InventoryPanel({
       .sort((a, b) =>
         String(a.def.name ?? a.id).localeCompare(String(b.def.name ?? b.id))
       )
-  }, [itemCatalog, catalogFilter, catalogSearch])
+  }, [
+    itemCatalog,
+    catalogFilter,
+    catalogAccessorySlotFilter,
+    catalogSearch,
+    catalogAffordableOnly,
+    money,
+  ])
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
@@ -1480,6 +1428,37 @@ export function InventoryPanel({
     if (catalogDetailId == null) return null
     return previewInventoryItemFromCatalog(catalogDetailId, itemCatalog[catalogDetailId])
   }, [catalogDetailId, itemCatalog])
+
+  const completeCatalogPurchase = useCallback(
+    (id: string, name: string, cost: number, deductZenny: boolean) => {
+      if (deductZenny && cost > 0) onAdjustMoney(-cost)
+      onAddInventoryItem(id)
+      setCatalogNotice({
+        text:
+          deductZenny && cost > 0
+            ? `Added "${name}" for ${cost} Zenny.`
+            : `Added "${name}" to your inventory.`,
+      })
+    },
+    [onAddInventoryItem, onAdjustMoney],
+  )
+
+  const requestCatalogPurchase = useCallback(
+    (id: string, def: Record<string, unknown>) => {
+      const name = String(def.name ?? id)
+      const cost = catalogItemZennyCost(def)
+      if (!catalogAutoDeductZenny) {
+        completeCatalogPurchase(id, name, cost, false)
+        return
+      }
+      if (cost > money) {
+        setPendingCatalogPurchase({ id, name, cost })
+        return
+      }
+      completeCatalogPurchase(id, name, cost, true)
+    },
+    [catalogAutoDeductZenny, completeCatalogPurchase, money],
+  )
 
   const detailItemForSheet =
     catalogPreviewItem ?? (detailUid != null ? inventory.find((i) => i.uid === detailUid) ?? null : null)
@@ -1765,6 +1744,25 @@ export function InventoryPanel({
                 <p className="text-sm font-normal text-muted-foreground">
                   Search the rules catalog and add a new instance to this character&apos;s inventory.
                 </p>
+                <p className="text-sm font-semibold tabular-nums text-yellow-700 dark:text-yellow-400">
+                  Balance: {money} Zenny
+                </p>
+                <label className="flex cursor-pointer items-center gap-2 pt-1">
+                  <Checkbox
+                    checked={catalogAutoDeductZenny}
+                    onCheckedChange={(checked) => setCatalogAutoDeductZenny(checked === true)}
+                  />
+                  <span className="text-sm text-foreground">
+                    Automatically subtract Zenny when adding items
+                  </span>
+                </label>
+                <label className="flex cursor-pointer items-center gap-2">
+                  <Checkbox
+                    checked={catalogAffordableOnly}
+                    onCheckedChange={(checked) => setCatalogAffordableOnly(checked === true)}
+                  />
+                  <span className="text-sm text-foreground">Only show items I can afford</span>
+                </label>
               </DialogHeader>
               <div className="shrink-0 border-b border-border px-6 pb-4">
                 <div className="flex flex-col gap-3">
@@ -1779,7 +1777,7 @@ export function InventoryPanel({
                     />
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {FILTER_TABS.map((tab) => (
+                    {CATALOG_FILTER_TABS.map((tab) => (
                       <button
                         key={tab.id}
                         type="button"
@@ -1795,6 +1793,37 @@ export function InventoryPanel({
                       </button>
                     ))}
                   </div>
+                  {catalogFilter === "accessories" ? (
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setCatalogAccessorySlotFilter("all")}
+                        className={cn(
+                          "rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
+                          catalogAccessorySlotFilter === "all"
+                            ? "bg-primary/80 text-primary-foreground"
+                            : "bg-muted/40 text-muted-foreground hover:bg-muted"
+                        )}
+                      >
+                        All slots
+                      </button>
+                      {ACCESSORY_SLOT_FILTER_OPTIONS.map(({ id, label }) => (
+                        <button
+                          key={id}
+                          type="button"
+                          onClick={() => setCatalogAccessorySlotFilter(id)}
+                          className={cn(
+                            "rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
+                            catalogAccessorySlotFilter === id
+                              ? "bg-primary/80 text-primary-foreground"
+                              : "bg-muted/40 text-muted-foreground hover:bg-muted"
+                          )}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
               </div>
               {catalogNotice && (
@@ -1812,6 +1841,14 @@ export function InventoryPanel({
                     const statLine = equipmentStatSummaryFromDef(def)
                     const previewItem = previewInventoryItemFromCatalog(id, def)
                     const heavyWarningMessage = heavyMightRequirementDeficitMessage(previewItem, attributes.might)
+                    const rulesWithRanks = rules as RulesWithItemRanks
+                    const itemRankClass = previewItem
+                      ? getItemNameClass(previewItem, rulesWithRanks)
+                      : getItemNameClass({ rank: typeof def.rank === "string" ? def.rank : undefined }, rulesWithRanks)
+                    const itemRankLabel = previewItem
+                      ? getItemRankLabel(previewItem, rulesWithRanks)
+                      : getItemRankLabel({ rank: typeof def.rank === "string" ? def.rank : undefined }, rulesWithRanks)
+                    const zennyCost = catalogItemZennyCost(def)
                     return (
                       <div
                         key={id}
@@ -1819,9 +1856,19 @@ export function InventoryPanel({
                       >
                         <div className="min-w-0 flex-1">
                           <div className="mb-1 flex flex-wrap items-center gap-2">
-                            <span className="text-sm font-semibold text-foreground">
+                            <span className={cn("text-sm font-semibold", itemRankClass)}>
                               {String(def.name ?? id)}
                             </span>
+                            {itemRankLabel ? (
+                              <span
+                                className={cn(
+                                  "rounded-full border border-border px-2 py-0.5 text-[10px] font-bold uppercase",
+                                  itemRankClass,
+                                )}
+                              >
+                                {itemRankLabel}
+                              </span>
+                            ) : null}
                             <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase text-muted-foreground">
                               {t}
                             </span>
@@ -1835,6 +1882,16 @@ export function InventoryPanel({
                               {statLine}
                             </p>
                           ) : null}
+                          <p
+                            className={cn(
+                              "mt-1.5 text-[11px] font-semibold tabular-nums",
+                              zennyCost > 0
+                                ? "text-yellow-700 dark:text-yellow-400"
+                                : "text-muted-foreground",
+                            )}
+                          >
+                            {zennyCost > 0 ? `${zennyCost} Zenny` : "No listed cost"}
+                          </p>
                         </div>
                         <div className="flex shrink-0 flex-col gap-1.5 sm:flex-row sm:items-start">
                           <Button
@@ -1856,12 +1913,7 @@ export function InventoryPanel({
                             size="sm"
                             variant="secondary"
                             className="gap-1"
-                            onClick={() => {
-                              onAddInventoryItem(id)
-                              setCatalogNotice({
-                                text: `Added "${String(def.name ?? id)}" to your inventory.`,
-                              })
-                            }}
+                            onClick={() => requestCatalogPurchase(id, def)}
                           >
                             <Plus className="h-3.5 w-3.5" />
                             Add
@@ -1993,7 +2045,55 @@ export function InventoryPanel({
         bondedWeaponUids={bondedWeaponUids}
         onToggleWeaponBond={onToggleWeaponBond}
         weaponDamageContext={itemDisplayCtx.weaponDamageContext}
+        onUpdateItemCharges={onUpdateItemCharges}
       />
+
+      <AlertDialog
+        open={pendingCatalogPurchase != null}
+        onOpenChange={(open) => {
+          if (!open) setPendingCatalogPurchase(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Not enough Zenny</AlertDialogTitle>
+            <AlertDialogDescription className="text-left">
+              {pendingCatalogPurchase ? (
+                <>
+                  <span className="font-medium text-foreground">{pendingCatalogPurchase.name}</span>{" "}
+                  costs{" "}
+                  <span className="font-semibold tabular-nums text-yellow-700 dark:text-yellow-400">
+                    {pendingCatalogPurchase.cost} Zenny
+                  </span>
+                  , but you only have{" "}
+                  <span className="font-semibold tabular-nums text-yellow-700 dark:text-yellow-400">
+                    {money} Zenny
+                  </span>
+                  . Add the item anyway? Your balance will be reduced to{" "}
+                  <span className="font-semibold tabular-nums">0 Zenny</span>.
+                </>
+              ) : null}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (!pendingCatalogPurchase) return
+                completeCatalogPurchase(
+                  pendingCatalogPurchase.id,
+                  pendingCatalogPurchase.name,
+                  pendingCatalogPurchase.cost,
+                  true,
+                )
+                setPendingCatalogPurchase(null)
+              }}
+            >
+              Add anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
     </InventoryItemDisplayContext.Provider>
   )

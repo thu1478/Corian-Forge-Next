@@ -1,61 +1,6 @@
-import { CharAttribute, type PowerRoll } from "@/lib/rules"
-import { traitRefsIncludeId } from "@/lib/trait-helpers"
+import { CharAttribute, type ChargeDefinition, type PowerRoll } from "@/lib/rules"
 import type { InventionModuleConfig } from "@/lib/character-data"
-
-export const EQUIPMENT_RULES = {
-    getNewState: (slot: string, item: any, prev: any) => {
-        const incomingUid = item?.uid || null;
-        const equipment = prev.equipment || {};
-
-        // Match the dump: "activeWeapon" <-> "offhand"
-        const otherKey = slot === "activeWeapon" ? "offhand" : "activeWeapon";
-
-        // Pulling values directly from the equipment object in your dump
-        const currentOtherValue = equipment[otherKey];
-        const currentSlotValue = equipment[slot];
-
-        // 1. Initialize updates
-        let updates: any = {
-            [slot]: incomingUid,
-            [otherKey]: currentOtherValue
-        };
-
-        if (!incomingUid) return { equipment: { ...equipment, ...updates } };
-
-        // 2. Handle 2-Handers
-        if (item.type === '2H') {
-            updates[otherKey] = null;
-            return { equipment: { ...equipment, ...updates } };
-        }
-
-        // 3. The Swap Check
-        // If the ID we are clicking (incomingUid) is currently in the OTHER hand, it's a swap.
-        const isMovingFromOtherSlot = currentOtherValue === incomingUid;
-
-        if (isMovingFromOtherSlot) {
-            // If the hand we're equipping *into* had a shield, clear the other hand instead of swapping
-            // (shield rules / one-handed flow). `currentSlotValue` may be null when that hand was empty.
-            const slotUid = currentSlotValue;
-            const invItem = Array.isArray(prev.inventory)
-                ? prev.inventory.find((i: any) => i && String(i.uid) === String(slotUid))
-                : null;
-            const isShield =
-                invItem?.type === "shield" ||
-                (typeof slotUid === "string" && slotUid.includes("shield"));
-
-            const shieldMaster = traitRefsIncludeId(prev.traits, "shieldMaster");
-            updates[otherKey] = isShield && !shieldMaster ? null : currentSlotValue;
-        }
-
-        // 4. Return the nested structure to match your "FULL EQUIPMENT DUMP2"
-        return {
-            equipment: {
-                ...equipment,
-                ...updates
-            }
-        };
-    }
-};
+import type { EquipmentSlotRef } from "@/logic/equipment/accessory-slots"
 
 export interface InventoryContainer {
     id: string;
@@ -76,6 +21,8 @@ export interface InventoryEntry {
     /** Active invention modules on this instance (Modular Armor / Support Backpack). */
     inventionModules?: string[];
     inventionModuleConfig?: InventionModuleConfig;
+    /** Current charge count; `-1` = not tracked. Max comes from item rules. */
+    charges?: number;
 }
 
 interface BaseItem {
@@ -90,9 +37,12 @@ interface BaseItem {
     description: string;
     tags: string[];
     containerId?: string | null;
+    /** Hydrated charge snapshot for UI; save uses `InventoryEntry.charges`. */
     charges?: { current: number; max: number };
+    fixedMaxCharges?: number;
+    chargeReset?: ChargeDefinition["chargeReset"];
     value?: number;
-    allowedSlots?: Array<keyof Equipment["accessories"] | "rightHand" | "leftHand" | "armor">;
+    allowedSlots?: EquipmentSlotRef[];
     actionIDs?: string[];
     /** Rule ids and/or inline `{ traitId: passive }` objects from catalog. */
     traits?: Array<string | Record<string, unknown>>;
@@ -155,14 +105,10 @@ export interface Equipment {
     armor: string | null
     accessories: {
         head: string | null
-        face: string | null
-        ears: string | null
         neck: string | null
-        back: string | null
-        hands: string | null
-        ringLeft: string | null
-        ringRight: string | null
         waist: string | null
+        wristLeft: string | null
+        wristRight: string | null
         feet: string | null
     }
 }

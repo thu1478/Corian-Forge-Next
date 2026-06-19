@@ -4,17 +4,17 @@ import { useMemo } from "react"
 import { cn } from "@/lib/utils"
 import { InventoryItem } from "@/lib/equipment-data"
 import { PotencyEffect, PowerRoll } from "@/lib/rules"
-import { getAttributeModifier } from "@/lib/character-data"
-import { potencyStrengthDisplayLabel, potencyStrengthToModifier } from "@/lib/potency-strength"
-import { getPowerRollPotencyBadgeAndDuration } from "@/lib/potency-display"
-import type { PowerRollTierAmountSuffix } from "@/lib/power-roll-combat-bonuses"
-import { findPotencyEffectGlossaryEntry } from "@/lib/glossary-lookup"
+import { getAttributeModifier } from "@/logic/character/stats"
+import { potencyStrengthDisplayLabel, potencyStrengthToModifier } from "@/logic/combat/potency-strength"
+import { getPowerRollPotencyBadgeAndDuration } from "@/logic/combat/potency-display"
+import type { PowerRollTierAmountSuffix } from "@/logic/combat/power-roll-combat-bonuses"
+import { findPotencyEffectGlossaryEntry } from "@/logic/display/glossary-lookup"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import {
     getEffectiveWeaponDamage,
     parseWeaponBaseDamage,
     type WeaponDamageContext,
-} from "@/lib/weapon-utils"
+} from "@/logic/equipment/weapon-utils"
 
 export type PowerRollDisplayMode = "simple" | "formula"
 
@@ -178,7 +178,9 @@ export function PowerRollTierRow({
     const potencySourceFormula =
         potency && potency.type !== "Special"
             ? potencySrcIsFixed
-                ? "fixed"
+                ? maxSrcMod != null
+                    ? String(maxSrcMod)
+                    : null
                 : formatAttributeAbbreviationList(potency.srcStats)
             : null
     const potencyTargetFormula =

@@ -52,6 +52,23 @@ export interface GrantSkillEffect {
     distinctPicks?: boolean
 }
 
+/** Modifies an existing action card at runtime (equipment traits, passives, feats). */
+export interface EnhanceActionEffect {
+    type: "EnhanceAction"
+    /** Target action id — class action key or global `actionCards` id (e.g. `"smite"`). */
+    actionId: string
+    /** Appended below base description on the combat card. */
+    appendDescription?: string
+    apCostDelta?: number
+    focusCostDelta?: number
+    mpCostDelta?: number
+    ipCostDelta?: number
+    /** Additive deltas applied to numeric tier damage before other combat bonuses. */
+    tier1DmgDelta?: number
+    tier2DmgDelta?: number
+    tier3DmgDelta?: number
+}
+
 export type TraitEffect =
     | {
           type: "StatChange" | "Resistance" | "Vulnerability" | "Immunity" | "GrantSight" | "GrantMovement" | "AttributeChange" | "GrantActionCard" | "Language" | "SummonSchool"
@@ -62,6 +79,7 @@ export type TraitEffect =
           when?: string
       }
     | GrantSkillEffect
+    | EnhanceActionEffect
 
 export interface Trait extends TraitRef, ChargeDefinition {
     uid: string
@@ -206,14 +224,43 @@ export interface PowerRoll {
 
 //</editor-fold>
 
+export interface ActionEnhancementNote {
+    sourceLabel: string
+    appendDescription: string
+}
+
+/** Runtime overlay from `EnhanceAction` trait effects — not persisted on save. */
+export interface ActionEnhancements {
+    notes: ActionEnhancementNote[]
+    apCostDelta?: number
+    focusCostDelta?: number
+    mpCostDelta?: number
+    ipCostDelta?: number
+    powerRollDeltas?: {
+        tier1Dmg?: number
+        tier2Dmg?: number
+        tier3Dmg?: number
+    }
+}
+
 export interface ActionCard extends ActionRef, ChargeDefinition {
+    /** Runtime: inventory uid of the item that granted this card (equipment actions). */
+    grantingItemUid?: string
+    /** Runtime: display name of granting item. */
+    grantingItemName?: string
+    /** Runtime: stable list key (`id` or `id::itemUid`). */
+    instanceKey?: string
     name: string
     type: "action" | "reaction" | "freeReaction"
     description: string
+    /** Present on global reaction / freeReaction action cards (e.g. equipment Suplex). */
+    trigger?: string
     apCost?: number
     mpCost?: number
     focusCost?: number
     ipCost?: number
+    /** When set, using this action spends charges from the granting equipment item (not character action charges). */
+    itemChargeCost?: number
     range?: string
     duration?: string
     damageType?: DamageType
@@ -222,4 +269,6 @@ export interface ActionCard extends ActionRef, ChargeDefinition {
     /** Machine-readable tags not shown in UI (e.g. `shield`, `sustain`, `heal`, `barrier`). */
     hiddenTags?: string[]
     source: string
+    /** Runtime: merged view from active `EnhanceAction` trait effects. */
+    enhancements?: ActionEnhancements
 }

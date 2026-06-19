@@ -1,6 +1,6 @@
 "use client"
 
-import { getAttributeModifier, formatModifier } from "@/lib/character-data"
+import { getAttributeModifier, formatModifier } from "@/logic/character/stats"
 import { cn } from "@/lib/utils"
 
 interface AttributesPanelProps {

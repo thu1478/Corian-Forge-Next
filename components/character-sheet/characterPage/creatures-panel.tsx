@@ -10,9 +10,9 @@ import { Switch } from "@/components/ui/switch"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { ActionCardComponent } from "@/components/character-sheet/combatPage/action-card-manager"
-import { hydrateActionCardById } from "@/lib/action-hydrate"
+import { hydrateActionCardById } from "@/logic/actions/hydrate"
 import type { CharacterStats } from "@/lib/character-data"
-import { formatModifier, getAttributeModifier } from "@/lib/character-data"
+import { formatModifier, getAttributeModifier } from "@/logic/character/stats"
 import type { TraitRef } from "@/lib/baseRefs"
 import type { CharacterClass } from "@/lib/rules"
 import {
@@ -36,12 +36,12 @@ import {
     isConjurerRosterEntry,
     isCreatureDeployBlocked,
     isCreatureDefinitionMount,
-} from "@/lib/creature-roster"
-import { isRiderRosterEntry } from "@/lib/rider-mounts"
-import { isSummonMountable } from "@/lib/mounted-creature"
+} from "@/logic/creatures/roster"
+import { isRiderRosterEntry } from "@/logic/creatures/rider-mounts"
+import { isSummonMountable } from "@/logic/creatures/mounted-creature"
 import type { InventoryItem } from "@/lib/equipment-data"
-import { isDruidAnimaRosterEntry } from "@/lib/druid-anima"
-import { resolveNaturalWeaponForAction, type RulesWithNaturalWeapons } from "@/lib/natural-weapons"
+import { isDruidAnimaRosterEntry } from "@/logic/creatures/druid-anima"
+import { resolveNaturalWeaponForAction, type RulesWithNaturalWeapons } from "@/logic/equipment/natural-weapons"
 
 function formatVulnerabilityBrief(v: { stat: string; value?: string }): string {
     const vu = v.value != null && v.value !== "" ? ` (+${v.value} VU)` : ""

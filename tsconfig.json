@@ -36,7 +36,6 @@
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules",
-    "components/character-sheet/unused/**"
+    "node_modules"
   ]
 }

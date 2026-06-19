@@ -1,12 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import rulesData from "@/lib/rules.json";
-import { CharacterSaveData, getCharacterLevelForStats } from "@/lib/character-data";
+import { getOccupationRules, getRulesSystem, getStartingXPPerLevel, rulesData } from "@/lib/rules-data";
+import { CharacterSaveData } from "@/lib/character-data";
+import { getCharacterLevelForStats } from "@/logic/character/stats";
 import { FeatLevelPick } from "@/lib/baseRefs";
 import {
     adventurerLevelFromXp,
     createEmptyCreatorCharacter,
     parseCreatorImportJson,
-} from "@/lib/creator-import";
+} from "@/components/character-creator/logic/import";
 import {
     conjurerClassTraitRefsFromPicks,
     getConjurerSummonSchoolTag,
@@ -14,11 +15,11 @@ import {
     getCreatureTemplates,
     getSummonMastery,
     listConjurerCatalogTemplateIdsForSlot,
-} from "@/lib/creature-roster";
+} from "@/logic/creatures/roster";
 import {
     getDruidAnimaSlots,
     sanitizeDruidAnimaTemplateIds,
-} from "@/lib/druid-anima";
+} from "@/logic/creatures/druid-anima";
 import {
     characterHasFairyContractFromPicks,
     emptyFairyTamerContracts,
@@ -26,13 +27,13 @@ import {
     sanitizeFairyTamerContracts,
     stripInvalidFairySpellPicks,
     syncFairyTamerContractSpellsFromPicks,
-} from "@/lib/fairy-tamer";
+} from "@/logic/creatures/fairy-tamer";
 import {
     getOccupationDefinition,
     type OccupationRule,
     resolveOccupationLanguagePicks,
     resolveOccupationSkillsCount,
-} from "@/lib/occupation";
+} from "@/logic/classes/occupation";
 import {
     allSkillChooserPicksComplete,
     isClassStepSkillRequirementKey,
@@ -42,14 +43,14 @@ import {
     pruneSkillGrantPicks,
     requirementKeys,
     type ListSkillGrantsContext,
-} from "@/lib/grant-skill-effects";
+} from "@/logic/traits/grant-skill-effects";
 import { UploadIcon } from "lucide-react";
 import { RaceSelection } from "./steps/RaceSelection";
 import ClassSelection, { type ClassOptionPick } from "@/components/character-creator/steps/ClassSelection";
 import {
     artificerHasSpecialInventionPassive,
     sanitizeSpecialInvention,
-} from "@/lib/creator-import";
+} from "@/components/character-creator/logic/import";
 import { AbilityScores } from "@/components/character-creator/steps/AbilityScores";
 import { CultureStep } from "@/components/character-creator/steps/CultureStep";
 import { OccupationStep } from "@/components/character-creator/steps/OccupationStep";
@@ -57,7 +58,7 @@ import { FeatsStep } from "@/components/character-creator/steps/FeatsStep";
 import { CharacterReview } from "@/components/character-creator/CharacterReview";
 import { StepProgress } from "@/components/character-creator/steps/StepProgress";
 import { WelcomeStep } from "@/components/character-creator/steps/WelcomeStep";
-import { CREATOR_STEPS, listCreatorTodoItems } from "@/lib/creator-todos";
+import { CREATOR_STEPS, listCreatorTodoItems } from "@/components/character-creator/logic/todos";
 
 type AttributeKey = "might" | "dexterity" | "reason" | "willpower" | "presence";
 
@@ -89,8 +90,8 @@ function pruneSelectedFeatsForAdventurerLevel(
     return next;
 }
 
-const STARTING_XP = rulesData.system.startingXPPerLvl as Record<string, number>;
-const OCCUPATION_RULES = (rulesData.system as { occupation?: Record<string, OccupationRule> }).occupation;
+const STARTING_XP = getStartingXPPerLevel();
+const OCCUPATION_RULES = getOccupationRules();
 
 export default function CharacterCreator() {
     const importInputRef = useRef<HTMLInputElement>(null);

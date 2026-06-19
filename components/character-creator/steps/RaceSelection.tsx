@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from "react";
-import rulesData from "@/lib/rules.json";
+import { rulesData } from "@/lib/rules-data";
 import type { PowerRoll, RacialPassive } from "@/lib/rules";
 import { TraitRef } from "@/lib/baseRefs";
-import { formatTraitEffectChoiceLabel } from "@/lib/trait-selection";
+import { formatTraitEffectChoiceLabel } from "@/logic/traits/selection";
 import { TraitPowerRollCollapsible } from "@/components/power-roll/trait-power-roll-collapsible";
 import { ChevronRightIcon, ArrowLeftIcon, CheckIcon } from "lucide-react";
 

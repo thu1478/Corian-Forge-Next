@@ -1,7 +1,7 @@
 "use client"
 
-import type { ClassOptionConfig, ClassOptionEntry } from "@/lib/class-options"
-import { getClassOptionPassiveEntries, getClassOptionPreviewStats } from "@/lib/class-options"
+import type { ClassOptionConfig, ClassOptionEntry } from "@/logic/classes/class-options"
+import { getClassOptionPassiveEntries, getClassOptionPreviewStats } from "@/logic/classes/class-options"
 
 type ClassOptionPickerProps = {
     config: ClassOptionConfig

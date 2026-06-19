@@ -1,7 +1,7 @@
 "use client"
 
 import { Check, Shield, X } from "lucide-react"
-import { MARTIAL_PROFICIENCY_ROWS } from "@/lib/equipment-proficiency"
+import { MARTIAL_PROFICIENCY_ROWS } from "@/logic/equipment/proficiency"
 
 export function ProficienciesPanel({ proficiencies }: { proficiencies: ReadonlySet<string> }) {
   return (

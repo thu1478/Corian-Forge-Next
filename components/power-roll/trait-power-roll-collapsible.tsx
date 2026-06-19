@@ -11,7 +11,7 @@ import {
     type PowerRollDisplayMode,
 } from "@/components/power-roll/power-roll-tier-row"
 import type { TraitRef } from "@/lib/baseRefs"
-import { resolveWeaponForActionPowerRoll } from "@/lib/weapon-utils"
+import { resolveWeaponForActionPowerRoll } from "@/logic/equipment/weapon-utils"
 
 const TRAIT_BADGE = "bg-violet-200 text-violet-950 dark:bg-violet-900/80 dark:text-violet-100"
 

@@ -1,8 +1,8 @@
 "use client"
 
-import rulesData from "@/lib/rules.json"
+import { getRulesSkills } from "@/lib/rules-data"
 import { cn } from "@/lib/utils"
-import type { SkillChooserRequirement } from "@/lib/grant-skill-effects"
+import type { SkillChooserRequirement } from "@/logic/traits/grant-skill-effects"
 import { TraitPowerRollCollapsible } from "@/components/power-roll/trait-power-roll-collapsible"
 import type { PowerRoll } from "@/lib/rules"
 import type { PowerRollAttributes } from "@/components/power-roll/power-roll-tier-row"
@@ -37,7 +37,7 @@ export function SkillGrantPickBlocks({
     /** When false, omit title/description heading (caller provides chrome). */
     showOuterHeading?: boolean
 }) {
-    const catalog = rulesData.system.skills as Record<string, CatalogRow>
+    const catalog = getRulesSkills()
     if (requirements.length === 0) return null
 
     const isInline = density === "inline"

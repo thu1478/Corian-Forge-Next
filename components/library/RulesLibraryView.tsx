@@ -1,42 +1,42 @@
 "use client"
 
-import { useCallback, useMemo, useState, memo } from "react"
-import rulesData from "@/lib/rules.json"
-import type { ActionCard, PowerRoll } from "@/lib/rules"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { rulesData } from "@/lib/rules-data"
+import type { PowerRoll } from "@/lib/rules"
+import type { InventoryItem } from "@/lib/equipment-data"
+import { hydrateActionCardById } from "@/logic/actions/hydrate"
+import { isReactionActionCardType } from "@/logic/equipment/granted-actions"
 import { ActionCardComponent } from "@/components/character-sheet/combatPage/action-card-manager"
 import { TraitPowerRollCollapsible } from "@/components/power-roll/trait-power-roll-collapsible"
 import { EffectGlossaryTag } from "@/components/effect-glossary-tag"
-import { unwrapEmbeddedActionCard } from "@/lib/embedded-action-card"
-import { hydrateActionCardById } from "@/lib/action-hydrate"
-import type { InventoryItem } from "@/lib/equipment-data"
-import { formatWeaponAttribLabel } from "@/lib/equipment-stats-display"
-import { formatModifier, getAttributeModifier, type ClassBonusRule } from "@/lib/character-data"
-import { MARTIAL_PROFICIENCY_ROWS } from "@/lib/equipment-proficiency"
-import {
-    type CreatureDefinition,
-    getCreatureTemplates,
-    resolveCreatureTraitEntries,
-} from "@/lib/creature-roster"
-import {
-    resolveNaturalWeaponForAction,
-    getNaturalWeaponSystemDefaults,
-    normalizeNaturalWeapon,
-    type RulesWithNaturalWeapons,
-} from "@/lib/natural-weapons"
-import { FAIRY_ACTIONS_BY_TEMPLATE } from "@/lib/fairy-tamer"
+import { formatArmorDefenseValue, formatWeaponAttribLabel } from "@/logic/equipment/stats-display"
+import { MARTIAL_PROFICIENCY_ROWS } from "@/logic/equipment/proficiency"
+import { getCreatureTemplates } from "@/logic/creatures/roster"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
-import { formatFeatPrerequisiteLines } from "@/lib/feat-prereqs"
-import { compareFeatsAlphabetically } from "@/lib/feat-sort"
-import { buildItemInventoryTraitBlocks } from "@/lib/item-inventory-details"
-import { formatTraitEffectChoiceLabel } from "@/lib/trait-selection"
-import { buildGlossaryLibrarySections } from "@/lib/glossary-lookup"
+import { formatFeatPrerequisiteLines } from "@/logic/feats/prereqs"
+import { compareFeatsAlphabetically } from "@/logic/feats/sort"
+import {
+    getItemNameClass,
+    getItemRankLabel,
+    getItemRankPalette,
+    resolveItemRank,
+} from "@/logic/equipment/item-rank-display"
+import { buildItemInventoryTraitBlocks } from "@/logic/equipment/item-inventory-details"
+import { getActionItemChargeCost, itemHasChargeTracking } from "@/logic/equipment/item-charges"
+import { ChargePips } from "@/components/character-sheet/charge-pips"
+import { resolveMaxCharges } from "@/logic/traits/charge-helpers"
+import type { ChargeDefinition } from "@/lib/rules"
+import { formatTraitEffectChoiceLabel } from "@/logic/traits/selection"
+import { buildGlossaryLibrarySections } from "@/logic/display/glossary-lookup"
 import {
     Select,
     SelectContent,
@@ -48,6 +48,7 @@ import {
     Award,
     BookOpen,
     ChevronDown,
+    ChevronRight,
     ChevronsUp,
     GraduationCap,
     Package,
@@ -58,579 +59,150 @@ import {
     Swords,
     Users,
 } from "lucide-react"
+import {
+    RULES,
+    DEMO_ATTRIBUTES,
+    PREVIEW_WEAPON_OPTIONS,
+    catalogToPreviewWeapon,
+    matchesQuery,
+    ClassLibraryGrantsSummary,
+    LibraryRacePassiveCard,
+    LibraryCreatureCard,
+    tocSlug,
+    sortedRacePassives,
+    classProficiencyLabel,
+    formatClassStatBonusRule,
+    buildClassActionCard,
+    reactionEmbeddedToActionCard,
+    collectGrantActionCardIds,
+    itemDefToPreviewWeapon,
+    EQUIPMENT_TYPE_ORDER,
+    formatCreatureVuln,
+    getLibraryCreatureActionDisplayIds,
+} from "@/logic/display/rules-library-helpers"
+import {
+    ACCESSORY_EQUIPMENT_TYPE,
+    ACCESSORY_SLOT_FILTER_OPTIONS,
+    accessoryItemMatchesSlotFilter,
+    countAccessoryItemsBySlotFilter,
+    formatAccessoryAllowedSlotsLabel,
+    formatEquipmentLibraryTypeLabel,
+    isAccessoryCatalogItem,
+    resolveEquipmentLibraryType,
+    type AccessorySlotFilterKey,
+} from "@/logic/equipment/accessory-catalog"
 
-const RULES = rulesData as Record<string, any>
-
-const DEMO_ATTRIBUTES = {
-    might: 10,
-    dexterity: 10,
-    reason: 10,
-    willpower: 10,
-    presence: 10,
-}
-
-const PREVIEW_WEAPON_OPTIONS: { value: string; label: string }[] = [
-    { value: "__none__", label: "No weapon" },
-    { value: "wp_fist", label: "Fist (brawling)" },
-    { value: "wp_dagger", label: "Dagger (melee)" },
-    { value: "wp_hand_crossbow", label: "Hand crossbow (ranged)" },
-]
-
-const RIDER_MOUNT_ACTIONS_BY_TEMPLATE: Record<string, readonly string[]> = {
-    mount_swift: ["cycloneStarter"],
-    mount_tough: ["seismicStep"],
-    mount_adaptable: ["amphibiousEscape"],
-}
-
-function catalogToPreviewWeapon(catalogId: string): InventoryItem | null {
-    if (!catalogId || catalogId === "__none__") return null
-    const def = RULES.items?.[catalogId]
-    if (!def || def.type !== "weapon") return null
-    return {
-        ...def,
-        id: catalogId,
-        uid: `library-preview-${catalogId}`,
-        name: def.name ?? catalogId,
-        quantity: def.quantity ?? 1,
-        description: def.description ?? "",
-        tags: Array.isArray(def.tags) ? def.tags : [],
-        type: "weapon",
-        damage: def.damage ?? 0,
-        damageType: def.damageType ?? "",
-        range: typeof def.range === "number" ? def.range : 1,
-        attributes: Array.isArray(def.attributes) ? def.attributes : [],
-    } as InventoryItem
-}
-
-function itemDefToPreviewWeapon(itemId: string, def: Record<string, any>): InventoryItem | null {
-    if (!def || def.type !== "weapon") return null
-    return {
-        ...def,
-        id: itemId,
-        uid: `library-item-${itemId}`,
-        name: def.name ?? itemId,
-        quantity: def.quantity ?? 1,
-        description: def.description ?? "",
-        tags: Array.isArray(def.tags) ? def.tags : [],
-        type: "weapon",
-        damage: def.damage ?? 0,
-        damageType: def.damageType ?? "",
-        range: typeof def.range === "number" ? def.range : 1,
-        attributes: Array.isArray(def.attributes) ? def.attributes : [],
-    } as InventoryItem
-}
-
-function buildClassActionCard(classId: string, actionKey: string, wrapper: Record<string, any>): ActionCard | null {
-    const ac = wrapper?.actionCard
-    if (!ac || typeof ac !== "object") return null
-    return {
-        ...ac,
-        id: actionKey,
-        source: classId,
-        tags: (ac.tags as string[]) ?? [],
-    } as ActionCard
-}
-
-function reactionEmbeddedToActionCard(reactionId: string, raw: Record<string, unknown> | undefined): ActionCard | null {
-    const unwrapped = unwrapEmbeddedActionCard(raw)
-    if (!unwrapped) return null
-    const name = unwrapped.name
-    if (typeof name !== "string") return null
-    const rawType = String(unwrapped.type ?? "reaction").toLowerCase()
-    const type: ActionCard["type"] =
-        rawType === "freereaction" ? "freeReaction" : rawType === "action" ? "action" : "reaction"
-    return {
-        ...unwrapped,
-        id: reactionId,
-        name,
-        type,
-        description: String(unwrapped.description ?? ""),
-        tags: Array.isArray(unwrapped.tags) ? (unwrapped.tags as string[]) : [],
-        source: String(unwrapped.source ?? "class"),
-    } as ActionCard
-}
-
-/** Ids referenced by `GrantActionCard` feat/trait effects (e.g. Trusty Companion). */
-function collectGrantActionCardIds(effects: unknown): string[] {
-    if (!Array.isArray(effects)) return []
-    const ids: string[] = []
-    for (const e of effects) {
-        if (!e || typeof e !== "object") continue
-        const rec = e as Record<string, unknown>
-        if (rec.type !== "GrantActionCard") continue
-        const v = String(rec.value ?? "").trim()
-        if (v) ids.push(v)
-    }
-    return [...new Set(ids)]
-}
-
-function matchesQuery(text: string, q: string): boolean {
-    if (!q) return true
-    return text.toLowerCase().includes(q)
-}
-
-const EXTRA_PROFICIENCY_LABELS: Record<string, string> = {
-    firearms: "Firearms",
-    brawling: "Brawling weapons",
-}
-
-const STAT_BONUS_LABELS: Record<string, string> = {
-    hp: "Max HP",
-    mp: "Max MP",
-    ip: "Max IP",
-    defense: "Defense",
-    stability: "Stability",
-    speed: "Speed",
-}
-
-function classProficiencyLabel(id: string): string {
-    const martial = MARTIAL_PROFICIENCY_ROWS.find((row) => row.id === id)
-    if (martial) return martial.label
-    if (EXTRA_PROFICIENCY_LABELS[id]) return EXTRA_PROFICIENCY_LABELS[id]
-    return id
-        .replace(/([a-z])([A-Z])/g, "$1 $2")
-        .replace(/^./, (c) => c.toUpperCase())
-}
-
-function classStatBonusRules(classData: Record<string, unknown>): ClassBonusRule[] {
-    if (Array.isArray(classData.statBonuses)) {
-        return classData.statBonuses as ClassBonusRule[]
-    }
-    const single = classData.statBonus
-    if (single && typeof single === "object") return [single as ClassBonusRule]
-    return []
-}
-
-function formatClassStatBonusRule(rule: ClassBonusRule): string {
-    const statLabel = STAT_BONUS_LABELS[rule.stat] ?? rule.stat
-    if (rule.once) {
-        return `+${rule.amount} ${statLabel} (once, from 1st class level)`
-    }
-    const freq = typeof rule.frequency === "number" && rule.frequency > 1 ? rule.frequency : 1
-    if (freq === 1) {
-        return `+${rule.amount} ${statLabel} per class level`
-    }
-    return `+${rule.amount} ${statLabel} every ${freq} class levels`
-}
-
-function ClassLibraryGrantsSummary({ classData }: { classData: Record<string, any> }) {
-    const proficiencies = Array.isArray(classData.proficiencies)
-        ? (classData.proficiencies as string[]).filter(Boolean)
-        : []
-    const statBonuses = classStatBonusRules(classData)
-    const freeFeaturesNote =
-        typeof classData.freeFeaturesNote === "string" ? classData.freeFeaturesNote.trim() : ""
-
-    if (proficiencies.length === 0 && statBonuses.length === 0 && !freeFeaturesNote) {
-        return null
-    }
-
-    return (
-        <div className="mt-4 space-y-4 rounded-lg border border-border/60 bg-muted/10 p-4">
-            {proficiencies.length > 0 ? (
-                <div className="space-y-2">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-primary">Proficiencies</h4>
-                    <ul className="list-inside list-disc space-y-0.5 text-sm text-muted-foreground">
-                        {proficiencies.map((id) => (
-                            <li key={id}>{classProficiencyLabel(id)}</li>
-                        ))}
-                    </ul>
-                </div>
-            ) : null}
-            {statBonuses.length > 0 ? (
-                <div className="space-y-2">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-primary">Innate bonuses</h4>
-                    <ul className="list-inside list-disc space-y-0.5 text-sm text-muted-foreground">
-                        {statBonuses.map((rule, i) => (
-                            <li key={`${rule.stat}-${rule.amount}-${i}`}>{formatClassStatBonusRule(rule)}</li>
-                        ))}
-                    </ul>
-                </div>
-            ) : null}
-            {freeFeaturesNote ? (
-                <div className="space-y-2">
-                    {proficiencies.length === 0 && statBonuses.length === 0 ? (
-                        <h4 className="text-xs font-bold uppercase tracking-wider text-primary">Class features</h4>
-                    ) : null}
-                    <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-line border-l-2 border-primary/40 pl-3">
-                        {freeFeaturesNote}
-                    </p>
-                </div>
-            ) : null}
-        </div>
-    )
-}
-
-const EQUIPMENT_TYPE_ORDER = ["weapon", "armor", "shield", "consumable", "misc", "container"] as const
-
-function tocSlug(s: string): string {
-    return (
-        s
-            .trim()
-            .replace(/[^a-zA-Z0-9]+/g, "-")
-            .replace(/^-|-$/g, "")
-            .toLowerCase() || "section"
-    )
-}
-
-function sortedRacePassives(
-    passives: Record<string, unknown> | undefined,
-    type: "innate" | "selectable"
-): { pid: string; passive: Record<string, any> }[] {
-    return Object.entries(passives ?? {})
-        .map(([pid, p]) => ({ pid, passive: p as Record<string, any> }))
-        .filter(({ passive }) => (passive.type === "selectable" ? "selectable" : "innate") === type)
-        .sort((a, b) =>
-            String(a.passive.name ?? a.pid).localeCompare(String(b.passive.name ?? b.pid), undefined, {
-                sensitivity: "base",
-            })
-        )
-}
-
-function LibraryRacePassiveCard({
-    pid,
-    passive,
-    previewWeapon,
-    collapseAllSignal,
-}: {
-    pid: string
-    passive: Record<string, any>
-    previewWeapon: InventoryItem | null
-    collapseAllSignal: number
-}) {
-    return (
-        <div className="rounded-lg border border-border bg-card/50 p-4 space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-                <span className="font-semibold">{passive.name}</span>
-                <Badge variant="outline" className="font-mono text-[10px]">
-                    {pid}
-                </Badge>
-                {passive.type === "selectable" && typeof passive.ptCost === "number" ? (
-                    <Badge variant={passive.ptCost < 0 ? "destructive" : "secondary"}>
-                        {passive.ptCost > 0 ? `+${passive.ptCost}` : passive.ptCost} pt
-                    </Badge>
-                ) : passive.type === "innate" ? (
-                    <Badge variant="secondary">Innate</Badge>
-                ) : null}
-            </div>
-            <p className="text-sm text-muted-foreground whitespace-pre-line">{passive.description}</p>
-            {typeof passive.selectAmount === "number" &&
-            passive.selectAmount > 0 &&
-            Array.isArray(passive.effects) &&
-            passive.effects.length > passive.selectAmount ? (
-                <div className="space-y-1 text-sm">
-                    <span className="font-medium">Choose {passive.selectAmount}</span>
-                    <ul className="list-disc pl-4 text-muted-foreground space-y-0.5">
-                        {passive.effects.map((eff: Record<string, unknown>, i: number) => (
-                            <li key={i}>{formatTraitEffectChoiceLabel(eff as any, RULES)}</li>
-                        ))}
-                    </ul>
-                </div>
-            ) : Array.isArray(passive.effects) && passive.effects.length > 0 ? (
-                <ul className="list-inside list-disc space-y-0.5 text-xs text-muted-foreground">
-                    {passive.effects.map((eff: Record<string, unknown>, i: number) => (
-                        <li key={i}>{formatTraitEffectChoiceLabel(eff as any, RULES)}</li>
-                    ))}
-                </ul>
-            ) : null}
-            {passive.powerRoll ? (
-                <TraitPowerRollCollapsible
-                    roll={passive.powerRoll as PowerRoll}
-                    attributes={DEMO_ATTRIBUTES}
-                    currentWeapon={previewWeapon}
-                    offhandWeapon={null}
-                    defaultExpanded={false}
-                    collapseAllSignal={collapseAllSignal}
-                />
-            ) : null}
-        </div>
-    )
-}
-
-function formatCreatureVuln(v: { stat: string; value?: string }): string {
-    const vu = v.value != null && v.value !== "" ? ` (+${v.value} VU)` : ""
-    return `${v.stat}${vu}`
-}
-
-/**
- * Rules library only: show preview-only cards for bestiary ids even when `actionIDs` is empty.
- * Character sheet still uses {@link getActionCardIdsForCreatureEntry} and creator picks — unchanged.
- */
-function getLibraryCreatureActionDisplayIds(id: string, def: Pick<CreatureDefinition, "actionIDs">): string[] {
-    const base = [...(def.actionIDs ?? [])].map((s) => String(s).trim()).filter(Boolean)
-    const seen = new Set(base)
-    const out = [...base]
-
-    for (const previewIds of [FAIRY_ACTIONS_BY_TEMPLATE[id], RIDER_MOUNT_ACTIONS_BY_TEMPLATE[id]]) {
-        for (const raw of previewIds ?? []) {
-            const aid = String(raw).trim()
-            if (!aid || seen.has(aid)) continue
-            seen.add(aid)
-            out.push(aid)
-        }
-    }
-
-    return out
-}
-
-const LibraryCreatureCard = memo(function LibraryCreatureCard({
-    id,
-    def,
-    rules,
-    previewWeapon,
-    collapseAllSignal,
-}: {
+type ItemRankFilterOption = {
     id: string
-    def: CreatureDefinition
-    rules: Record<string, any>
-    previewWeapon: InventoryItem | null
-    collapseAllSignal: number
+    label: string
+    nameClass: string
+}
+
+function EquipmentRankMultiSelect({
+    value,
+    onChange,
+    options,
+    counts,
+    id,
+    className,
+}: {
+    value: Set<string>
+    onChange: (next: Set<string>) => void
+    options: ItemRankFilterOption[]
+    counts: Map<string, number>
+    id?: string
+    className?: string
 }) {
-    const traitEntries = resolveCreatureTraitEntries(rules, def.traitRefs)
-    const actionIds = getLibraryCreatureActionDisplayIds(id, def)
-    const attrKeys = ["might", "dexterity", "reason", "willpower", "presence"] as const
-    const oa = def.opportunityAttack
-    const naturalWeaponEntries = def.naturalWeapons
-        ? Object.entries(def.naturalWeapons).map(([key, raw]) => {
-              const merged = normalizeNaturalWeapon(raw, getNaturalWeaponSystemDefaults(rules as RulesWithNaturalWeapons))
-              return { key, merged }
-          })
-        : []
+    const label = useMemo(() => {
+        if (value.size === 0) return "All rarities"
+        const selected = options.filter((option) => value.has(option.id))
+        if (selected.length <= 2) return selected.map((option) => option.label).join(", ")
+        return `${selected.length} rarities`
+    }, [value, options])
+
+    const toggleRank = (rankId: string, checked: boolean | "indeterminate") => {
+        const next = new Set(value)
+        if (checked === true) next.add(rankId)
+        else next.delete(rankId)
+        onChange(next)
+    }
 
     return (
-        <div className="min-w-0 space-y-3 rounded-lg border border-border bg-card/40 p-4">
-            <div className="flex flex-wrap items-start gap-2">
-                <div className="min-w-0 flex-1 space-y-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-lg font-semibold leading-tight">{def.name}</span>
-                        <Badge variant="outline" className="font-mono text-[10px] shrink-0">
-                            {id}
-                        </Badge>
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                        <Badge variant="secondary" className="text-[10px] capitalize">
-                            {def.role}
-                        </Badge>
-                        {typeof def.catalogLevel === "number" ? (
-                            <Badge variant="outline" className="text-[10px]">
-                                Lv {def.catalogLevel}
-                            </Badge>
-                        ) : null}
-                        {(def.tags ?? []).map((t) => (
-                            <Badge key={t} variant="outline" className="text-[10px] capitalize">
-                                {t}
-                            </Badge>
-                        ))}
-                        {def.creatureTypes?.map((t) => (
-                            <Badge key={t} variant="secondary" className="text-[10px] capitalize">
-                                {t}
-                            </Badge>
-                        ))}
-                    </div>
-                </div>
-            </div>
-            {def.description ? (
-                <p className="text-sm text-muted-foreground whitespace-pre-line">{def.description}</p>
-            ) : null}
-
-            {def.attributes && Object.keys(def.attributes).length > 0 ? (
-                <div>
-                    <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                        Attributes
-                    </p>
-                    <div className="grid grid-cols-5 gap-1 text-xs">
-                        {attrKeys.map((k) => {
-                            const raw = def.attributes?.[k]
-                            const score =
-                                typeof raw === "number" && Number.isFinite(raw) ? raw : null
-                            return (
-                                <div key={k} className="rounded-md bg-muted/40 px-1.5 py-1 text-center">
-                                    <div className="text-[9px] text-muted-foreground uppercase">{k.slice(0, 3)}</div>
-                                    <div className="font-mono font-semibold tabular-nums">{score ?? "—"}</div>
-                                    <div className="text-[9px] font-mono text-muted-foreground tabular-nums">
-                                        {score != null ? formatModifier(getAttributeModifier(score)) : "—"}
-                                    </div>
-                                </div>
-                            )
-                        })}
-                    </div>
-                </div>
-            ) : null}
-
-            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-2 text-xs text-muted-foreground">
-                {def.size ? (
-                    <span>
-                        <span className="font-medium text-foreground">Size</span> {def.size}
-                    </span>
-                ) : null}
-                {def.speed != null ? (
-                    <span>
-                        <span className="font-medium text-foreground">Speed</span> {def.speed}
-                    </span>
-                ) : null}
-                {def.stability != null ? (
-                    <span>
-                        <span className="font-medium text-foreground">Stability</span> {def.stability}
-                    </span>
-                ) : null}
-                {def.defense != null && Number.isFinite(def.defense) ? (
-                    <span>
-                        <span className="font-medium text-foreground">Def</span> {def.defense}
-                    </span>
-                ) : null}
-                {def.role === "summon" && (def.defaultMaxHp != null || def.defaultMaxMp != null) ? (
-                    <span className="inline-flex flex-wrap items-baseline gap-x-3 rounded-md border border-border/80 bg-muted/40 px-2.5 py-1 text-muted-foreground">
-                        {def.defaultMaxHp != null ? (
-                            <span className="tabular-nums">
-                                <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                                    HP{" "}
-                                </span>
-                                <span className="font-mono text-sm font-semibold text-foreground">{def.defaultMaxHp}</span>
-                            </span>
-                        ) : null}
-                        {def.defaultMaxMp != null ? (
-                            <span className="tabular-nums">
-                                <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                                    MP{" "}
-                                </span>
-                                <span className="font-mono text-sm font-semibold text-foreground">{def.defaultMaxMp}</span>
-                            </span>
-                        ) : null}
-                    </span>
-                ) : null}
-            </div>
-
-            {naturalWeaponEntries.length > 0 ? (
-                <div>
-                    <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                        Natural weapons
-                    </p>
-                    <ul className="space-y-1 text-xs text-muted-foreground">
-                        {naturalWeaponEntries.map(({ key, merged }) => (
-                            <li key={key} className="font-mono tabular-nums">
-                                <span className="font-semibold text-foreground">{merged.name}</span>
-                                <span className="text-muted-foreground"> ({key})</span>
-                                {" — "}
-                                {merged.damage} {merged.damageType}, range {merged.range ?? "—"}
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-            ) : null}
-
-            {def.resistances && def.resistances.length > 0 ? (
-                <div>
-                    <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                        Resistances
-                    </p>
-                    <div className="flex flex-wrap gap-1">
-                        {def.resistances.map((r) => (
-                            <Badge key={r} variant="secondary" className="text-[10px] capitalize">
-                                {r}
-                            </Badge>
-                        ))}
-                    </div>
-                </div>
-            ) : null}
-            {def.immunities && def.immunities.length > 0 ? (
-                <div>
-                    <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                        Immunities
-                    </p>
-                    <div className="flex flex-wrap gap-1">
-                        {def.immunities.map((r) => (
-                            <Badge key={r} variant="outline" className="text-[10px] capitalize">
-                                {r}
-                            </Badge>
-                        ))}
-                    </div>
-                </div>
-            ) : null}
-            {def.vulnerabilities && def.vulnerabilities.length > 0 ? (
-                <div>
-                    <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                        Vulnerabilities
-                    </p>
-                    <ul className="list-disc pl-4 text-xs text-muted-foreground capitalize">
-                        {def.vulnerabilities.map((v, i) => (
-                            <li key={`${v.stat}-${i}`}>{formatCreatureVuln(v)}</li>
-                        ))}
-                    </ul>
-                </div>
-            ) : null}
-
-            {oa != null && Number.isFinite(oa) && oa > 0 ? (
-                <p className="text-[11px] text-muted-foreground">
-                    Opportunity attack:{" "}
-                    <span className="font-mono font-semibold text-foreground">{oa}</span> damage.
-                </p>
-            ) : null}
-
-            {traitEntries.length > 0 ? (
-                <div className="space-y-2 border-t border-border/60 pt-2">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Passives</p>
-                    {traitEntries.map((t) => (
-                        <div key={t.id} className="rounded-md border border-border/60 bg-muted/15 px-2 py-1.5">
-                            <div className="text-xs font-semibold">{t.name ?? t.id}</div>
-                            {t.description ? (
-                                <p className="mt-0.5 text-[11px] text-muted-foreground whitespace-pre-line">
-                                    {t.description}
-                                </p>
-                            ) : null}
-                        </div>
+        <Popover>
+            <PopoverTrigger asChild>
+                <Button
+                    id={id}
+                    type="button"
+                    variant="outline"
+                    className={cn("justify-between font-normal", className)}
+                >
+                    <span className="truncate">{label}</span>
+                    <ChevronDown className="h-4 w-4 shrink-0 opacity-60" />
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-56 p-2" align="start">
+                <div className="space-y-0.5">
+                    {options.map((rank) => (
+                        <label
+                            key={rank.id}
+                            className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
+                        >
+                            <Checkbox
+                                checked={value.has(rank.id)}
+                                onCheckedChange={(checked) => toggleRank(rank.id, checked)}
+                            />
+                            <span className={cn("flex-1 font-medium", rank.nameClass)}>{rank.label}</span>
+                            <span className="text-xs text-muted-foreground">{counts.get(rank.id) ?? 0}</span>
+                        </label>
                     ))}
                 </div>
-            ) : null}
-
-            {actionIds.length > 0 ? (
-                <div className="space-y-3 border-t border-border/60 pt-2">
-                    <span className="text-sm font-semibold">Actions</span>
-                    <div className="space-y-4">
-                        {actionIds.map((aid) => {
-                            const ac = hydrateActionCardById(aid, rules)
-                            if (!ac) {
-                                return (
-                                    <p key={aid} className="text-sm text-destructive">
-                                        Missing action: {aid}
-                                    </p>
-                                )
-                            }
-                            const cardWeapon =
-                                resolveNaturalWeaponForAction(
-                                    def,
-                                    rules as RulesWithNaturalWeapons,
-                                    ac.tags,
-                                    ac.hiddenTags
-                                ) ?? previewWeapon
-                            return (
-                                <div key={aid} className="space-y-2">
-                                    <Badge variant="outline" className="font-mono text-[10px]">
-                                        {aid}
-                                    </Badge>
-                                    <ActionCardComponent
-                                        action={ac}
-                                        attributes={DEMO_ATTRIBUTES}
-                                        currentWeapon={cardWeapon}
-                                        offhandWeapon={null}
-                                        forceCollapsed={false}
-                                        powerRollDisplayMode="formula"
-                                        defaultPowerRollExpanded={false}
-                                        collapseAllSignal={collapseAllSignal}
-                                    />
-                                </div>
-                            )
-                        })}
-                    </div>
-                </div>
-            ) : (
-                <p className="text-xs text-muted-foreground border-t border-border/60 pt-2">
-                    No action cards to preview (<span className="font-mono">actionIDs</span> empty and no
-                    library-only preview mapping).
-                </p>
-            )}
-        </div>
+                {value.size > 0 ? (
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="mt-2 w-full"
+                        onClick={() => onChange(new Set())}
+                    >
+                        Clear filter
+                    </Button>
+                ) : null}
+            </PopoverContent>
+        </Popover>
     )
-})
+}
+
+function LibraryItemChargePips({
+    itemId,
+    def,
+    attributes,
+}: {
+    itemId: string
+    def: Record<string, unknown>
+    attributes: Record<string, number>
+}) {
+    const maxCharges = useMemo(
+        () => resolveMaxCharges(def as ChargeDefinition, attributes),
+        [def, attributes],
+    )
+    const [currentCharges, setCurrentCharges] = useState(maxCharges)
+
+    useEffect(() => {
+        setCurrentCharges(maxCharges)
+    }, [itemId, maxCharges])
+
+    if (!itemHasChargeTracking(def as ChargeDefinition) || maxCharges <= 0) return null
+
+    return (
+        <ChargePips
+            maxCharges={maxCharges}
+            currentCharges={currentCharges}
+            onChange={setCurrentCharges}
+            label="Charges"
+            className="rounded-lg border border-border/60 bg-muted/10 px-3 py-2"
+        />
+    )
+}
 
 export function RulesLibraryView() {
     const [mainTab, setMainTab] = useState("classes")
@@ -639,6 +211,10 @@ export function RulesLibraryView() {
     const [featSearch, setFeatSearch] = useState("")
     const [skillSearch, setSkillSearch] = useState("")
     const [equipmentSearch, setEquipmentSearch] = useState("")
+    const [equipmentRankFilters, setEquipmentRankFilters] = useState<Set<string>>(() => new Set())
+    const [accessoriesNavExpanded, setAccessoriesNavExpanded] = useState(false)
+    const [libraryAccessorySlotFilter, setLibraryAccessorySlotFilter] =
+        useState<AccessorySlotFilterKey>("all")
     const [creatureSearch, setCreatureSearch] = useState("")
     const [glossarySearch, setGlossarySearch] = useState("")
     const [selectedClassId, setSelectedClassId] = useState<string>("")
@@ -726,22 +302,75 @@ export function RulesLibraryView() {
         })
     }, [skillEntries, skillSearch])
 
-    const filteredEquipment = useMemo(() => {
+    const itemRankFilterOptions = useMemo(() => {
+        const palette = getItemRankPalette(RULES)
+        const orderedIds = ["common", "intermediate", "advanced", "masterwork"]
+        const ids = [
+            ...orderedIds.filter((id) => palette[id] || id === "common"),
+            ...Object.keys(palette).filter((id) => !orderedIds.includes(id)),
+        ]
+        return ids.map((id) => ({
+            id,
+            label: palette[id]?.label ?? (id === "common" ? "Common" : id),
+            nameClass: palette[id]?.nameClass ?? "text-foreground",
+        }))
+    }, [])
+
+    const equipmentMatchingSearch = useMemo(() => {
         const items = RULES.items ?? {}
         const q = equipmentSearch.trim().toLowerCase()
         const entries = Object.entries(items).map(([id, def]) => ({ id, def: def as Record<string, any> }))
         if (!q) return entries
         return entries.filter(({ id, def }) => {
+            const rankId = resolveItemRank({ rank: def.rank }, RULES)
+            const rankLabel = getItemRankLabel({ rank: def.rank }, RULES) ?? rankId
             const tags = Array.isArray(def.tags) ? def.tags.join(" ") : ""
-            const blob = [id, def.name, def.description, def.type, tags].filter(Boolean).join(" ")
+            const blob = [id, def.name, def.description, def.type, tags, rankId, rankLabel]
+                .filter(Boolean)
+                .join(" ")
             return matchesQuery(blob, q)
         })
     }, [equipmentSearch])
 
+    const equipmentRankCounts = useMemo(() => {
+        const counts = new Map<string, number>()
+        for (const { def } of equipmentMatchingSearch) {
+            const rank = resolveItemRank({ rank: def.rank }, RULES)
+            counts.set(rank, (counts.get(rank) ?? 0) + 1)
+        }
+        return counts
+    }, [equipmentMatchingSearch])
+
+    const filteredEquipment = useMemo(() => {
+        if (equipmentRankFilters.size === 0) return equipmentMatchingSearch
+        return equipmentMatchingSearch.filter(({ def }) =>
+            equipmentRankFilters.has(resolveItemRank({ rank: def.rank }, RULES)),
+        )
+    }, [equipmentMatchingSearch, equipmentRankFilters])
+
+    const accessoryEquipmentRows = useMemo(
+        () =>
+            filteredEquipment.filter(
+                ({ id, def }) => resolveEquipmentLibraryType(id, def) === ACCESSORY_EQUIPMENT_TYPE,
+            ),
+        [filteredEquipment],
+    )
+
+    const accessorySlotCounts = useMemo(
+        () => countAccessoryItemsBySlotFilter(accessoryEquipmentRows),
+        [accessoryEquipmentRows],
+    )
+
     const equipmentByType = useMemo(() => {
         const map = new Map<string, typeof filteredEquipment>()
         for (const row of filteredEquipment) {
-            const t = typeof row.def.type === "string" ? row.def.type : "other"
+            const t = resolveEquipmentLibraryType(row.id, row.def)
+            if (
+                t === ACCESSORY_EQUIPMENT_TYPE &&
+                !accessoryItemMatchesSlotFilter(row.def.allowedSlots, libraryAccessorySlotFilter)
+            ) {
+                continue
+            }
             if (!map.has(t)) map.set(t, [])
             map.get(t)!.push(row)
         }
@@ -756,7 +385,7 @@ export function RulesLibraryView() {
             }
         }
         return ordered
-    }, [filteredEquipment])
+    }, [filteredEquipment, libraryAccessorySlotFilter])
 
     const featsByLevel = useMemo(() => {
         const buckets = new Map<string, typeof filteredFeats>()
@@ -1109,20 +738,140 @@ export function RulesLibraryView() {
                                     {mainTab === "equipment" ? (
                                         <>
                                             <p className="px-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                                                By rarity
+                                            </p>
+                                            <div className="px-2 pb-1">
+                                                <EquipmentRankMultiSelect
+                                                    value={equipmentRankFilters}
+                                                    onChange={setEquipmentRankFilters}
+                                                    options={itemRankFilterOptions}
+                                                    counts={equipmentRankCounts}
+                                                    className="h-8 w-full text-xs"
+                                                />
+                                            </div>
+                                            <p className="px-2 pt-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                                                 By type
                                             </p>
                                             <div className="space-y-0.5">
-                                                {equipmentByType.map(({ type, rows }) => (
-                                                    <button
-                                                        key={type}
-                                                        type="button"
-                                                        onClick={() => libraryScrollTo(`lib-equip-type-${tocSlug(type)}`)}
-                                                        className="w-full rounded-md px-2 py-1.5 text-left text-xs capitalize hover:bg-muted"
-                                                    >
-                                                        <span className="font-medium">{type}</span>
-                                                        <span className="text-muted-foreground"> ({rows.length})</span>
-                                                    </button>
-                                                ))}
+                                                {EQUIPMENT_TYPE_ORDER.map((type) => {
+                                                    if (type === ACCESSORY_EQUIPMENT_TYPE) {
+                                                        if (accessoryEquipmentRows.length === 0) return null
+                                                        const accessorySectionId = `lib-equip-type-${tocSlug(type)}`
+                                                        return (
+                                                            <div key={type}>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        setAccessoriesNavExpanded((expanded) => !expanded)
+                                                                        libraryScrollTo(accessorySectionId)
+                                                                    }}
+                                                                    className="flex w-full items-center gap-1 rounded-md px-2 py-1.5 text-left text-xs hover:bg-muted"
+                                                                >
+                                                                    {accessoriesNavExpanded ? (
+                                                                        <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-70" />
+                                                                    ) : (
+                                                                        <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-70" />
+                                                                    )}
+                                                                    <span className="font-medium">
+                                                                        {formatEquipmentLibraryTypeLabel(type)}
+                                                                    </span>
+                                                                    <span className="text-muted-foreground">
+                                                                        {" "}
+                                                                        ({accessoryEquipmentRows.length})
+                                                                    </span>
+                                                                </button>
+                                                                {accessoriesNavExpanded ? (
+                                                                    <div className="ml-4 space-y-0.5 border-l border-border pl-2">
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                setLibraryAccessorySlotFilter("all")
+                                                                                libraryScrollTo(accessorySectionId)
+                                                                            }}
+                                                                            className={cn(
+                                                                                "w-full rounded-md px-2 py-1 text-left text-xs hover:bg-muted",
+                                                                                libraryAccessorySlotFilter === "all" &&
+                                                                                    "bg-muted font-semibold",
+                                                                            )}
+                                                                        >
+                                                                            <span className="font-medium">All slots</span>
+                                                                            <span className="text-muted-foreground">
+                                                                                {" "}
+                                                                                ({accessorySlotCounts.get("all") ?? 0})
+                                                                            </span>
+                                                                        </button>
+                                                                        {ACCESSORY_SLOT_FILTER_OPTIONS.map(({ id, label }) => (
+                                                                            <button
+                                                                                key={id}
+                                                                                type="button"
+                                                                                onClick={() => {
+                                                                                    setLibraryAccessorySlotFilter(id)
+                                                                                    libraryScrollTo(accessorySectionId)
+                                                                                }}
+                                                                                className={cn(
+                                                                                    "w-full rounded-md px-2 py-1 text-left text-xs hover:bg-muted",
+                                                                                    libraryAccessorySlotFilter === id &&
+                                                                                        "bg-muted font-semibold",
+                                                                                )}
+                                                                            >
+                                                                                <span className="font-medium">{label}</span>
+                                                                                <span className="text-muted-foreground">
+                                                                                    {" "}
+                                                                                    ({accessorySlotCounts.get(id) ?? 0})
+                                                                                </span>
+                                                                            </button>
+                                                                        ))}
+                                                                    </div>
+                                                                ) : null}
+                                                            </div>
+                                                        )
+                                                    }
+                                                    const section = equipmentByType.find((entry) => entry.type === type)
+                                                    if (!section) return null
+                                                    return (
+                                                        <button
+                                                            key={type}
+                                                            type="button"
+                                                            onClick={() =>
+                                                                libraryScrollTo(`lib-equip-type-${tocSlug(type)}`)
+                                                            }
+                                                            className="w-full rounded-md px-2 py-1.5 text-left text-xs hover:bg-muted"
+                                                        >
+                                                            <span className="font-medium">
+                                                                {formatEquipmentLibraryTypeLabel(type)}
+                                                            </span>
+                                                            <span className="text-muted-foreground">
+                                                                {" "}
+                                                                ({section.rows.length})
+                                                            </span>
+                                                        </button>
+                                                    )
+                                                })}
+                                                {equipmentByType
+                                                    .filter(
+                                                        ({ type }) =>
+                                                            !EQUIPMENT_TYPE_ORDER.includes(
+                                                                type as (typeof EQUIPMENT_TYPE_ORDER)[number],
+                                                            ),
+                                                    )
+                                                    .map(({ type, rows }) => (
+                                                        <button
+                                                            key={type}
+                                                            type="button"
+                                                            onClick={() =>
+                                                                libraryScrollTo(`lib-equip-type-${tocSlug(type)}`)
+                                                            }
+                                                            className="w-full rounded-md px-2 py-1.5 text-left text-xs hover:bg-muted"
+                                                        >
+                                                            <span className="font-medium">
+                                                                {formatEquipmentLibraryTypeLabel(type)}
+                                                            </span>
+                                                            <span className="text-muted-foreground">
+                                                                {" "}
+                                                                ({rows.length})
+                                                            </span>
+                                                        </button>
+                                                    ))}
                                             </div>
                                         </>
                                     ) : null}
@@ -1730,14 +1479,27 @@ export function RulesLibraryView() {
                 </TabsContent>
 
                 <TabsContent value="equipment" className="mt-0 space-y-4">
-                    <div className="space-y-1.5 max-w-md">
-                        <Label htmlFor="lib-equip-search">Search equipment</Label>
-                        <Input
-                            id="lib-equip-search"
-                            placeholder="Id, name, tags, type…"
-                            value={equipmentSearch}
-                            onChange={(e) => setEquipmentSearch(e.target.value)}
-                        />
+                    <div className="space-y-3 max-w-2xl">
+                        <div className="space-y-1.5">
+                            <Label htmlFor="lib-equip-search">Search equipment</Label>
+                            <Input
+                                id="lib-equip-search"
+                                placeholder="Id, name, tags, type, rarity…"
+                                value={equipmentSearch}
+                                onChange={(e) => setEquipmentSearch(e.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label htmlFor="lib-equip-rarity">Rarity</Label>
+                            <EquipmentRankMultiSelect
+                                id="lib-equip-rarity"
+                                value={equipmentRankFilters}
+                                onChange={setEquipmentRankFilters}
+                                options={itemRankFilterOptions}
+                                counts={equipmentRankCounts}
+                                className="w-full max-w-xs"
+                            />
+                        </div>
                     </div>
                     <div className="space-y-8">
                         {equipmentByType.map(({ type, rows }) => (
@@ -1746,23 +1508,50 @@ export function RulesLibraryView() {
                                 id={`lib-equip-type-${tocSlug(type)}`}
                                 className="scroll-mt-36 space-y-3"
                             >
-                                <h3 className="text-lg font-bold capitalize border-b border-border pb-1">{type}</h3>
+                                <h3 className="text-lg font-bold border-b border-border pb-1">
+                                    {formatEquipmentLibraryTypeLabel(type)}
+                                </h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5 items-start">
                                     {rows.map(({ id, def }) => {
                                         const selfWeapon = itemDefToPreviewWeapon(id, def)
                                         const cardWeapon = selfWeapon ?? previewWeapon
                                         const actionIds: string[] = Array.isArray(def.actionIDs) ? def.actionIDs : []
+                                        const hydratedItemCards = actionIds
+                                            .map((aid) => hydrateActionCardById(aid, RULES))
+                                            .filter((ac): ac is NonNullable<typeof ac> => ac != null)
+                                        const itemActionCards = hydratedItemCards.filter(
+                                            (ac) => !isReactionActionCardType(ac.type)
+                                        )
+                                        const itemReactionCards = hydratedItemCards.filter((ac) =>
+                                            isReactionActionCardType(ac.type)
+                                        )
+                                        const itemRankClass = getItemNameClass({ rank: def.rank }, RULES)
+                                        const itemRankLabel = getItemRankLabel({ rank: def.rank }, RULES)
+                                        const libraryType = resolveEquipmentLibraryType(id, def)
+                                        const accessoryItem = isAccessoryCatalogItem(id, def)
                                         return (
                                             <div
                                                 key={id}
                                                 className="rounded-lg border border-border p-4 space-y-3 bg-card/30 min-w-0"
                                             >
                                                 <div className="flex flex-wrap gap-2 items-baseline">
-                                                    <span className="font-bold text-lg">{def.name ?? id}</span>
+                                                    <span className={cn("font-bold text-lg", itemRankClass)}>
+                                                        {def.name ?? id}
+                                                    </span>
+                                                    {itemRankLabel ? (
+                                                        <Badge
+                                                            variant="outline"
+                                                            className={cn("text-[10px]", itemRankClass)}
+                                                        >
+                                                            {itemRankLabel}
+                                                        </Badge>
+                                                    ) : null}
                                                     <Badge variant="outline" className="font-mono text-[10px]">
                                                         {id}
                                                     </Badge>
-                                                    <Badge variant="secondary">{def.type}</Badge>
+                                                    <Badge variant="secondary">
+                                                        {formatEquipmentLibraryTypeLabel(libraryType)}
+                                                    </Badge>
                                                 </div>
                                                 <p className="text-sm text-muted-foreground whitespace-pre-line">
                                                     {def.description}
@@ -1773,6 +1562,21 @@ export function RulesLibraryView() {
                                                             <EffectGlossaryTag key={t} tag={t} />
                                                         ))}
                                                     </div>
+                                                ) : null}
+                                                <p className="text-sm text-muted-foreground">
+                                                    <span className="font-medium text-foreground">Zenny</span>{" "}
+                                                    {def.value ?? "—"}
+                                                </p>
+                                                <LibraryItemChargePips
+                                                    itemId={id}
+                                                    def={def}
+                                                    attributes={DEMO_ATTRIBUTES}
+                                                />
+                                                {accessoryItem ? (
+                                                    <p className="text-sm text-muted-foreground">
+                                                        <span className="font-medium text-foreground">Slots</span>{" "}
+                                                        {formatAccessoryAllowedSlotsLabel(def.allowedSlots)}
+                                                    </p>
                                                 ) : null}
                                                 {def.type === "weapon" ? (
                                                     <div className="text-sm grid grid-cols-2 sm:grid-cols-3 gap-2 text-muted-foreground">
@@ -1791,26 +1595,38 @@ export function RulesLibraryView() {
                                                         <span className="sm:col-span-2">
                                                             {formatWeaponAttribLabel(def.attributes)}
                                                         </span>
-                                                        <span>
-                                                            <span className="font-medium text-foreground">Value</span>{" "}
-                                                            {def.value ?? "—"}
-                                                        </span>
                                                     </div>
                                                 ) : null}
                                                 {def.type === "armor" ? (
                                                     <div className="text-sm text-muted-foreground space-y-1">
                                                         <div>
-                                                            Def: {def.defense?.value ?? "—"}{" "}
-                                                            {def.defense?.attribute
-                                                                ? `(${def.defense.attribute}, max ${def.defense.attrMax ?? "—"})`
-                                                                : ""}
+                                                            <span className="font-medium text-foreground">
+                                                                Defense
+                                                            </span>{" "}
+                                                            {formatArmorDefenseValue(
+                                                                def.defense as {
+                                                                    value?: number
+                                                                    attribute?: string
+                                                                    attrMax?: number
+                                                                },
+                                                            )}
                                                         </div>
-                                                        <div>Stability: {def.stability ?? "—"}</div>
+                                                        <div>
+                                                            <span className="font-medium text-foreground">
+                                                                Stability
+                                                            </span>{" "}
+                                                            {def.stability ?? "—"}
+                                                        </div>
                                                     </div>
                                                 ) : null}
                                                 {def.type === "shield" ? (
-                                                    <div className="text-sm text-muted-foreground">
-                                                        Defense: {def.defense ?? "—"}
+                                                    <div className="text-sm text-muted-foreground space-y-1">
+                                                        <div>
+                                                            <span className="font-medium text-foreground">
+                                                                Defense
+                                                            </span>{" "}
+                                                            {def.defense ?? "—"}
+                                                        </div>
                                                     </div>
                                                 ) : null}
                                                 {def.traits && def.traits.length > 0 ? (
@@ -1912,21 +1728,25 @@ export function RulesLibraryView() {
                                                         collapseAllSignal={collapseAllSignal}
                                                     />
                                                 ) : null}
-                                                {actionIds.length > 0 ? (
+                                                {itemActionCards.length > 0 ? (
                                                     <div className="space-y-3 pt-2 border-t border-border/60">
                                                         <span className="text-sm font-semibold">Actions from item</span>
-                                                        {actionIds.map((aid) => {
-                                                            const ac = hydrateActionCardById(aid, RULES)
-                                                            if (!ac) {
-                                                                return (
-                                                                    <p key={aid} className="text-sm text-destructive">
-                                                                        Missing action: {aid}
-                                                                    </p>
+                                                        {itemActionCards.map((ac) => {
+                                                            const itemChargeCost = getActionItemChargeCost(ac)
+                                                            const showItemCharges =
+                                                                itemChargeCost != null &&
+                                                                itemHasChargeTracking(
+                                                                    def as ChargeDefinition
                                                                 )
-                                                            }
+                                                            const itemChargeMax = showItemCharges
+                                                                ? resolveMaxCharges(
+                                                                      def as ChargeDefinition,
+                                                                      DEMO_ATTRIBUTES
+                                                                  )
+                                                                : 0
                                                             return (
                                                                 <ActionCardComponent
-                                                                    key={`${id}-${aid}`}
+                                                                    key={`${id}-${ac.id}`}
                                                                     action={ac}
                                                                     attributes={DEMO_ATTRIBUTES}
                                                                     currentWeapon={cardWeapon}
@@ -1935,9 +1755,63 @@ export function RulesLibraryView() {
                                                                     powerRollDisplayMode="formula"
                                                                     defaultPowerRollExpanded={false}
                                                                     collapseAllSignal={collapseAllSignal}
+                                                                    itemChargeCost={
+                                                                        showItemCharges
+                                                                            ? itemChargeCost
+                                                                            : undefined
+                                                                    }
+                                                                    itemChargeMax={
+                                                                        showItemCharges
+                                                                            ? itemChargeMax
+                                                                            : undefined
+                                                                    }
+                                                                    itemChargeCurrent={
+                                                                        showItemCharges
+                                                                            ? itemChargeMax
+                                                                            : undefined
+                                                                    }
                                                                 />
                                                             )
                                                         })}
+                                                    </div>
+                                                ) : null}
+                                                {itemReactionCards.length > 0 ? (
+                                                    <div className="space-y-3 pt-2 border-t border-border/60">
+                                                        <span className="text-sm font-semibold">Reactions from item</span>
+                                                        {itemReactionCards.map((rx) => (
+                                                            <div
+                                                                key={`${id}-${rx.id}`}
+                                                                className="rounded-lg border border-border p-4 space-y-3 bg-card/40"
+                                                            >
+                                                                <div className="flex flex-wrap gap-2 items-center">
+                                                                    <span className="font-semibold">{rx.name}</span>
+                                                                    <Badge variant="outline" className="font-mono text-[10px]">
+                                                                        {rx.id}
+                                                                    </Badge>
+                                                                </div>
+                                                                {rx.trigger ? (
+                                                                    <>
+                                                                        <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                                                                            Trigger
+                                                                        </p>
+                                                                        <p className="text-sm">{rx.trigger}</p>
+                                                                    </>
+                                                                ) : null}
+                                                                <p className="text-sm text-muted-foreground whitespace-pre-line">
+                                                                    {rx.description}
+                                                                </p>
+                                                                <ActionCardComponent
+                                                                    action={rx}
+                                                                    attributes={DEMO_ATTRIBUTES}
+                                                                    currentWeapon={cardWeapon}
+                                                                    offhandWeapon={null}
+                                                                    forceCollapsed={false}
+                                                                    powerRollDisplayMode="formula"
+                                                                    defaultPowerRollExpanded={false}
+                                                                    collapseAllSignal={collapseAllSignal}
+                                                                />
+                                                            </div>
+                                                        ))}
                                                     </div>
                                                 ) : null}
                                             </div>
