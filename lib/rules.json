@@ -1641,7 +1641,11 @@
               "tier2Wpn": true,
               "tier3Dmg": 5,
               "tier3Wpn": true
-            }
+            },
+            "hiddenTags": [
+              "sustain",
+              "heal"
+            ]
           }
         },
         "bearTrap": {
@@ -17950,7 +17954,7 @@
         "tier2Effect": {
           "type": "ForcedMovement",
           "effect": "verticalpush",
-          "distance": 1,
+          "distance": 2,
           "srcStats": [
             "might",
             "dexterity"
@@ -17964,7 +17968,7 @@
         "tier3Effect": {
           "type": "ForcedMovement",
           "effect": "verticalpush",
-          "distance": 2,
+          "distance": 3,
           "srcStats": [
             "might",
             "dexterity"
@@ -19938,7 +19942,7 @@
     "gentleRepose": {
       "name": "Gentle Repose",
       "type": "action",
-      "description": "Touch a willing creature or Normal-class or below creature of size no greater than 1L. If the target is stunned then they are put to sleep for 1 minute, falling prone. They are immediately woken up if they take any damage or forced movement, removing all of these conditions. You are also put to sleep if they are stunned.",
+      "description": "Touch a willing creature or Normal-class or below creature of size no greater than 1L. If the target is stunned then they are put to sleep for 1 minute, falling prone. They are immediately woken up if they take any damage or forced movement, removing all of these conditions. You are also put to sleep if they are stunned. All creatures put to sleep regain HP.",
       "apCost": 1,
       "focusCost": 0,
       "mpCost": 0,
@@ -19954,18 +19958,36 @@
           "presence"
         ],
         "tier1Effect": {
-          "type": "Special",
-          "effect": "P < -1: target stunned"
+          "type": "Condition",
+          "effect": "stunned",
+          "targetStats": [
+            "presence"
+          ],
+          "fixedSrcVal": -1
         },
         "tier2Effect": {
-          "type": "Special",
-          "effect": "P < 0: target stunned"
+          "type": "Condition",
+          "effect": "stunned",
+          "targetStats": [
+            "presence"
+          ],
+          "fixedSrcVal": 0
         },
         "tier3Effect": {
-          "type": "Special",
-          "effect": "P < 1: target stunned"
-        }
-      }
+          "type": "Condition",
+          "effect": "stunned",
+          "targetStats": [
+            "presence"
+          ],
+          "fixedSrcVal": 1
+        },
+        "tier1Dmg": 2,
+        "tier2Dmg": 3,
+        "tier3Dmg": 4
+      },
+      "hiddenTags": [
+        "shield"
+      ]
     },
     "bootLockdown": {
       "name": "Lockdown",
