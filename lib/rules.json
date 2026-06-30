@@ -15958,7 +15958,10 @@
         "shortRest"
       ],
       "rank": "intermediate",
-      "value": 370
+      "value": 370,
+      "allowedSlots": [
+        "waist"
+      ]
     }
   },
   "actionCards": {
