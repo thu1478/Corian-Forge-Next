@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Cinzel, Geist_Mono, Barlow } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { ThemeProvider } from '@/components/theme-provider'
+import { NotificationStack } from '@/components/notifications/notification-stack'
 import './globals.css'
 
 const barlow = Barlow({
@@ -58,6 +59,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           {children}
+          <NotificationStack />
         </ThemeProvider>
         <Analytics />
       </body>

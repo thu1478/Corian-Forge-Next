@@ -147,6 +147,8 @@ import {
 } from "@/logic/equipment/weapon-utils"
 import { getItemNameClass, getItemRankLabel } from "@/logic/equipment/item-rank-display"
 import type { RulesWithItemRanks } from "@/logic/equipment/item-rank-display"
+import { sortCatalogEntries, type CatalogSortKey } from "@/logic/equipment/catalog-sort"
+import { CatalogSortSelect } from "@/components/equipment/catalog-sort-select"
 import { WeaponBondBadge } from "@/components/equipment/weapon-bond-badge"
 import { statDeltaTextClass } from "@/logic/display/stat-delta-display"
 import { EffectGlossaryTag } from "@/components/effect-glossary-tag"
@@ -163,6 +165,7 @@ import {
 } from "@/components/character-sheet/trackingPage/inventory/inventory-utils"
 import { InventoryItemDisplayContext } from "@/components/character-sheet/trackingPage/inventory/inventory-display-context"
 import { DraggableItemRow } from "@/components/character-sheet/trackingPage/inventory/draggable-item-row"
+import { pushNotification } from "@/logic/notifications/push-notification"
 
 interface InventoryPanelProps {
   inventory: InventoryItem[]
@@ -1217,6 +1220,7 @@ export function InventoryPanel({
   const [catalogNotice, setCatalogNotice] = useState<{ text: string } | null>(null)
   const [catalogAutoDeductZenny, setCatalogAutoDeductZenny] = useState(true)
   const [catalogAffordableOnly, setCatalogAffordableOnly] = useState(false)
+  const [catalogSort, setCatalogSort] = useState<CatalogSortKey>("alphabetical")
   const [pendingCatalogPurchase, setPendingCatalogPurchase] = useState<{
     id: string
     name: string
@@ -1226,7 +1230,18 @@ export function InventoryPanel({
   const [newContainerName, setNewContainerName] = useState("")
   const [newContainerPopoverOpen, setNewContainerPopoverOpen] = useState(false)
   const [goldAdjustInput, setGoldAdjustInput] = useState("1")
-  const [ipAdjustInput, setIpAdjustInput] = useState("1")
+
+  const handleSpendZenny = useCallback(() => {
+    const amount = parseAdjustAmount(goldAdjustInput)
+    onAdjustMoney(-amount)
+    pushNotification('zennySpent', { amount })
+  }, [goldAdjustInput, onAdjustMoney])
+
+  const handleAddZenny = useCallback(() => {
+    const amount = parseAdjustAmount(goldAdjustInput)
+    onAdjustMoney(amount)
+    pushNotification('zennyAdded', { amount })
+  }, [goldAdjustInput, onAdjustMoney])
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -1337,7 +1352,7 @@ export function InventoryPanel({
   )
 
   const catalogEntries = useMemo(() => {
-    return Object.entries(itemCatalog)
+    const filtered = Object.entries(itemCatalog)
       .map(([id, def]) => ({ id, def }))
       .filter(({ id, def }) => {
         const pseudo: Pick<InventoryItem, "type" | "id" | "allowedSlots"> = {
@@ -1367,16 +1382,17 @@ export function InventoryPanel({
           catalogSearch
         )
       })
-      .sort((a, b) =>
-        String(a.def.name ?? a.id).localeCompare(String(b.def.name ?? b.id))
-      )
+
+    return sortCatalogEntries(filtered, catalogSort, rules as RulesWithItemRanks)
   }, [
     itemCatalog,
     catalogFilter,
     catalogAccessorySlotFilter,
     catalogSearch,
     catalogAffordableOnly,
+    catalogSort,
     money,
+    rules,
   ])
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -1517,7 +1533,7 @@ export function InventoryPanel({
                   variant="secondary"
                   size="sm"
                   className="h-9 gap-1"
-                  onClick={() => onAdjustMoney(-parseAdjustAmount(goldAdjustInput))}
+                  onClick={handleSpendZenny}
                 >
                   <Minus className="h-3.5 w-3.5" />
                   Spend
@@ -1526,7 +1542,7 @@ export function InventoryPanel({
                   type="button"
                   size="sm"
                   className="h-9 gap-1 bg-yellow-600 text-white hover:bg-yellow-600/90 dark:bg-yellow-700 dark:hover:bg-yellow-700/90"
-                  onClick={() => onAdjustMoney(parseAdjustAmount(goldAdjustInput))}
+                  onClick={handleAddZenny}
                 >
                   <Plus className="h-3.5 w-3.5" />
                   Add
@@ -1583,63 +1599,26 @@ export function InventoryPanel({
               </span>
               <p className="mt-1 text-[11px] tabular-nums text-muted-foreground">Max {maxIp}</p>
             </div>
-            <div className="space-y-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <label className="sr-only" htmlFor="ip-adjust-amount">
-                  IP to spend or gain
-                </label>
-                <Input
-                  id="ip-adjust-amount"
-                  type="number"
-                  min={1}
-                  className="h-9 w-24 tabular-nums"
-                  value={ipAdjustInput}
-                  onChange={(e) => setIpAdjustInput(e.target.value)}
-                />
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  className="h-9 gap-1"
-                  onClick={() => onAdjustIp(-parseAdjustAmount(ipAdjustInput))}
-                >
-                  <Minus className="h-3.5 w-3.5" />
-                  Spend
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  className="h-9 gap-1 bg-violet-600 text-white hover:bg-violet-600/90 dark:bg-violet-700 dark:hover:bg-violet-700/90"
-                  onClick={() => onAdjustIp(parseAdjustAmount(ipAdjustInput))}
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  Gain
-                </Button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-9 gap-1"
-                  onClick={() => onAdjustIp(-1)}
-                  disabled={ip <= 0}
-                >
-                  <Minus className="h-3.5 w-3.5" />
-                  −1 IP
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-9 gap-1"
-                  onClick={() => onAdjustIp(1)}
-                  disabled={ip >= maxIp}
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  +1 IP
-                </Button>
-              </div>
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-12 flex-1 gap-2 text-base font-semibold"
+                aria-label="Spend 1 IP"
+                onClick={() => onAdjustIp(-1)}
+                disabled={ip <= 0}
+              >
+                <Minus className="h-5 w-5" />
+              </Button>
+              <Button
+                type="button"
+                className="h-12 flex-1 gap-2 bg-violet-600 text-base font-semibold text-white hover:bg-violet-600/90 dark:bg-violet-700 dark:hover:bg-violet-700/90"
+                aria-label="Gain 1 IP"
+                onClick={() => onAdjustIp(1)}
+                disabled={ip >= maxIp}
+              >
+                <Plus className="h-5 w-5" />
+              </Button>
             </div>
           </div>
         </div>
@@ -1776,6 +1755,13 @@ export function InventoryPanel({
                       className="h-10 border-border bg-muted/20 pl-10 text-base"
                     />
                   </div>
+                  <CatalogSortSelect
+                    id="catalog-sort"
+                    value={catalogSort}
+                    onChange={setCatalogSort}
+                    hideLabel
+                    className="space-y-0"
+                  />
                   <div className="flex flex-wrap gap-2">
                     {CATALOG_FILTER_TABS.map((tab) => (
                       <button

@@ -29,7 +29,10 @@ import {
     getItemRankLabel,
     getItemRankPalette,
     resolveItemRank,
+    type RulesWithItemRanks,
 } from "@/logic/equipment/item-rank-display"
+import { sortCatalogEntries, type CatalogSortKey } from "@/logic/equipment/catalog-sort"
+import { CatalogSortSelect } from "@/components/equipment/catalog-sort-select"
 import { buildItemInventoryTraitBlocks } from "@/logic/equipment/item-inventory-details"
 import { getActionItemChargeCost, itemHasChargeTracking } from "@/logic/equipment/item-charges"
 import { ChargePips } from "@/components/character-sheet/charge-pips"
@@ -211,6 +214,7 @@ export function RulesLibraryView() {
     const [featSearch, setFeatSearch] = useState("")
     const [skillSearch, setSkillSearch] = useState("")
     const [equipmentSearch, setEquipmentSearch] = useState("")
+    const [equipmentSort, setEquipmentSort] = useState<CatalogSortKey>("alphabetical")
     const [equipmentRankFilters, setEquipmentRankFilters] = useState<Set<string>>(() => new Set())
     const [accessoriesNavExpanded, setAccessoriesNavExpanded] = useState(false)
     const [libraryAccessorySlotFilter, setLibraryAccessorySlotFilter] =
@@ -377,15 +381,23 @@ export function RulesLibraryView() {
         const ordered: { type: string; rows: typeof filteredEquipment }[] = []
         for (const t of EQUIPMENT_TYPE_ORDER) {
             const rows = map.get(t)
-            if (rows?.length) ordered.push({ type: t, rows })
+            if (rows?.length) {
+                ordered.push({
+                    type: t,
+                    rows: sortCatalogEntries(rows, equipmentSort, RULES as RulesWithItemRanks),
+                })
+            }
         }
         for (const [t, rows] of map.entries()) {
             if (!EQUIPMENT_TYPE_ORDER.includes(t as (typeof EQUIPMENT_TYPE_ORDER)[number])) {
-                ordered.push({ type: t, rows })
+                ordered.push({
+                    type: t,
+                    rows: sortCatalogEntries(rows, equipmentSort, RULES as RulesWithItemRanks),
+                })
             }
         }
         return ordered
-    }, [filteredEquipment, libraryAccessorySlotFilter])
+    }, [filteredEquipment, libraryAccessorySlotFilter, equipmentSort])
 
     const featsByLevel = useMemo(() => {
         const buckets = new Map<string, typeof filteredFeats>()
@@ -737,6 +749,25 @@ export function RulesLibraryView() {
                                     ) : null}
                                     {mainTab === "equipment" ? (
                                         <>
+                                            <div className="space-y-2 px-2 pb-2">
+                                                <Label htmlFor="lib-equip-search-toc" className="sr-only">
+                                                    Search equipment
+                                                </Label>
+                                                <Input
+                                                    id="lib-equip-search-toc"
+                                                    placeholder="Search equipment…"
+                                                    value={equipmentSearch}
+                                                    onChange={(e) => setEquipmentSearch(e.target.value)}
+                                                    className="h-8 text-xs"
+                                                />
+                                                <CatalogSortSelect
+                                                    id="lib-equip-sort-toc"
+                                                    value={equipmentSort}
+                                                    onChange={setEquipmentSort}
+                                                    hideLabel
+                                                    className="space-y-0"
+                                                />
+                                            </div>
                                             <p className="px-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                                                 By rarity
                                             </p>
@@ -1479,28 +1510,6 @@ export function RulesLibraryView() {
                 </TabsContent>
 
                 <TabsContent value="equipment" className="mt-0 space-y-4">
-                    <div className="space-y-3 max-w-2xl">
-                        <div className="space-y-1.5">
-                            <Label htmlFor="lib-equip-search">Search equipment</Label>
-                            <Input
-                                id="lib-equip-search"
-                                placeholder="Id, name, tags, type, rarity…"
-                                value={equipmentSearch}
-                                onChange={(e) => setEquipmentSearch(e.target.value)}
-                            />
-                        </div>
-                        <div className="space-y-1.5">
-                            <Label htmlFor="lib-equip-rarity">Rarity</Label>
-                            <EquipmentRankMultiSelect
-                                id="lib-equip-rarity"
-                                value={equipmentRankFilters}
-                                onChange={setEquipmentRankFilters}
-                                options={itemRankFilterOptions}
-                                counts={equipmentRankCounts}
-                                className="w-full max-w-xs"
-                            />
-                        </div>
-                    </div>
                     <div className="space-y-8">
                         {equipmentByType.map(({ type, rows }) => (
                             <section

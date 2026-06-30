@@ -87,6 +87,7 @@ import {
     lookupChargeDefinition,
 } from "@/logic/traits/charge-helpers";
 import {applyEndOfCombatEffects} from "@/logic/traits/rest-helpers";
+import {pushNotification} from "@/logic/notifications/push-notification";
 import {getCharacterLevelForStats} from "@/logic/character/stats";
 import {listCatalogActionCardIds, listCatalogReactionCardIds} from "@/logic/display/generic-catalog";
 import {
@@ -903,6 +904,7 @@ export function CharacterSheetView() {
         setCharacter((prev: any) =>
             applyEndOfCombatEffects(prev, derived.attributes, rulesData as import("@/logic/traits/charge-helpers").RulesWithCharges)
         );
+        pushNotification('endOfCombat');
     };
 
     const handleShortRestApply = (respitesSpent: number) => {
@@ -1053,7 +1055,7 @@ export function CharacterSheetView() {
                                 <Swords className="w-4 h-4"/> Combat
                             </TabsTrigger>
                             <TabsTrigger value="tracking" className="gap-2">
-                                <Package className="w-4 h-4"/> Tracking
+                                <Package className="w-4 h-4"/> Inventory
                             </TabsTrigger>
                             <TabsTrigger value="abilities" className="gap-2">
                                 <GraduationCap className="w-4 h-4"/> Abilities

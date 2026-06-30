@@ -16,7 +16,8 @@
     "test:e2e:ui": "playwright test --ui",
     "test:all": "vitest run && node scripts/validate-rules.mjs && playwright test",
     "validate:rules": "npm run build:rules-kit && node scripts/validate-rules.mjs",
-    "build:rules-kit": "npm run build --prefix packages/rules-kit"
+    "build:rules-kit": "npm run build --prefix packages/rules-kit",
+    "build:combat-kit": "npm run build --prefix packages/combat-kit"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

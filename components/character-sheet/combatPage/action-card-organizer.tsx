@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useMemo, useRef, useState, type ReactNode } from "react"
+import { useCallback, useMemo, useState, type ReactNode } from "react"
 import {
     DndContext,
     DragOverlay,
@@ -48,9 +48,6 @@ import { ActionTile } from "@/components/character-sheet/combatPage/action-tile"
 import { ActionFolderTile } from "@/components/character-sheet/combatPage/action-folder-tile"
 import { isActionCardInteractiveTarget } from "@/logic/actions/action-card-interaction"
 
-const LONG_PRESS_MS = 500
-const LONG_PRESS_MOVE_PX = 8
-
 const CARD_GRID_CLASS = "grid grid-cols-1 md:grid-cols-2 gap-4"
 
 const dropAnimation: DropAnimation = {
@@ -88,80 +85,6 @@ class ActionLayoutPointerSensor extends PointerSensor {
             },
         },
     ]
-}
-
-function useLongPress(onLongPress: () => void) {
-    const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-    const startRef = useRef<{ x: number; y: number } | null>(null)
-    const suppressClickRef = useRef(false)
-
-    const clearTimer = useCallback(() => {
-        if (timerRef.current) {
-            clearTimeout(timerRef.current)
-            timerRef.current = null
-        }
-        startRef.current = null
-    }, [])
-
-    const onPointerDown = useCallback(
-        (e: React.PointerEvent) => {
-            if (isInteractiveTarget(e.target)) return
-            startRef.current = { x: e.clientX, y: e.clientY }
-            clearTimer()
-            timerRef.current = setTimeout(() => {
-                suppressClickRef.current = true
-                onLongPress()
-                clearTimer()
-            }, LONG_PRESS_MS)
-        },
-        [clearTimer, onLongPress]
-    )
-
-    const onPointerMove = useCallback(
-        (e: React.PointerEvent) => {
-            if (!startRef.current || !timerRef.current) return
-            const dx = e.clientX - startRef.current.x
-            const dy = e.clientY - startRef.current.y
-            if (Math.hypot(dx, dy) > LONG_PRESS_MOVE_PX) clearTimer()
-        },
-        [clearTimer]
-    )
-
-    const onClickCapture = useCallback((e: React.MouseEvent) => {
-        if (suppressClickRef.current) {
-            suppressClickRef.current = false
-            e.stopPropagation()
-            e.preventDefault()
-        }
-    }, [])
-
-    return {
-        onPointerDown,
-        onPointerMove,
-        onPointerUp: clearTimer,
-        onPointerCancel: clearTimer,
-        onClickCapture,
-    }
-}
-
-function LongPressEditWrapper({
-    onEnterEditMode,
-    children,
-    disabled,
-    className,
-}: {
-    onEnterEditMode: () => void
-    children: ReactNode
-    disabled?: boolean
-    className?: string
-}) {
-    const longPress = useLongPress(onEnterEditMode)
-    if (disabled) return <>{children}</>
-    return (
-        <div className={cn("relative touch-manipulation", className)} {...longPress}>
-            {children}
-        </div>
-    )
 }
 
 function ViewFolderTile({
@@ -883,19 +806,14 @@ export function ActionCardOrganizer({
         name: string,
         onOpen: () => void
     ) => (
-        <LongPressEditWrapper
+        <ViewFolderTile
             key={`folder:${folderId}`}
-            onEnterEditMode={enterEditMode}
-            className="w-full min-w-0"
-        >
-            <ViewFolderTile
-                folderId={folderId}
-                name={name}
-                actionLayout={actionLayout}
-                visibleActions={visibleActions}
-                onOpen={onOpen}
-            />
-        </LongPressEditWrapper>
+            folderId={folderId}
+            name={name}
+            actionLayout={actionLayout}
+            visibleActions={visibleActions}
+            onOpen={onOpen}
+        />
     )
 
     const renderGridView = () => (
@@ -913,19 +831,19 @@ export function ActionCardOrganizer({
                             setGridFolderStack((s) => [...s, row.id]))
                     }
                     return (
-                        <LongPressEditWrapper key={`action:${row.key}`} onEnterEditMode={enterEditMode}>
+                        <div key={`action:${row.key}`} className="w-full min-w-0">
                             {renderActionCard(row.action, cardOpts())}
-                        </LongPressEditWrapper>
+                        </div>
                     )
                 })}
                 {gridContainerId == null
                     ? sortActionsDefault(gridUnplaced).map((action) => (
-                          <LongPressEditWrapper
+                          <div
                               key={`action:${action.instanceKey ?? action.id}`}
-                              onEnterEditMode={enterEditMode}
+                              className="w-full min-w-0"
                           >
                               {renderActionCard(action, cardOpts())}
-                          </LongPressEditWrapper>
+                          </div>
                       ))
                     : null}
             </div>
@@ -947,19 +865,19 @@ export function ActionCardOrganizer({
                             setListFolderStack((s) => [...s, row.id]))
                     }
                     return (
-                        <LongPressEditWrapper key={`action:${row.key}`} onEnterEditMode={enterEditMode}>
+                        <div key={`action:${row.key}`} className="w-full min-w-0">
                             {renderActionCard(row.action, cardOpts())}
-                        </LongPressEditWrapper>
+                        </div>
                     )
                 })}
                 {listContainerId == null
                     ? sortActionsDefault(listUnplaced).map((action) => (
-                          <LongPressEditWrapper
+                          <div
                               key={`action:${action.instanceKey ?? action.id}`}
-                              onEnterEditMode={enterEditMode}
+                              className="w-full min-w-0"
                           >
                               {renderActionCard(action, cardOpts())}
-                          </LongPressEditWrapper>
+                          </div>
                       ))
                     : null}
             </div>

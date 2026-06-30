@@ -2123,7 +2123,8 @@
             "mpCost": 0,
             "tags": [
               "Ranged",
-              "Song"
+              "Song",
+              "Emanation"
             ],
             "source": "bard",
             "powerRoll": {
@@ -4288,7 +4289,7 @@
           "actionCard": {
             "name": "Yeet",
             "type": "action",
-            "description": "If a creature is currently Grabbed by you then you can throw them, using them as a projectile. This is considered a push for the thrown creature and the distance thrown is the range. This is affected by the thrown creature's stability. If the thrown creature's size is greater than 1L this deals bonus damage equal to the creature's size. Both the thrown creature and any creature that the thrown creature hits take damage.",
+            "description": "If a creature is currently Grabbed by you then you can throw them, using them as a projectile. This throwing distance is affected by the thrown creature's stability. If the thrown creature's size is greater than 1L this deals bonus damage equal to the creature's size. Both the thrown creature and any creature that the thrown creature hits take crushing damage.",
             "apCost": 1,
             "focusCost": 0,
             "mpCost": 0,
@@ -4400,6 +4401,7 @@
             "mpCost": 0,
             "range": "Self",
             "tags": [
+              "Melee",
               "Emanation"
             ],
             "source": "fury",
@@ -11916,7 +11918,7 @@
     "con_vial_of_acid": {
       "name": "Vial of Acid",
       "quantity": 1,
-      "description": "Creates an acid pit in a 2x2 area when thrown. Acid deals 5 nature damage to any creature that enters the area or is standing in it during the End Phase",
+      "description": "Creates an acid pit in a 2x2 area when thrown. Acid deals 3 nature damage to any creature that starts its turn there",
       "tags": [],
       "value": 100,
       "type": "consumable"
@@ -12667,7 +12669,7 @@
     "wp_flareGun": {
       "name": "Flare Gun",
       "quantity": 1,
-      "description": "Deals fire damage. Charges reset on short rest.",
+      "description": "Deals fire damage. Charges reset on short rest after you spend a respite.",
       "value": 590,
       "allowedSlots": [
         "rightHand",
@@ -14644,7 +14646,7 @@
       "name": "Beret",
       "quantity": 1,
       "description": "Cosmetic.",
-      "value": 1,
+      "value": 10,
       "allowedSlots": [
         "head"
       ],
@@ -14656,7 +14658,7 @@
       "name": "Top Hat",
       "quantity": 1,
       "description": "Cosmetic.",
-      "value": 1,
+      "value": 10,
       "allowedSlots": [
         "head"
       ],
@@ -14668,7 +14670,7 @@
       "name": "Baseball Cap",
       "quantity": 1,
       "description": "Cosmetic.",
-      "value": 1,
+      "value": 10,
       "allowedSlots": [
         "head"
       ],
@@ -14680,7 +14682,7 @@
       "name": "Feathered Cap",
       "quantity": 1,
       "description": "Cosmetic.",
-      "value": 1,
+      "value": 10,
       "allowedSlots": [
         "head"
       ],
@@ -14692,7 +14694,7 @@
       "name": "Glasses",
       "quantity": 1,
       "description": "Cosmetic.",
-      "value": 1,
+      "value": 15,
       "allowedSlots": [
         "head"
       ],
@@ -14704,7 +14706,7 @@
       "name": "Mask",
       "quantity": 1,
       "description": "Cosmetic.",
-      "value": 1,
+      "value": 10,
       "allowedSlots": [
         "head"
       ],
@@ -14716,7 +14718,7 @@
       "name": "Earrings",
       "quantity": 1,
       "description": "Cosmetic.",
-      "value": 1,
+      "value": 10,
       "allowedSlots": [
         "head"
       ],
@@ -14959,7 +14961,7 @@
       "name": "Choker",
       "quantity": 1,
       "description": "Cosmetic.",
-      "value": 1,
+      "value": 10,
       "allowedSlots": [
         "neck"
       ],
@@ -14971,7 +14973,7 @@
       "name": "Necklace",
       "quantity": 1,
       "description": "Cosmetic.",
-      "value": 1,
+      "value": 10,
       "allowedSlots": [
         "neck"
       ],
@@ -14983,7 +14985,7 @@
       "name": "Necktie",
       "quantity": 1,
       "description": "Cosmetic.",
-      "value": 1,
+      "value": 10,
       "allowedSlots": [
         "neck"
       ],
@@ -15101,7 +15103,7 @@
       "name": "Hooded Cloak",
       "quantity": 1,
       "description": "Cosmetic.",
-      "value": 1,
+      "value": 30,
       "allowedSlots": [
         "waist"
       ],
@@ -15444,7 +15446,7 @@
       "name": "Rings",
       "quantity": 1,
       "description": "Cosmetic.",
-      "value": 1,
+      "value": 10,
       "allowedSlots": [
         "wristLeft",
         "wristRight"
@@ -15457,7 +15459,7 @@
       "name": "Bracelet",
       "quantity": 1,
       "description": "Cosmetic.",
-      "value": 1,
+      "value": 10,
       "allowedSlots": [
         "wristLeft",
         "wristRight"
@@ -15682,7 +15684,7 @@
     "acc_gloveOfTelekinesis": {
       "name": "Glove of Telekinesis",
       "quantity": 1,
-      "description": "You may inflict slide 2 on any target within 5 tiles with an Interact action.",
+      "description": "You may inflict slide 2 on any target besides yourself within 5 tiles with an Interact action.",
       "value": 1470,
       "allowedSlots": [
         "wristLeft",
@@ -15890,6 +15892,73 @@
       "traits": [
         "acc_kineticConverterSoles"
       ]
+    },
+    "herb_mystery_consumable": {
+      "name": "Mystery Consumable",
+      "quantity": 1,
+      "description": "An unknown consumable. Use with caution.",
+      "tags": [],
+      "value": 0,
+      "type": "consumable"
+    },
+    "misc_mysteryLoot": {
+      "name": "Mystery Loot",
+      "type": "misc",
+      "description": "Mystery Loot. I wonder what it is? The contents may be revealed later.",
+      "tags": [],
+      "quantity": 1
+    },
+    "wp_staffOfFlowers": {
+      "name": "Staff of Flowers",
+      "quantity": 1,
+      "description": "A wooden staff adorned with flowers. You may spend a charge to grow up to half a dozen flowers in growable locations next to you. Charges reset on short rest after you spend a respite.",
+      "value": 210,
+      "allowedSlots": [
+        "rightHand",
+        "leftHand"
+      ],
+      "tags": [
+        "implement",
+        "2h"
+      ],
+      "type": "weapon",
+      "damage": 4,
+      "damageType": "magic",
+      "range": 1,
+      "attributes": [
+        "reason",
+        "willpower",
+        "presence"
+      ],
+      "fixedMaxCharges": 2,
+      "chargeReset": [
+        "shortRest"
+      ]
+    },
+    "acc_cloakOfBillowing": {
+      "name": "Cloak of Billowing",
+      "quantity": 1,
+      "description": "On your command, your cloak can billow dramatically even if there isn't any wind",
+      "value": 100,
+      "allowedSlots": [
+        "waist"
+      ],
+      "tags": [],
+      "type": "misc",
+      "rank": "common"
+    },
+    "acc_icarusWings": {
+      "name": "Icarus Wings",
+      "type": "misc",
+      "description": "A pair of collapsible feathery wings. You may spend 1 charge with an Interact action to spread them outwards, granting you a Flying Speed of 3 for 1 minute. If you take any damage while they are active you immediately lose your flying speed and fall. Charges reset on short rest after you spend a respite.",
+      "tags": [],
+      "quantity": 1,
+      "fixedMaxCharges": 1,
+      "chargeReset": [
+        "shortRest"
+      ],
+      "rank": "intermediate",
+      "value": 370
     }
   },
   "actionCards": {
@@ -20717,6 +20786,14 @@
       "bloodthirsty": {
         "name": "Bloodthirsty",
         "description": "Gain a Boon on attacks against creatures that are bloodied or bleeding"
+      },
+      "multiLimbed": {
+        "name": "Multi-limbed",
+        "description": "You can grab as many creatures as you have limbs. When you spend 1 AP to move a grabbed creature you may move up to 2 of them."
+      },
+      "regenerativeLimbs": {
+        "name": "Regenerative Limbs",
+        "description": "Your limbs are regenerated at the start of each round"
       }
     },
     "creatures": {
@@ -22018,7 +22095,7 @@
         },
         "grabbed": {
           "name": "Grabbed",
-          "description": "Your Speed is 0 and you move along with the grabber. If you are the one grabbing, and you are ever separated by more than 1 tile from the grabbed target, this effect ends. You can only grab one creature at a time. You cannot Change Posture while grabbed."
+          "description": "Your Speed is 0 and you move along with the grabber. If you are the one grabbing, and you are ever separated by more than 1 tile from the grabbed target, this effect ends. You can only grab one creature at a time. You cannot Change Posture or Shift while grabbed."
         },
         "poisoned": {
           "name": "Poisoned",

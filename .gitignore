@@ -12,5 +12,7 @@ out
 playwright-report/
 test-results/
 blob-report/
-scripts/
+packages/rules-kit/dist/
+packages/combat-kit/dist/
 .cursor/
+scripts/
