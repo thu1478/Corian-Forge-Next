@@ -166,6 +166,8 @@ import {
 import { InventoryItemDisplayContext } from "@/components/character-sheet/trackingPage/inventory/inventory-display-context"
 import { DraggableItemRow } from "@/components/character-sheet/trackingPage/inventory/draggable-item-row"
 import { pushNotification } from "@/logic/notifications/push-notification"
+import { ItemRequirementsDisplay } from "@/components/equipment/item-requirements-display"
+import type { CharacterClass } from "@/lib/rules"
 
 interface InventoryPanelProps {
   inventory: InventoryItem[]
@@ -185,6 +187,7 @@ interface InventoryPanelProps {
     willpower: number
     presence: number
   }
+  classes?: CharacterClass[]
   onAddInventoryItem: (itemId: string) => void
   onMoveItemToContainer: (uid: string, containerId: string | null) => void
   onAddContainer: (name: string) => void
@@ -701,6 +704,7 @@ function InventoryItemDetailSheet({
   rules,
   itemCatalog,
   attributes,
+  classes,
   fullInventory,
   onSetCustomName,
   onUnpackItemContainer,
@@ -717,6 +721,7 @@ function InventoryItemDetailSheet({
   rules: Record<string, unknown>
   itemCatalog: Record<string, Record<string, unknown>>
   attributes: InventoryPanelProps["attributes"]
+  classes?: CharacterClass[]
   /** Live inventory for capacity checks on container items. */
   fullInventory: InventoryItem[]
   onSetCustomName: (uid: string, name: string) => void
@@ -773,6 +778,7 @@ function InventoryItemDetailSheet({
     !isCatalogPreview && maxItemCharges > 0 && Boolean(onUpdateItemCharges) && itemHasChargeTracking(itemChargeDef)
   const accessoryItem = item ? isAccessoryCatalogItem(item.id, item) : false
   const libraryType = item ? resolveEquipmentLibraryType(item.id, item) : "other"
+  const catalogDef = item ? itemCatalog[item.id] ?? (item as Record<string, unknown>) : null
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -1060,6 +1066,14 @@ function InventoryItemDetailSheet({
               <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                 Description
               </p>
+              {catalogDef ? (
+                <ItemRequirementsDisplay
+                  def={catalogDef}
+                  rules={rules}
+                  context={{ attributes, classes }}
+                  className="text-xs"
+                />
+              ) : null}
               {heavyWarningMessage ? (
                 <div
                   role="status"
@@ -1191,6 +1205,7 @@ export function InventoryPanel({
   itemCatalog,
   rules,
   attributes,
+  classes,
   onAddInventoryItem,
   onMoveItemToContainer,
   onAddContainer,
@@ -1863,6 +1878,13 @@ export function InventoryPanel({
                           <p className="line-clamp-2 whitespace-pre-line text-xs text-muted-foreground">
                             {String(def.description ?? "")}
                           </p>
+                          <ItemRequirementsDisplay
+                            def={def}
+                            rules={rules}
+                            context={{ attributes, classes }}
+                            className="mt-1.5 text-[11px]"
+                            compact
+                          />
                           {statLine ? (
                             <p className="mt-1.5 text-[11px] font-mono tabular-nums text-muted-foreground/90">
                               {statLine}
@@ -2023,6 +2045,7 @@ export function InventoryPanel({
         rules={rules}
         itemCatalog={itemCatalog}
         attributes={attributes}
+        classes={classes}
         fullInventory={inventory}
         onSetCustomName={onSetInventoryItemCustomName}
         onUnpackItemContainer={onUnpackItemContainer}

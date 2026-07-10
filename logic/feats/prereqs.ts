@@ -157,7 +157,7 @@ function bucketRequirementMet(
 }
 
 /** OR across map keys; OR within each bucket's class list. */
-function classLevelRequirementsMet(
+export function classLevelRequirementsMet(
     requirements: ClassLevelRequirementMap,
     characterClasses: CharacterClass[]
 ): boolean {
@@ -179,6 +179,14 @@ function formatClassRequirementsAlternatives(
     if (parts.length === 0) return ""
     if (parts.length === 1) return parts[0]
     return parts.join(", or ")
+}
+
+/** Human-readable class level requirement text (OR across buckets). */
+export function formatClassLevelRequirementsText(
+    requirements: ClassLevelRequirementMap,
+    rules: FeatPrereqsRules
+): string {
+    return formatClassRequirementsAlternatives(requirements, rules)
 }
 
 function formatClassLeaf(requirements: ClassLevelRequirementMap, rules: FeatPrereqsRules): string {

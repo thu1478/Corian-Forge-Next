@@ -1,4 +1,5 @@
 import type { RulesRoot } from "@/lib/rules-data"
+import type { CharAttribute } from "@/lib/rules"
 
 export type RulesValidationSeverity = "error" | "warning"
 
@@ -7,6 +8,108 @@ export type RulesValidationIssue = {
     code: string
     message: string
     severity: RulesValidationSeverity
+}
+
+const CHAR_ATTRIBUTES: CharAttribute[] = [
+    "might",
+    "dexterity",
+    "reason",
+    "willpower",
+    "presence",
+]
+
+function validateItemRequirements(
+    itemId: string,
+    raw: unknown,
+    classIds: Set<string>,
+    issues: RulesValidationIssue[],
+) {
+    if (raw == null) return
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+        issues.push({
+            path: `items.${itemId}.requirements`,
+            code: "invalid-item-requirements",
+            message: "Item requirements must be an object",
+            severity: "warning",
+        })
+        return
+    }
+
+    const req = raw as Record<string, unknown>
+    const stats = req.stats
+    if (stats != null) {
+        if (typeof stats !== "object" || Array.isArray(stats)) {
+            issues.push({
+                path: `items.${itemId}.requirements.stats`,
+                code: "invalid-item-stat-requirements",
+                message: "requirements.stats must be an object",
+                severity: "warning",
+            })
+        } else {
+            for (const [key, value] of Object.entries(stats as Record<string, unknown>)) {
+                if (!CHAR_ATTRIBUTES.includes(key as CharAttribute)) {
+                    issues.push({
+                        path: `items.${itemId}.requirements.stats.${key}`,
+                        code: "unknown-stat-requirement",
+                        message: `Unknown attribute "${key}" in requirements.stats`,
+                        severity: "warning",
+                    })
+                }
+                if (typeof value !== "number" || !Number.isFinite(value)) {
+                    issues.push({
+                        path: `items.${itemId}.requirements.stats.${key}`,
+                        code: "invalid-stat-requirement-value",
+                        message: "Stat requirement values must be finite numbers",
+                        severity: "warning",
+                    })
+                }
+            }
+        }
+    }
+
+    const classes = req.classes
+    if (classes != null) {
+        if (typeof classes !== "object" || Array.isArray(classes)) {
+            issues.push({
+                path: `items.${itemId}.requirements.classes`,
+                code: "invalid-item-class-requirements",
+                message: "requirements.classes must be an object",
+                severity: "warning",
+            })
+        } else {
+            for (const [levelKey, classList] of Object.entries(classes as Record<string, unknown>)) {
+                if (!Array.isArray(classList)) {
+                    issues.push({
+                        path: `items.${itemId}.requirements.classes.${levelKey}`,
+                        code: "invalid-class-requirement-bucket",
+                        message: "Each requirements.classes entry must be an array of class ids",
+                        severity: "warning",
+                    })
+                    continue
+                }
+                const level = Number(levelKey)
+                if (!Number.isFinite(level) || level < 1) {
+                    issues.push({
+                        path: `items.${itemId}.requirements.classes.${levelKey}`,
+                        code: "invalid-class-requirement-level",
+                        message: "Class requirement level keys must be positive numbers",
+                        severity: "warning",
+                    })
+                }
+                for (const classId of classList) {
+                    if (typeof classId !== "string" || !classId.trim()) continue
+                    if (!classIds.has(classId)) {
+                        issues.push({
+                            path: `items.${itemId}.requirements.classes.${levelKey}`,
+                            code: "unknown-class-requirement",
+                            message: `Unknown class id "${classId}" in requirements.classes`,
+                            severity: "warning",
+                        })
+                    }
+                }
+            }
+        }
+    }
 }
 
 const REQUIRED_TOP_LEVEL = [
@@ -46,7 +149,11 @@ export function validateRulesDocument(rules: unknown): RulesValidationIssue[] {
     }
 
     const classes = root.classes
+    const classIdSet = new Set<string>()
     if (classes && typeof classes === "object" && !Array.isArray(classes)) {
+        for (const classId of Object.keys(classes as Record<string, unknown>)) {
+            classIdSet.add(classId)
+        }
         for (const [classId, raw] of Object.entries(classes as Record<string, unknown>)) {
             if (!raw || typeof raw !== "object") continue
             const cls = raw as Record<string, unknown>
@@ -88,10 +195,22 @@ export function validateRulesDocument(rules: unknown): RulesValidationIssue[] {
                     issues.push({
                         path: `bestiary.creatures.${creatureId}.traits`,
                         code: "legacy-creature-traits",
-                        message: 'Use "traitRefs" instead of legacy "traits" string array on creature templates',
+                        message:
+                            'Use "traitRefs" instead of legacy "traits" string array on creature templates',
                         severity: "error",
                     })
                 }
+            }
+        }
+    }
+
+    const items = root.items
+    if (items && typeof items === "object" && !Array.isArray(items)) {
+        for (const [itemId, raw] of Object.entries(items as Record<string, unknown>)) {
+            if (!raw || typeof raw !== "object") continue
+            const item = raw as Record<string, unknown>
+            if (item.requirements != null) {
+                validateItemRequirements(itemId, item.requirements, classIdSet, issues)
             }
         }
     }

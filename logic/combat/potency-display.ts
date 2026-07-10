@@ -1,4 +1,44 @@
-import { PotencyDuration, type PotencyEffect } from "@/lib/rules"
+import { PotencyDuration, type CharAttribute, type PotencyEffect } from "@/lib/rules"
+
+const ATTRIBUTE_ABBREVIATIONS: Record<CharAttribute, string> = {
+  might: "M",
+  dexterity: "D",
+  reason: "R",
+  willpower: "W",
+  presence: "P",
+}
+
+export function formatAttributeAbbreviationList(stats: string[] | undefined): string | null {
+  if (!stats?.length) return null
+  return stats
+    .map((stat) => ATTRIBUTE_ABBREVIATIONS[stat as CharAttribute] ?? stat[0]?.toUpperCase() ?? stat)
+    .join(" or ")
+}
+
+/** Formula-mode potency source label: srcStats, else roll stats when fixedSrcVal, else numeric fallback. */
+export function formatPotencySourceFormulaLabel(input: {
+  potency: PotencyEffect
+  potencySrcIsFixed: boolean
+  maxSrcMod: number | null
+  rollStats: readonly string[]
+}): string | null {
+  if (input.potency.type === "Special") return null
+
+  const srcStats =
+    input.potency.type === "Condition" || input.potency.type === "ForcedMovement"
+      ? input.potency.srcStats
+      : undefined
+  const fromSrcStats = formatAttributeAbbreviationList(srcStats)
+  if (fromSrcStats) return fromSrcStats
+
+  if (input.potencySrcIsFixed) {
+    const fromRollStats = formatAttributeAbbreviationList([...input.rollStats])
+    if (fromRollStats) return fromRollStats
+    if (input.maxSrcMod != null) return String(input.maxSrcMod)
+  }
+
+  return null
+}
 
 /** Maps rules JSON / merge keys and bracket text to `PotencyDuration` labels for UI. */
 export function formatPotencyDurationLabel(raw: unknown): string | null {

@@ -38,6 +38,7 @@ import { rulesData } from "@/lib/rules-data"
 import { getActionItemChargeCost } from "@/logic/equipment/item-charges"
 import { getActionTypeStyle } from "@/components/character-sheet/combatPage/action-tile-styles"
 import { formatActionCardSubtitle } from "@/logic/actions/action-visual-category"
+import { formatPowerRollHeaderSimple } from "@/logic/combat/power-roll-stat-display"
 
 export type CombatRuleContext = CombatRuleBonusInput
 
@@ -192,6 +193,11 @@ export function ActionCardComponent({
     const ipCost = getDisplayIpCost(action)
     const displayPowerRoll = getDisplayPowerRoll(action)
     const pr = displayPowerRoll ?? action.powerRoll
+    const weaponForPowerRollHeader = grantingWeapon ?? weaponForPowerRollDamage ?? null
+    const powerRollHeaderSimpleLabel = useMemo(() => {
+        if (!pr?.rollStats?.length) return null
+        return formatPowerRollHeaderSimple(pr.rollStats, attributes, weaponForPowerRollHeader)
+    }, [pr?.rollStats, attributes, weaponForPowerRollHeader])
     const addsWeaponDamageToPowerRoll =
         !!pr &&
         (pr.tier1Wpn === true ||
@@ -521,18 +527,28 @@ export function ActionCardComponent({
                             </span>
                             </div>
                             <div className="flex items-center gap-1.5">
-                                {pr.rollStats.map((stat, i) => (
-                                    <div key={stat} className="flex items-center gap-1.5">
-                                        {i > 0 && <span className="font-bold text-sm opacity-30">or</span>}
-                                        <div
-                                            className="flex h-7 w-7 items-center justify-center rounded bg-foreground/5 border border-foreground/10 shadow-sm">
-                                        <span
-                                            className={cn("text-base font-black uppercase font-mono leading-none", config.accent)}>
-                                            {stat[0]}
-                                        </span>
+                                {powerRollDisplayMode === "formula" ? (
+                                    pr.rollStats.map((stat, i) => (
+                                        <div key={stat} className="flex items-center gap-1.5">
+                                            {i > 0 && <span className="font-bold text-sm opacity-30">or</span>}
+                                            <div
+                                                className="flex h-7 w-7 items-center justify-center rounded bg-foreground/5 border border-foreground/10 shadow-sm">
+                                            <span
+                                                className={cn("text-base font-black uppercase font-mono leading-none", config.accent)}>
+                                                {stat[0]}
+                                            </span>
+                                            </div>
                                         </div>
+                                    ))
+                                ) : powerRollHeaderSimpleLabel ? (
+                                    <div
+                                        className="flex h-7 min-w-7 px-1 items-center justify-center rounded bg-foreground/5 border border-foreground/10 shadow-sm">
+                                        <span
+                                            className={cn("text-base font-black font-mono leading-none tabular-nums", config.accent)}>
+                                            {powerRollHeaderSimpleLabel}
+                                        </span>
                                     </div>
-                                ))}
+                                ) : null}
                             </div>
                         </button>
 

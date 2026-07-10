@@ -140,6 +140,11 @@ export interface PassiveRule extends ChargeDefinition {
     [key: string]: unknown
 }
 
+export type ItemRequirements = {
+    stats?: Partial<Record<CharAttribute, number>>
+    classes?: Record<string, string[]>
+}
+
 export type ItemRule = Record<string, unknown> & {
     name?: string
     type?: string
@@ -147,6 +152,7 @@ export type ItemRule = Record<string, unknown> & {
     description?: string
     traits?: Array<string | Record<string, unknown>>
     actionIDs?: string[]
+    requirements?: ItemRequirements
 }
 
 export type RulesSystem = Record<string, unknown>

@@ -5,8 +5,8 @@ import { cn } from "@/lib/utils"
 import { InventoryItem } from "@/lib/equipment-data"
 import { PotencyEffect, PowerRoll } from "@/lib/rules"
 import { getAttributeModifier } from "@/logic/character/stats"
-import { potencyStrengthDisplayLabel, potencyStrengthToModifier } from "@/logic/combat/potency-strength"
-import { getPowerRollPotencyBadgeAndDuration } from "@/logic/combat/potency-display"
+import { potencyStrengthDisplayLabel, potencyStrengthToModifier, potencyStrengthLabelForTier } from "@/logic/combat/potency-strength"
+import { getPowerRollPotencyBadgeAndDuration, formatAttributeAbbreviationList, formatPotencySourceFormulaLabel } from "@/logic/combat/potency-display"
 import type { PowerRollTierAmountSuffix } from "@/logic/combat/power-roll-combat-bonuses"
 import { findPotencyEffectGlossaryEntry } from "@/logic/display/glossary-lookup"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -24,19 +24,6 @@ export type PowerRollAttributes = {
     reason: number
     willpower: number
     presence: number
-}
-
-const ATTRIBUTE_ABBREVIATIONS: Record<keyof PowerRollAttributes, string> = {
-    might: "M",
-    dexterity: "D",
-    reason: "R",
-    willpower: "W",
-    presence: "P",
-}
-
-function formatAttributeAbbreviationList(stats: string[] | undefined): string | null {
-    if (!stats?.length) return null
-    return stats.map((stat) => ATTRIBUTE_ABBREVIATIONS[stat as keyof PowerRollAttributes] ?? stat[0]?.toUpperCase() ?? stat).join(" or ")
 }
 
 export function PowerRollTierRow({
@@ -119,6 +106,16 @@ export function PowerRollTierRow({
         }
     }
 
+    if (
+        potency &&
+        potency.type !== "Special" &&
+        potencySrcIsFixed &&
+        !potencyStrengthLabel &&
+        (tier === 1 || tier === 2 || tier === 3)
+    ) {
+        potencyStrengthLabel = potencyStrengthLabelForTier(tier)
+    }
+
     const showPotencyDifficulty =
         potencyThreshold !== null &&
         potency &&
@@ -177,11 +174,12 @@ export function PowerRollTierRow({
         "This potency effect is not defined in rules.glossary.effectDictionary yet."
     const potencySourceFormula =
         potency && potency.type !== "Special"
-            ? potencySrcIsFixed
-                ? maxSrcMod != null
-                    ? String(maxSrcMod)
-                    : null
-                : formatAttributeAbbreviationList(potency.srcStats)
+            ? formatPotencySourceFormulaLabel({
+                  potency,
+                  potencySrcIsFixed,
+                  maxSrcMod,
+                  rollStats: roll.rollStats,
+              })
             : null
     const potencyTargetFormula =
         potency && potency.type !== "Special" ? formatAttributeAbbreviationList(potency.targetStats) : null

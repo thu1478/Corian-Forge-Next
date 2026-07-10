@@ -33,6 +33,7 @@ import {
 } from "@/logic/equipment/item-rank-display"
 import { sortCatalogEntries, type CatalogSortKey } from "@/logic/equipment/catalog-sort"
 import { CatalogSortSelect } from "@/components/equipment/catalog-sort-select"
+import { ItemRequirementsDisplay } from "@/components/equipment/item-requirements-display"
 import { buildItemInventoryTraitBlocks } from "@/logic/equipment/item-inventory-details"
 import { getActionItemChargeCost, itemHasChargeTracking } from "@/logic/equipment/item-charges"
 import { ChargePips } from "@/components/character-sheet/charge-pips"
@@ -1040,6 +1041,7 @@ export function RulesLibraryView() {
                                                                 attributes={DEMO_ATTRIBUTES}
                                                                 currentWeapon={previewWeapon}
                                                                 offhandWeapon={null}
+                                                                powerRollDisplayMode="formula"
                                                                 defaultExpanded={false}
                                                                 collapseAllSignal={collapseAllSignal}
                                                             />
@@ -1363,6 +1365,7 @@ export function RulesLibraryView() {
                                                     attributes={DEMO_ATTRIBUTES}
                                                     currentWeapon={previewWeapon}
                                                     offhandWeapon={null}
+                                                    powerRollDisplayMode="formula"
                                                     defaultExpanded={false}
                                                     collapseAllSignal={collapseAllSignal}
                                                 />
@@ -1497,6 +1500,7 @@ export function RulesLibraryView() {
                                                     attributes={DEMO_ATTRIBUTES}
                                                     currentWeapon={previewWeapon}
                                                     offhandWeapon={null}
+                                                    powerRollDisplayMode="formula"
                                                     defaultExpanded={false}
                                                     collapseAllSignal={collapseAllSignal}
                                                 />
@@ -1572,6 +1576,7 @@ export function RulesLibraryView() {
                                                         ))}
                                                     </div>
                                                 ) : null}
+                                                <ItemRequirementsDisplay def={def} rules={RULES} />
                                                 <p className="text-sm text-muted-foreground">
                                                     <span className="font-medium text-foreground">Zenny</span>{" "}
                                                     {def.value ?? "—"}
@@ -1635,6 +1640,12 @@ export function RulesLibraryView() {
                                                                 Defense
                                                             </span>{" "}
                                                             {def.defense ?? "—"}
+                                                        </div>
+                                                        <div>
+                                                            <span className="font-medium text-foreground">
+                                                                Stability
+                                                            </span>{" "}
+                                                            {def.stability ?? "—"}
                                                         </div>
                                                     </div>
                                                 ) : null}
@@ -1733,6 +1744,7 @@ export function RulesLibraryView() {
                                                         attributes={DEMO_ATTRIBUTES}
                                                         currentWeapon={cardWeapon}
                                                         offhandWeapon={null}
+                                                        powerRollDisplayMode="formula"
                                                         defaultExpanded={false}
                                                         collapseAllSignal={collapseAllSignal}
                                                     />

@@ -305,6 +305,7 @@ export function LibraryRacePassiveCard({
                     attributes={DEMO_ATTRIBUTES}
                     currentWeapon={previewWeapon}
                     offhandWeapon={null}
+                    powerRollDisplayMode="formula"
                     defaultExpanded={false}
                     collapseAllSignal={collapseAllSignal}
                 />

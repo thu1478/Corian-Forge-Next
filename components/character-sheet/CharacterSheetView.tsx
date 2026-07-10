@@ -1522,6 +1522,7 @@ export function CharacterSheetView() {
                                 itemCatalog={getRulesItems(rulesData)}
                                 rules={rulesData as Record<string, unknown>}
                                 attributes={derived.attributes}
+                                classes={character.classes}
                                 onAddInventoryItem={handleAddInventoryItem}
                                 onMoveItemToContainer={handleMoveItemToContainer}
                                 onAddContainer={handleAddContainer}

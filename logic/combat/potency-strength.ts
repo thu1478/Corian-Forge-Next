@@ -26,3 +26,10 @@ export function potencyStrengthDisplayLabel(strength: unknown): string | null {
   }
   return null
 }
+
+/** When potency uses fixedSrcVal without an explicit strength, label by power-roll tier. */
+export function potencyStrengthLabelForTier(tier: 1 | 2 | 3): "weak" | "average" | "strong" {
+  if (tier === 1) return "weak"
+  if (tier === 2) return "average"
+  return "strong"
+}

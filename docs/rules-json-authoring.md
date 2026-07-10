@@ -611,6 +611,7 @@ Common fields:
 | `fixedMaxCharges` | Max charges tracked on the **inventory instance** (same semantics as trait charges) |
 | `chargeReset` | Optional auto-refill timings: `endOfCombat`, `shortRest`, `longRest` |
 | `statBonuses` | Gear stat modifiers (object keyed by stat name) |
+| `requirements` | Optional stat and/or class gates (display-only in library and catalog) |
 | `rank` | Optional default item rank key → `system.itemRanks` |
 | `traits` | Inline passive definitions keyed by trait id (rare) |
 
@@ -625,6 +626,24 @@ Save field: `inventory[].charges` — current count; `-1` = not tracked; max com
 Item ranks: define palette in `system.itemRanks` (`label`, `nameClass` Tailwind classes). Display: [`logic/equipment/item-rank-display.ts`](../logic/equipment/item-rank-display.ts).
 
 Logic: [`logic/equipment/granted-actions.ts`](../logic/equipment/granted-actions.ts), [`logic/equipment/item-charges.ts`](../logic/equipment/item-charges.ts).
+
+### Item requirements (`requirements`)
+
+Optional gates shown in the Rules Editor, Rules Library, and inventory catalog. **Display-only** — they do not block purchase or equipping.
+
+```json
+"requirements": {
+  "stats": { "might": 13, "dexterity": 10 },
+  "classes": { "1": ["fury", "weaponmaster"], "3": ["conjurer"] }
+}
+```
+
+| Sub-field | Semantics |
+|-----------|-----------|
+| `stats` | Minimum attribute scores (`might`, `dexterity`, `reason`, `willpower`, `presence`). All listed mins must be met (AND). |
+| `classes` | Same shape as feat `prereqs.classes`: level key → class id list. OR within a bucket; OR across buckets. |
+
+Logic: [`logic/equipment/item-requirements.ts`](../logic/equipment/item-requirements.ts).
 
 ---
 
