@@ -13,7 +13,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "prepare": "npm run build"
+    "prepare": "npm install --ignore-scripts && npm run build --prefix ../rules-kit && npm run build"
   },
   "dependencies": {
     "@corian-forge/rules-kit": "file:../rules-kit"
