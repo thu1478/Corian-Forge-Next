@@ -56,6 +56,39 @@ export function hydrateSandboxActionCard(
     return hydrateFromRules(id, rules)
 }
 
+/** Lower = higher in lists. Actions first, then reactions, then free reactions. */
+export function actionCardTypeRank(type: string | undefined | null): number {
+    if (type === "reaction") return 1
+    if (type === "freeReaction") return 2
+    if (type === "action" || type == null || type === "") return 0
+    return 3
+}
+
+export function compareActionCardsByTypeThenId(
+    a: { id: string; type?: string | null },
+    b: { id: string; type?: string | null },
+): number {
+    const byType = actionCardTypeRank(a.type) - actionCardTypeRank(b.type)
+    if (byType !== 0) return byType
+    return a.id.localeCompare(b.id)
+}
+
+/** Sort action ids: actions, then reactions / free reactions; A–Z within each group. */
+export function sortActionCardIdsByType(
+    ids: readonly string[],
+    sandbox: CombatSandboxRoot,
+    rules: RulesRoot,
+): string[] {
+    return [...ids].sort((a, b) => {
+        const cardA = hydrateSandboxActionCard(a, sandbox, rules)
+        const cardB = hydrateSandboxActionCard(b, sandbox, rules)
+        return compareActionCardsByTypeThenId(
+            { id: a, type: cardA?.type },
+            { id: b, type: cardB?.type },
+        )
+    })
+}
+
 export function listKnownActionCardIds(
     sandbox: CombatSandboxRoot,
     rules: RulesRoot,
@@ -67,7 +100,7 @@ export function listKnownActionCardIds(
         const cls = rules.classes![className] as { actions?: Record<string, unknown> }
         for (const id of Object.keys(cls.actions ?? {})) ids.add(id)
     }
-    return [...ids].sort((a, b) => a.localeCompare(b))
+    return sortActionCardIdsByType([...ids], sandbox, rules)
 }
 
 export function actionIdExists(

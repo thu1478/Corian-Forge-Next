@@ -332,14 +332,19 @@ function CombatStatDeltaCell({
     const effective = baseValue + delta
     const deltaClass = statDeltaTextClass(effective, baseValue)
     return (
-        <div className="text-center p-3 bg-muted/30 rounded-lg border border-border flex flex-col">
+        <div
+            className={cn(
+                "text-center p-3 bg-muted/30 rounded-lg border border-border flex flex-col",
+                highlighted && !deltaClass && "ring-2 ring-violet-500/70 dark:ring-violet-300/80",
+            )}
+        >
             <div className="flex justify-center mb-2">
                 <span className={iconClassName}>{icon}</span>
             </div>
             <div
                 className={cn(
                     "text-2xl font-bold tabular-nums",
-                    deltaClass || (highlighted ? "text-violet-600 dark:text-violet-300" : "text-foreground")
+                    deltaClass || (highlighted ? "text-violet-800 dark:text-violet-200" : "text-foreground")
                 )}
                 title={highlighted && !deltaClass ? "Changed by active mount or Anima form" : undefined}
             >

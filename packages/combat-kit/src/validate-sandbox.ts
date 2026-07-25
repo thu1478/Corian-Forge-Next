@@ -112,8 +112,20 @@ export function validateCombatSandbox(
                 issues.push({
                     path: `creatures.${id}.role`,
                     code: "missing-role",
-                    message: "Creature role is not set (assistant, minion, or summon)",
+                    message: "Creature role is not set (assistant, minion, summon, or enemy)",
                     severity: "warning",
+                })
+            } else if (
+                creature.role !== "assistant" &&
+                creature.role !== "minion" &&
+                creature.role !== "summon" &&
+                creature.role !== "enemy"
+            ) {
+                issues.push({
+                    path: `creatures.${id}.role`,
+                    code: "invalid-role",
+                    message: `Unknown creature role "${String(creature.role)}" (expected assistant, minion, summon, or enemy)`,
+                    severity: "error",
                 })
             }
 

@@ -956,6 +956,13 @@
         "name": "Flowing Ki",
         "minLevel": 3,
         "description": "Your Force Palm attacks have their ranged increased to 5 and deal magical damage. Whenever you are allowed to make an Opportunity Attack you may instead replace it with a Force Palm with no AP cost.",
+        "effects": [
+          {
+            "type": "EnhanceAction",
+            "actionId": "forcePalm",
+            "appendDescription": "Your Force Palm attacks have their ranged increased to 5 and deal magical damage. Whenever you are allowed to make an Opportunity Attack you may instead replace it with a Force Palm with no AP cost."
+          }
+        ],
         "prereqs": {
           "all": [
             {
@@ -3039,7 +3046,7 @@
           "actionCard": {
             "name": "Snake Stance",
             "type": "action",
-            "description": "Enter an enhanced state for the duration. You cannot have multiple Stances active at once. In this stance your first melee attack per round gains Penetrate (5). Additionally your attacks on poisoned targets gain a Boon.",
+            "description": "Enter an enhanced state for the duration. You cannot have multiple Stances active at once. In this stance your first melee attack per round gains Penetrate (5). Additionally your attacks on targets suffering Agony gain a Boon.",
             "apCost": 1,
             "focusCost": 7,
             "mpCost": 0,
@@ -3215,7 +3222,7 @@
                 "targetStats": [
                   "dexterity"
                 ],
-                "effect": "poisoned",
+                "effect": "agony",
                 "strength": "weak",
                 "duration": "roundEnd"
               },
@@ -3228,7 +3235,7 @@
                 "targetStats": [
                   "dexterity"
                 ],
-                "effect": "poisoned",
+                "effect": "agony",
                 "strength": "average",
                 "duration": "roundEnd"
               },
@@ -3241,7 +3248,7 @@
                 "targetStats": [
                   "dexterity"
                 ],
-                "effect": "poisoned",
+                "effect": "agony",
                 "strength": "strong",
                 "duration": "roundEnd"
               }
@@ -3800,10 +3807,10 @@
           "actionCard": {
             "name": "Sharpness",
             "type": "action",
-            "description": "Choose a target. Until the end of the round that creature's weapon attacks have Extend and Penetrate (3).\n\nMaintain: During the start phase you may spend 1 Focus and 5 Mana to maintain this ability. If you do so then the effect is active for this round as well.",
+            "description": "Choose a target. Until the end of the round that creature's weapon attacks have Extend and Penetrate (3).\n\nMaintain: During the start phase you may spend 3 Mana to maintain this ability. If you do so then the effect is active for this round as well.",
             "apCost": 2,
             "focusCost": 3,
-            "mpCost": 10,
+            "mpCost": 8,
             "range": "10",
             "tags": [
               "Ranged",
@@ -3819,10 +3826,10 @@
           "actionCard": {
             "name": "Rock Armor",
             "type": "action",
-            "description": "Choose a target. Nearby rocks form around them, increasing their defense by 3 and making them Slowed.\n\nMaintain: During the start phase you may spend 1 Focus and 5 Mana to maintain this ability. If you do so then the effect is active for this round as well.",
+            "description": "Choose a target. Nearby rocks form around them, increasing their defense by 3 and making them Slowed.\n\nMaintain: During the start phase you may spend 3 Mana to maintain this ability. If you do so then the effect is active for this round as well.",
             "apCost": 2,
             "focusCost": 1,
-            "mpCost": 10,
+            "mpCost": 8,
             "range": "3",
             "tags": [
               "Ranged",
@@ -3960,7 +3967,7 @@
           "actionCard": {
             "name": "Action Advance",
             "type": "action",
-            "description": "Must be used during the Fast Phase. Select a willing creature acting during the Slow Phase. They may now act during the Fast Phase for this round only.",
+            "description": "Must be used during the Fast Phase. Select a willing creature acting during the Slow Phase. They may now act during the Fast Phase for this round only while keeping their full AP. Cleanse any Slowed or Restrained effect on them.",
             "apCost": 2,
             "focusCost": 5,
             "mpCost": 10,
@@ -3977,7 +3984,7 @@
           "actionCard": {
             "name": "Keen Call",
             "type": "action",
-            "description": "Choose a friendly creature. Their next Power Roll gains double boon.",
+            "description": "Choose a friendly creature. Their next Power Roll gains double boon. If this roll is for an attack it gains +2 damage and any heals or barriers it grants are increased by that same amount. If used on yourself then it grants +3 instead.",
             "apCost": 1,
             "focusCost": 5,
             "mpCost": 10,
@@ -3994,7 +4001,7 @@
           "actionCard": {
             "name": "Final Order",
             "type": "action",
-            "description": "On use the target immediately gains 2 AP. This does not grant them another turn. When the Delay effect triggers they lose HP equal to half of their max HP (round up). If used on your Summon this spell has a different effect. The AP bonus lasts until the Summon dies. You must provide it with one last order. It will perform that order until it dies. The Delay effect does not happen for the Summon.",
+            "description": "On use the target immediately gains 2 AP. This does not grant them another turn. When the Delay effect triggers they lose HP equal to half of their max HP (round up). If used on your Summon this spell has a different effect. The AP bonus lasts until the Summon dies. You must provide it with one last order that fits into a simple sentence. It will perform that order until it dies. The Delay effect does not happen for the Summon.",
             "apCost": 3,
             "focusCost": 7,
             "mpCost": 15,
@@ -4011,14 +4018,15 @@
           "actionCard": {
             "name": "Exceed",
             "type": "action",
-            "description": "For the duration the target does not trigger Opportunity Attacks and has their Speed doubled. They do not suffer the AP cost penalty of Heavy weapons. They also gain a Boon on attacks against targets who haven't acted yet this round.",
+            "description": "For the duration, the target does not trigger Opportunity Attacks and has its Speed doubled. They do not suffer the AP cost penalty of Heavy weapons. They also gain Penetrate (3) and a Boon only on attacks against targets who haven't acted this round yet.\n\nMaintain: During the start phase, you may spend 1 Focus and 5 Mana to maintain this ability. If you do so, then the effect persists for this round as well",
             "apCost": 2,
             "focusCost": 7,
             "mpCost": 13,
             "range": "10",
             "tags": [
               "Ranged",
-              "Spell"
+              "Spell",
+              "Maintain"
             ],
             "source": "conjurer",
             "duration": "18 seconds"
@@ -4247,7 +4255,6 @@
             "tags": [
               "Melee",
               "Weapon",
-              "2H",
               "Delay"
             ],
             "source": "fury",
@@ -4318,7 +4325,7 @@
           "actionCard": {
             "name": "Get Over Here",
             "type": "action",
-            "description": "Drag your target over to you",
+            "description": "Drag your target over to you. If using a 2H weapon then pull distance is increased by 1.",
             "apCost": 2,
             "focusCost": 0,
             "mpCost": 0,
@@ -4326,7 +4333,6 @@
             "tags": [
               "Melee",
               "Weapon",
-              "2H",
               "Extend"
             ],
             "source": "fury",
@@ -4334,8 +4340,8 @@
               "rollStats": [
                 "might"
               ],
-              "tier1Dmg": 3,
-              "tier2Dmg": 4,
+              "tier1Dmg": 2,
+              "tier2Dmg": 3,
               "tier2Effect": {
                 "type": "ForcedMovement",
                 "srcStats": [
@@ -4348,7 +4354,7 @@
                 "distance": 1,
                 "strength": "average"
               },
-              "tier3Dmg": 6,
+              "tier3Dmg": 5,
               "tier3Effect": {
                 "type": "ForcedMovement",
                 "srcStats": [
@@ -4371,25 +4377,25 @@
             "type": "action",
             "description": "Stride up to your Speed before attacking the target. You must move at least 3 tiles. Your Defense is reduced by 2 until the start of your next turn.",
             "apCost": 2,
-            "focusCost": 3,
+            "focusCost": 1,
             "mpCost": 0,
             "range": "Wpn",
             "tags": [
               "Melee",
               "Weapon",
-              "2H",
               "Heavy"
             ],
             "source": "fury",
             "powerRoll": {
               "rollStats": [
-                "might"
+                "might",
+                "dexterity"
               ],
-              "tier1Dmg": 0,
+              "tier1Dmg": 2,
               "tier1Wpn": true,
-              "tier2Dmg": 1,
+              "tier2Dmg": 3,
               "tier2Wpn": true,
-              "tier3Dmg": 2,
+              "tier3Dmg": 5,
               "tier3Wpn": true
             }
           }
@@ -4401,7 +4407,7 @@
             "type": "action",
             "description": "Choose an unoccupied tile within tiles equal to your Speed. You jump high in the air and land on that tile by warping to it, releasing a powerful shockwave around you that affects all creatures within 1 tile, dealing crushing damage. Deal bonus damage equal to twice the stability of any creature you have Grabbed",
             "apCost": 2,
-            "focusCost": 0,
+            "focusCost": 3,
             "mpCost": 0,
             "range": "Self",
             "tags": [
@@ -4413,7 +4419,7 @@
               "rollStats": [
                 "might"
               ],
-              "tier1Dmg": 0,
+              "tier1Dmg": 2,
               "tier1Effect": {
                 "type": "Condition",
                 "srcStats": [
@@ -4425,7 +4431,7 @@
                 "effect": "prone",
                 "strength": "weak"
               },
-              "tier2Dmg": 1,
+              "tier2Dmg": 3,
               "tier2Effect": {
                 "type": "Condition",
                 "srcStats": [
@@ -4437,7 +4443,7 @@
                 "effect": "prone",
                 "strength": "average"
               },
-              "tier3Dmg": 2,
+              "tier3Dmg": 4,
               "tier3Effect": {
                 "type": "Condition",
                 "srcStats": [
@@ -4470,13 +4476,14 @@
             "source": "fury",
             "powerRoll": {
               "rollStats": [
-                "might"
+                "might",
+                "dexterity"
               ],
-              "tier1Dmg": 2,
+              "tier1Dmg": 3,
               "tier1Wpn": true,
-              "tier2Dmg": 3,
+              "tier2Dmg": 4,
               "tier2Wpn": true,
-              "tier3Dmg": 5,
+              "tier3Dmg": 6,
               "tier3Wpn": true
             }
           }
@@ -4486,7 +4493,7 @@
           "actionCard": {
             "name": "Power Smash",
             "type": "action",
-            "description": "Unleash a single focused blow that sends your enemy flying",
+            "description": "Unleash a single focused blow that sends your enemy flying. If using a 2H weapon, the push distance is increased by 2",
             "apCost": 2,
             "focusCost": 5,
             "mpCost": 0,
@@ -4494,7 +4501,6 @@
             "tags": [
               "Melee",
               "Weapon",
-              "2H",
               "Heavy"
             ],
             "source": "fury",
@@ -4507,21 +4513,21 @@
               "tier1Effect": {
                 "type": "ForcedMovement",
                 "effect": "push",
-                "distance": 2
+                "distance": 1
               },
               "tier2Dmg": 6,
               "tier2Wpn": true,
               "tier2Effect": {
                 "type": "ForcedMovement",
                 "effect": "push",
-                "distance": 3
+                "distance": 2
               },
               "tier3Dmg": 8,
               "tier3Wpn": true,
               "tier3Effect": {
                 "type": "ForcedMovement",
                 "effect": "push",
-                "distance": 5
+                "distance": 3
               }
             }
           }
@@ -4531,7 +4537,7 @@
           "actionCard": {
             "name": "Roundhouse",
             "type": "action",
-            "description": "Prepare to swing in a circle around you, hitting all creatures within range of your weapon",
+            "description": "Prepare to swing in a circle around you, hitting all creatures within range of your weapon. If using a 2H weapon this attack gains the Extend tag.",
             "apCost": 2,
             "focusCost": 5,
             "mpCost": 0,
@@ -4539,14 +4545,14 @@
             "tags": [
               "Melee",
               "Weapon",
-              "2H",
               "Delay",
               "Emanation"
             ],
             "source": "fury",
             "powerRoll": {
               "rollStats": [
-                "might"
+                "might",
+                "dexterity"
               ],
               "tier1Dmg": 5,
               "tier1Wpn": true,
@@ -4580,7 +4586,6 @@
             "tags": [
               "Melee",
               "Weapon",
-              "2H",
               "Heavy"
             ],
             "source": "fury",
@@ -4638,7 +4643,8 @@
             "source": "fury",
             "powerRoll": {
               "rollStats": [
-                "might"
+                "might",
+                "dexterity"
               ],
               "tier1Dmg": 4,
               "tier1Wpn": true,
@@ -4654,7 +4660,7 @@
           "actionCard": {
             "name": "Earthcleaver",
             "type": "action",
-            "description": "Split the earth, dealing damage in a 5x1 line starting from you and leaving the area as difficult terrain. Each creature in the area receives push 2 away from the line.",
+            "description": "Split the earth, dealing damage in a 8x1 line starting from you and leaving the area as difficult terrain. Each creature in the area receives pushed away from the line.",
             "apCost": 2,
             "focusCost": 7,
             "mpCost": 0,
@@ -4662,7 +4668,6 @@
             "tags": [
               "Melee",
               "Weapon",
-              "2H",
               "Heavy",
               "Area"
             ],
@@ -4676,7 +4681,22 @@
               "tier2Dmg": 7,
               "tier2Wpn": true,
               "tier3Dmg": 10,
-              "tier3Wpn": true
+              "tier3Wpn": true,
+              "tier1Effect": {
+                "type": "ForcedMovement",
+                "effect": "push",
+                "distance": 2
+              },
+              "tier2Effect": {
+                "type": "ForcedMovement",
+                "effect": "push",
+                "distance": 2
+              },
+              "tier3Effect": {
+                "type": "ForcedMovement",
+                "effect": "push",
+                "distance": 2
+              }
             }
           }
         },
@@ -4691,7 +4711,8 @@
             "mpCost": 0,
             "range": "Self",
             "tags": [
-              "Melee"
+              "Melee",
+              "Brawling"
             ],
             "source": "fury"
           }
@@ -4701,7 +4722,7 @@
           "actionCard": {
             "name": "Hatred",
             "type": "action",
-            "description": "Sacrifice the greater of either 3 times your Presence modifier or 3 HP. Then attack your target, increasing the damage dealt by the sacrificed HP. This attack has an innate Dark infusion that cannot be overridden.",
+            "description": "Sacrifice the greater of either 3 times your Presence modifier HP or 3 HP. Then attack your target, increasing the damage dealt by the sacrificed HP. This attack has an innate Dark infusion that cannot be overridden.",
             "apCost": 2,
             "focusCost": 7,
             "mpCost": 0,
@@ -4713,7 +4734,8 @@
             "source": "fury",
             "powerRoll": {
               "rollStats": [
-                "might"
+                "might",
+                "dexterity"
               ],
               "tier1Dmg": 6,
               "tier1Wpn": true,
@@ -4740,8 +4762,10 @@
           "type": "Reaction",
           "level": 3,
           "trigger": "You take damage from a hostile creature while already Bloodied",
-          "description": "Choose one of the following\n\n -Restore 2 times your Might modifier HP\n\n -Restore Might modifier MP\n\n -End one status effect on yourself.",
-          "focusCost": 1
+          "description": "Choose one of the following:\n\nRestore Might modifier HP\nRestore Might modifier MP\nEnd one status effect on yourself.",
+          "focusCost": 1,
+          "tags": [],
+          "source": ""
         }
       ],
       "statBonuses": [
@@ -5340,7 +5364,7 @@
         "skilledSniper": {
           "name": "Skilled Sniper",
           "minLevel": 5,
-          "description": "Hitting a creature at least 8 tiles away with a ranged weapon attack grants Penetrate (2) for that attack"
+          "description": "Hitting a creature at least 8 tiles away with a ranged weapon attack grants Penetrate (3) for that attack"
         }
       },
       "freeFeaturesNote": "You gain proficiency with martial ranged weapons and martial shields. Marksman: You recognize almost all melee weapons used by almost any creature as well as most non-firearm ammo.",
@@ -5411,7 +5435,7 @@
           "actionCard": {
             "name": "Steady Aim",
             "type": "action",
-            "description": "Aim carefully at a target. Your next ranged attack on that target this turn ignores cover.",
+            "description": "Aim carefully at a target. Your next ranged attack on that target this turn ignores cover and gains Penetrate (1).",
             "apCost": 1,
             "focusCost": 0,
             "mpCost": 0,
@@ -5456,7 +5480,7 @@
           "actionCard": {
             "name": "Quickdraw",
             "type": "action",
-            "description": "Quickly draw your weapon and fire a shot. This can only be used once per combat.",
+            "description": "Quickly draw your weapon and fire a shot. This can only be used once per combat. If using a 1H weapon then this gains Penetrate (3)",
             "apCost": 1,
             "focusCost": 1,
             "mpCost": 0,
@@ -5464,7 +5488,6 @@
             "tags": [
               "Ranged",
               "Weapon",
-              "1H",
               "First Strike",
               "Throwing"
             ],
@@ -5545,7 +5568,7 @@
           "actionCard": {
             "name": "Snipe",
             "type": "action",
-            "description": "Prepare a powerful shot at a single target. If your position changes before the Delay effect triggers then this attack gains double Bane.",
+            "description": "Prepare a powerful shot at a single target. If your position changes before the Delay effect triggers then this attack gains double Bane. If using a 2H weapon then this has Penetrate (8) instead",
             "apCost": 2,
             "focusCost": 5,
             "mpCost": 0,
@@ -5553,9 +5576,8 @@
             "tags": [
               "Ranged",
               "Weapon",
-              "2H",
               "Delay",
-              "Penetrate(8)"
+              "Penetrate(5)"
             ],
             "source": "marksman",
             "powerRoll": {
@@ -5760,7 +5782,7 @@
           "actionCard": {
             "name": "Homing Shots",
             "type": "action",
-            "description": "Fire several shots into the air that will home onto your target, ignoring the effects of cover. Even if the target leaves your line of sight after use the attack will still hit as long as there is a traversable path in the air for the attacks to move through.",
+            "description": "Fire several shots into the air that will home onto your target, ignoring the effects of cover. Even if the target leaves your line of sight after use the attack will still hit as long as there is a traversable path in the air for the attacks to move through. If using a 2H weapon then this gains Penetrate (2)",
             "apCost": 2,
             "focusCost": 7,
             "mpCost": 0,
@@ -5768,7 +5790,6 @@
             "tags": [
               "Ranged",
               "Weapon",
-              "2H",
               "Delay",
               "Repeat(2)"
             ],
@@ -6137,17 +6158,17 @@
         "chainHeal": {
           "minLevel": 1,
           "actionCard": {
-            "name": "Chain Heal",
+            "name": "Bouncing Heal",
             "type": "action",
-            "description": "Release a surge of healing that bounces to other targets",
-            "apCost": 1,
+            "description": "Heal a target in range. Designate an unoccupied tile exactly 2 tiles from them. When the Delay effect triggers any creature on that receives the same healing amount. If no selectable tile is available then the Delay effect does not trigger.",
+            "apCost": 2,
             "focusCost": 1,
             "mpCost": 13,
             "range": "10",
             "tags": [
               "Ranged",
               "Spell",
-              "Repeat(5)"
+              "Delay"
             ],
             "source": "priest",
             "hiddenTags": [
@@ -6158,9 +6179,9 @@
               "rollStats": [
                 "willpower"
               ],
-              "tier1Dmg": 1,
-              "tier2Dmg": 2,
-              "tier3Dmg": 3
+              "tier1Dmg": 3,
+              "tier2Dmg": 4,
+              "tier3Dmg": 6
             }
           }
         },
@@ -6604,7 +6625,7 @@
           "actionCard": {
             "name": "Soothing Ice Pillar",
             "type": "action",
-            "description": "Eyja: Create a pillar of ice on an unoccupied tile. It has the durability of wood. All creatures within 1 tile of the pillar are immune to Bleeding and Poisoned.",
+            "description": "Eyja: Create a pillar of ice on an unoccupied tile. It has the durability of wood. All creatures within 1 tile of the pillar are immune to Bleeding and Agony.",
             "apCost": 1,
             "focusCost": 7,
             "mpCost": 3,
@@ -6868,7 +6889,7 @@
           "name": "Vigilant",
           "type": "Reaction",
           "level": 1,
-          "trigger": "An attack against a friendly creature within 10 tiles of you afflicts them with Bleeding, Slowed, Frightened, or Poisoned.",
+          "trigger": "An attack against a friendly creature within 10 tiles of you afflicts them with Bleeding, Slowed, Frightened, or Agony.",
           "description": "Cancel the status effect before it applies",
           "focusCost": 1
         },
@@ -7061,14 +7082,13 @@
           "actionCard": {
             "name": "Takedown",
             "type": "action",
-            "description": "You may Stride up to your Speed before attacking. You deal bonus damage equal to each tile you moved past 4.",
+            "description": "You may Stride up to your Speed before attacking. If using a 1H weapon you deal bonus damage equal to each tile you moved past 4.",
             "apCost": 3,
             "focusCost": 3,
             "range": "Wpn",
             "tags": [
               "Melee",
-              "Weapon",
-              "1H"
+              "Weapon"
             ],
             "source": "rider",
             "powerRoll": {
@@ -7461,7 +7481,7 @@
         "backstep": {
           "name": "Backstep",
           "minLevel": 3,
-          "description": "When you take the Disengage action you may shift 2 tiles instead of stride 1. You may also Disengage for only 1 AP instead of 2 AP."
+          "description": "Cannot be used with Martial armor. When you take the Disengage action you may shift 2 tiles instead of stride 1. You may also Disengage for only 1 AP instead of 2 AP."
         },
         "fleetFootwork": {
           "name": "Fleet Footwork",
@@ -7568,7 +7588,7 @@
                 "targetStats": [
                   "might"
                 ],
-                "effect": "poisoned",
+                "effect": "agony",
                 "strength": "weak",
                 "duration": "roundEnd"
               },
@@ -7580,7 +7600,7 @@
                 "targetStats": [
                   "might"
                 ],
-                "effect": "poisoned",
+                "effect": "agony",
                 "strength": "average",
                 "duration": "roundEnd"
               },
@@ -7592,7 +7612,7 @@
                 "targetStats": [
                   "might"
                 ],
-                "effect": "poisoned",
+                "effect": "agony",
                 "strength": "strong",
                 "duration": "roundEnd"
               }
@@ -7685,15 +7705,14 @@
           "actionCard": {
             "name": "Assassinate",
             "type": "action",
-            "description": "Target your foes weak spots. If the target currently has a status effect or you have a Boon on this attack then this attack gains Penetrate (5).",
+            "description": "Target your foes weak spots. If the target currently has a status effect or you have a Boon on this attack then this attack gains Penetrate (3). If you are using a 1H weapon this gains Penetrate (3).",
             "apCost": 2,
             "focusCost": 5,
             "mpCost": 0,
             "range": "Wpn",
             "tags": [
               "Melee",
-              "Weapon",
-              "1H"
+              "Weapon"
             ],
             "source": "scout",
             "powerRoll": {
@@ -7738,7 +7757,7 @@
           "actionCard": {
             "name": "Hookshot",
             "type": "action",
-            "description": "Throw a grappling hook and jump, pulling yourself to a new location. Warp up to your Speed. Alternatively you can use this on a friendly creature of your size or smaller to pull 2 towards you instead.",
+            "description": "Throw a grappling hook and jump, pulling yourself to a new location. Warp up to your Speed. Alternatively you can use this on a friendly creature of your size or smaller to pull 3 towards you instead.",
             "apCost": 1,
             "focusCost": 1,
             "mpCost": 0,
@@ -7753,7 +7772,7 @@
           "actionCard": {
             "name": "Flashbang",
             "type": "action",
-            "description": "Throw a flashbang that emits bright light and sound in a 2x2 area.",
+            "description": "Throw a flashbang that emits bright light and sound in a 2x2 area. Each creature in the area must make a Dexterity Power Roll.",
             "apCost": 2,
             "focusCost": 5,
             "mpCost": 0,
@@ -7849,15 +7868,14 @@
           "actionCard": {
             "name": "Vanishing Strike",
             "type": "action",
-            "description": "Strike the target, turn invisible for until the End Phase of the next round, and then shift 2.",
+            "description": "Strike the target and then shift 2. If you are using a 1H weapon and not wearing martial armor you turn invisible until the End Phase of the next round,",
             "apCost": 2,
             "focusCost": 7,
             "mpCost": 0,
             "range": "Wpn",
             "tags": [
               "Melee",
-              "Weapon",
-              "1H"
+              "Weapon"
             ],
             "source": "scout",
             "duration": "6 seconds",
@@ -7879,7 +7897,7 @@
           "actionCard": {
             "name": "Lightning Steps",
             "type": "action",
-            "description": "Warp up to 2 times your Speed to an an unoccupied tile. If there are any hostile creatures between your original location and destination you may choose one of them to deal damage to on the way with your weapon. Normal-class enemies are killed automatically.",
+            "description": "You must not be wearing martial armor. Warp up to 2 times your Speed to an an unoccupied tile. If there are any hostile creatures between your original location and destination you may choose one of them to deal damage to on the way with your weapon. Normal-class enemies are killed automatically. If you are using a Light weapon gain Penetrate (2).",
             "apCost": 2,
             "focusCost": 7,
             "mpCost": 0,
@@ -7887,8 +7905,6 @@
             "tags": [
               "Melee",
               "Weapon",
-              "1H",
-              "Light",
               "Penetrate(3)"
             ],
             "source": "scout",
@@ -8890,7 +8906,7 @@
           "actionCard": {
             "name": "Honed Strike",
             "type": "action",
-            "description": "Strike forward with precision",
+            "description": "Strike forward with precision. If you are using a 1H weapon this gains Penetrate (2).",
             "apCost": 2,
             "focusCost": 3,
             "mpCost": 0,
@@ -8898,8 +8914,7 @@
             "tags": [
               "Melee",
               "Weapon",
-              "1H",
-              "Penetrate(3)"
+              "Penetrate(2)"
             ],
             "source": "weaponmaster",
             "powerRoll": {
@@ -8921,7 +8936,7 @@
           "actionCard": {
             "name": "Wide Swing",
             "type": "action",
-            "description": "Release a wide swing to hit multiple enemies",
+            "description": "Release a wide swing to hit multiple enemies. If using a 2H weapon this deals +1 damage.",
             "apCost": 2,
             "focusCost": 1,
             "mpCost": 0,
@@ -8929,7 +8944,6 @@
             "tags": [
               "Melee",
               "Weapon",
-              "2H",
               "Multi(2)"
             ],
             "source": "weaponmaster",
@@ -8968,8 +8982,8 @@
                 "dexterity"
               ],
               "tier1Dmg": 1,
-              "tier2Dmg": 2,
-              "tier3Dmg": 3
+              "tier2Dmg": 1,
+              "tier3Dmg": 2
             }
           }
         },
@@ -9036,15 +9050,14 @@
           "actionCard": {
             "name": "Sweeper",
             "type": "action",
-            "description": "Shift 1 and swing your weapon at your target. If their shield is raised before damage applies then the shield is brought down before calculating damage",
+            "description": "Shift 1 and swing your weapon at your target. If using a 2H weapon and the target has a raised shield then you force them to lower their shield before applying damage.",
             "apCost": 2,
             "focusCost": 3,
             "mpCost": 0,
             "range": "Wpn",
             "tags": [
               "Melee",
-              "Weapon",
-              "2H"
+              "Weapon"
             ],
             "source": "weaponmaster",
             "powerRoll": {
@@ -9122,7 +9135,7 @@
           "actionCard": {
             "name": "Trinity Strike",
             "type": "action",
-            "description": "Quickly launch 3 consecutive strikes at your target. This can only be used once per round.",
+            "description": "Quickly launch 3 consecutive strikes at your target. If used with a 1H weapon then this becomes Repeat (3) instead. This can only be used once per round.",
             "apCost": 2,
             "focusCost": 3,
             "mpCost": 0,
@@ -9130,8 +9143,7 @@
             "tags": [
               "Melee",
               "Weapon",
-              "1H",
-              "Repeat(3)"
+              "Repeat(2)"
             ],
             "source": "weaponmaster",
             "powerRoll": {
@@ -9283,7 +9295,7 @@
           "actionCard": {
             "name": "Long Thrust",
             "type": "action",
-            "description": "Thrust in a straight line, dealing damage in a 1xX area extending from you where X is your melee range",
+            "description": "Thrust in a straight line, dealing damage in a 1xX area extending from you where X is your melee range. If using a Dex-based weapon gain Penetrate (3)",
             "apCost": 3,
             "focusCost": 7,
             "mpCost": 0,
@@ -9297,6 +9309,7 @@
             "source": "weaponmaster",
             "powerRoll": {
               "rollStats": [
+                "might",
                 "dexterity"
               ],
               "tier1Dmg": 4,
@@ -11860,7 +11873,7 @@
     "con_antidote": {
       "name": "Antidote",
       "quantity": 1,
-      "description": "Cures poisoned and bleeding status. You do not take damage in combat from bleeding for the 1 AP you spend to drink this.",
+      "description": "Cures agony and bleeding status. You do not take damage in combat from bleeding for the 1 AP you spend to drink this.",
       "tags": [],
       "value": 50,
       "type": "consumable"
@@ -11904,7 +11917,7 @@
           "targetStats": [
             "might"
           ],
-          "effect": "poisoned",
+          "effect": "agony",
           "duration": "roundEnd"
         },
         "tier3Dmg": 0,
@@ -11914,7 +11927,7 @@
           "targetStats": [
             "might"
           ],
-          "effect": "poisoned",
+          "effect": "agony",
           "duration": "roundEnd"
         }
       }
@@ -17722,7 +17735,7 @@
     "assassinArc": {
       "name": "Assassin's Arc",
       "type": "action",
-      "description": "Stab with this weapon. If the target is already poisoned, then this attack gains Penetrate(2)",
+      "description": "Stab with this weapon. If the target is already suffering Agony, then this attack gains Penetrate(2)",
       "apCost": 2,
       "focusCost": 0,
       "mpCost": 0,
@@ -17743,7 +17756,7 @@
         "tier2Wpn": true,
         "tier2Effect": {
           "type": "Condition",
-          "effect": "poisoned",
+          "effect": "agony",
           "strength": "average",
           "duration": "roundEnd",
           "targetStats": [
@@ -17757,7 +17770,7 @@
         "tier3Wpn": true,
         "tier3Effect": {
           "type": "Condition",
-          "effect": "poisoned",
+          "effect": "agony",
           "duration": "roundEnd",
           "srcStats": [
             "dexterity"
@@ -17834,7 +17847,7 @@
     "thornWhip": {
       "name": "Thorn Whip",
       "type": "action",
-      "description": "Strike a target with this whip utilizing the thorns and ivy leaves on it. This gains a boon if the target is already poisoned.",
+      "description": "Strike a target with this whip utilizing the thorns and ivy leaves on it. This gains a boon if the target is already suffering Agony.",
       "apCost": 2,
       "focusCost": 1,
       "mpCost": 0,
@@ -17855,7 +17868,7 @@
         "tier2Wpn": true,
         "tier2Effect": {
           "type": "Condition",
-          "effect": "poisoned",
+          "effect": "agony",
           "strength": "average",
           "srcStats": [
             "dexterity"
@@ -17869,7 +17882,7 @@
         "tier3Wpn": true,
         "tier3Effect": {
           "type": "Condition",
-          "effect": "poisoned",
+          "effect": "agony",
           "strength": "strong",
           "srcStats": [
             "dexterity"
@@ -18203,7 +18216,7 @@
     "flareShot": {
       "name": "Flare Shot",
       "type": "action",
-      "description": "Fire a flare dealing fire damage; Might potency for poisoned save end.",
+      "description": "Fire a flare dealing fire damage; Might potency for Agony save end.",
       "apCost": 2,
       "focusCost": 0,
       "mpCost": 0,
@@ -18228,7 +18241,7 @@
         "tier3Wpn": true,
         "tier2Effect": {
           "type": "Condition",
-          "effect": "poisoned",
+          "effect": "agony",
           "targetStats": [
             "might"
           ],
@@ -18237,7 +18250,7 @@
         },
         "tier3Effect": {
           "type": "Condition",
-          "effect": "poisoned",
+          "effect": "agony",
           "targetStats": [
             "might"
           ],
@@ -18246,7 +18259,7 @@
         },
         "tier1Effect": {
           "type": "Condition",
-          "effect": "poisoned",
+          "effect": "agony",
           "targetStats": [
             "might"
           ],
@@ -18596,7 +18609,7 @@
         "tier3Wpn": true,
         "tier1Effect": {
           "type": "Condition",
-          "effect": "poisoned",
+          "effect": "agony",
           "targetStats": [
             "dexterity"
           ],
@@ -18605,7 +18618,7 @@
         },
         "tier2Effect": {
           "type": "Condition",
-          "effect": "poisoned",
+          "effect": "agony",
           "targetStats": [
             "dexterity"
           ],
@@ -18614,7 +18627,7 @@
         },
         "tier3Effect": {
           "type": "Condition",
-          "effect": "poisoned",
+          "effect": "agony",
           "targetStats": [
             "dexterity"
           ],
@@ -18780,7 +18793,7 @@
     "poisonBurst": {
       "name": "Poison Burst",
       "type": "action",
-      "description": "Deal nature damage. If the initial target is poisoned, this becomes Multi(2).",
+      "description": "Deal nature damage. If the initial target is suffering Agony, this becomes Multi(2).",
       "apCost": 2,
       "focusCost": 0,
       "mpCost": 10,
@@ -20003,7 +20016,7 @@
     "releaseSmellyGas": {
       "name": "Release Smelly Gas",
       "type": "action",
-      "description": "Pull the trigger on the gas tank with an Interact action, releasing the gas inside. An opaque pungent gas cloud emits in a 3x3 area centered on you. All creatures in the area, including you, are poisoned until round end. This cloud blocks vision and lasts for 1 minute. It is also flammable and can be ignited to deal 3 fire damage to all creatures inside the cloud before disappearing.",
+      "description": "Pull the trigger on the gas tank with an Interact action, releasing the gas inside. An opaque pungent gas cloud emits in a 3x3 area centered on you. All creatures in the area, including you, have Agony until round end. This cloud blocks vision and lasts for 1 minute. It is also flammable and can be ignited to deal 3 fire damage to all creatures inside the cloud before disappearing.",
       "apCost": 0,
       "focusCost": 0,
       "mpCost": 0,
@@ -20714,7 +20727,7 @@
       },
       "unliving": {
         "name": "Unliving",
-        "description": "Immune to Bleeding, Charmed, Frightened, and Poisoned conditions. Also unaffected by Bard's Emanation songs",
+        "description": "Immune to Bleeding, Charmed, Frightened, and Agony conditions. Also unaffected by Bard's Emanation songs",
         "effects": [
           {
             "type": "Immunity",
@@ -20730,7 +20743,7 @@
           },
           {
             "type": "Immunity",
-            "stat": "poisoned"
+            "stat": "agony"
           }
         ]
       },
@@ -20819,6 +20832,16 @@
       "regenerativeLimbs": {
         "name": "Regenerative Limbs",
         "description": "Your limbs are regenerated at the start of each round"
+      },
+      "lowLightVision": {
+        "name": "Low-light vision",
+        "description": "As long as there is a little bit of light such as the stars in the sky you can see in grayscale up to your Reason score in tiles. You cannot see anything in pitch black darkness such as deep in a cave or when there are no stars or moon in the sky at night.",
+        "effects": [
+          {
+            "type": "GrantSight",
+            "stat": "low-light"
+          }
+        ]
       }
     },
     "creatures": {
@@ -20905,7 +20928,7 @@
           "beast"
         ],
         "attributes": {
-          "might": 13,
+          "might": 14,
           "dexterity": 10,
           "reason": 3,
           "willpower": 8,
@@ -20985,7 +21008,8 @@
         "traitRefs": [
           "greatSwimmer",
           "grappler",
-          "bloodthirsty"
+          "bloodthirsty",
+          "lowLightVision"
         ],
         "defense": 2,
         "stability": 1,
@@ -22122,8 +22146,8 @@
           "name": "Grabbed",
           "description": "Your Speed is 0 and you move along with the grabber. If you are the one grabbing, and you are ever separated by more than 1 tile from the grabbed target, this effect ends. You can only grab one creature at a time. You cannot Change Posture or Shift while grabbed."
         },
-        "poisoned": {
-          "name": "Poisoned",
+        "agony": {
+          "name": "Agony",
           "description": "You lose 5 HP during End Phase."
         },
         "prone": {
@@ -22178,7 +22202,7 @@
         },
         "barrierX": {
           "name": "Barrier X",
-          "description": "Grants a Barrier equal to X. Barrier does not stack, but absorbs damage for you after defense but before affecting your HP. Barrier will not protect you from an effect that says you lose HP such as bleeding or poisoned"
+          "description": "Grants a Barrier equal to X. Barrier does not stack, but absorbs damage for you after defense but before affecting your HP. Barrier will not protect you from an effect that says you lose HP such as bleeding or agony"
         },
         "blinded": {
           "name": "Blinded",
@@ -22230,7 +22254,7 @@
         },
         "maintain": {
           "name": "Maintain",
-          "description": "You may only have one Maintain effect active at once. If you take excessive damage (equal or greater than your Willpower score) in one turn the effect ends. If you don't pay the Maintain cost then the effect ends."
+          "description": "You may only have one Maintain effect active at once. If you take excessive damage (equal or greater than half your Willpower score, rounding up) in one turn the effect ends. If you don't pay the Maintain cost then the effect ends."
         },
         "manifest": {
           "name": "Manifest",
@@ -22274,7 +22298,7 @@
         },
         "shiftX": {
           "name": "Shift X",
-          "description": "Move X tiles. Does not trigger Opportunity Attacks. If you try to shift into or while within difficult terrain it would be treated as normal movement."
+          "description": "Move X tiles. Does not trigger Opportunity Attacks. If you try to shift into or while within difficult terrain it would be treated as striding."
         },
         "slashing": {
           "name": "Slashing",
@@ -22298,7 +22322,7 @@
         },
         "throwing": {
           "name": "Throwing",
-          "description": "This action can also be performed with a weapon with the Throwing tag. Throwing distance is your half your Might score (round down)"
+          "description": "This action can also be performed with a weapon with the Throwing tag. Throwing distance is your half your Might or Dexterity score (round down)"
         },
         "weapon": {
           "name": "Weapon",
@@ -22372,6 +22396,10 @@
           "name": "Concealed",
           "description": "If a creature is invisible or line of sight is otherwise obscured they are considered Concealed. Attacking a Concealed creature causes your attack to automatically have a Bane while they get a Boon when attacking you. A Concealed creature does not trigger an opportunity attack when leaving your melee range"
         },
+        "hidden": {
+          "name": "Hidden",
+          "description": "A hidden creature's location is unknown to others by sight. As such they cannot be targeted by attacks, though they can still be affected by Area effects. A creature can gain Hidden status by taking the Hide action while Concealed. The Hidden status is lost after attacking or otherwise revealing yourself"
+        },
         "metaphysical": {
           "name": "Metaphysical",
           "description": "Does not always exist in the physical plane, but might be able to manifest itself or otherwise affect the physical world through magical or other means. They are invisible to those not able to see metaphysical beings."
@@ -22404,7 +22432,7 @@
         },
         "undead": {
           "name": "Undead",
-          "description": "Immune to Dark and Poison damage, Poisoned, and Vulnerability (5) to light damage. Healing damages them. Cannot be healed by normal means."
+          "description": "Immune to Dark and Poison damage, Agony, and Vulnerability (5) to light damage. Healing damages them. Cannot be healed by normal means."
         },
         "humanoid": {
           "name": "Humanoid",

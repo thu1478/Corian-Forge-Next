@@ -167,6 +167,7 @@ export function CreaturesPanel({
 
     const openEntry = openId ? creatures.find((c) => c.id === openId) : null
     const openTemplate = openEntry ? templates[openEntry.templateId] : null
+    const openIsAnima = openEntry ? isDruidAnimaRosterEntry(openEntry) : false
     const openHasHpPool = openEntry ? openEntry.currentHp != null || openEntry.maxHp != null : false
     const openHasMpPool = openEntry ? openEntry.currentMp != null || openEntry.maxMp != null : false
     const openTraitEntries = useMemo(
@@ -418,7 +419,7 @@ export function CreaturesPanel({
                                     </div>
                                 </div>
 
-                                {c.kind === "summon" && (hasHpPool || hasMpPool) ? (
+                                {c.kind === "summon" && !isAnimaEntry && (hasHpPool || hasMpPool) ? (
                                     <div className="space-y-2 pt-1">
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                             {hasHpPool ? (
@@ -686,7 +687,9 @@ export function CreaturesPanel({
                                         </div>
                                     ) : null}
 
-                                    {openEntry.kind === "summon" && (openHasHpPool || openHasMpPool) ? (
+                                    {openEntry.kind === "summon" &&
+                                    !openIsAnima &&
+                                    (openHasHpPool || openHasMpPool) ? (
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                             {openHasHpPool ? (
                                                 <div className="space-y-1 min-w-0">

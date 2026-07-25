@@ -272,7 +272,7 @@ Resistance rows commonly use `value`; vulnerability rows commonly use `stat` plu
 **Immunity**
 
 ```json
-{ "type": "Immunity", "stat": "poisoned" }
+{ "type": "Immunity", "stat": "agony" }
 ```
 
 Shown under combat “Condition immunities”.
@@ -536,7 +536,7 @@ These are the supported `PotencyEffect` shapes in `lib/rules.ts`.
 
 | Field | Purpose |
 |-------|---------|
-| `effect` | Condition id: `prone`, `push`, `pull`, `slide`, `bleeding`, `charmed`, `frightened`, `grabbed`, `poisoned`, `restrained`, `shaken`, `dazed`, `stunned`, `slowed`, `sundered`, `taunt`, `weakened`, `hemorrhage`. |
+| `effect` | Condition id: `prone`, `push`, `pull`, `slide`, `bleeding`, `charmed`, `frightened`, `grabbed`, `agony`, `restrained`, `shaken`, `dazed`, `stunned`, `slowed`, `sundered`, `taunt`, `weakened`, `hemorrhage`. |
 | `srcStats` | Optional source attributes for potency math/labeling. |
 | `fixedSrcVal` | Optional fixed source value instead of source attributes. |
 | `targetStats` | Optional target attributes for potency math/labeling. |

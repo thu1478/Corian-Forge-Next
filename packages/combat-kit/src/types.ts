@@ -16,10 +16,13 @@ export interface NaturalWeaponDefinition {
     damageType?: string
 }
 
+/** Sandbox creature roles. `enemy` is combat-sandbox only (not used on character-sheet bestiary). */
+export type SandboxCreatureRole = "assistant" | "minion" | "summon" | "enemy"
+
 export interface SandboxCreature {
     name: string
     description?: string
-    role?: "assistant" | "minion" | "summon"
+    role?: SandboxCreatureRole
     level?: number
     creatureTypes?: string[]
     tags?: string[]

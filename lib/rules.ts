@@ -152,7 +152,7 @@ export const Condition = {
     CHARMED: "charmed",
     FRIGHTENED: "frightened",
     GRABBED: "grabbed",
-    POISONED: "poisoned",
+    AGONY: "agony",
     RESTRAINED: "restrained",
     SHAKEN: "shaken",
     DAZED: "dazed",

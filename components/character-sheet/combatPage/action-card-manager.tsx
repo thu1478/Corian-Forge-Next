@@ -112,6 +112,8 @@ export function ActionCardComponent({
     // Each card maintains its own independent state
     const [isExpanded, setIsExpanded] = useState(true);
     const [isPowerRollExpanded, setIsPowerRollExpanded] = useState(defaultPowerRollExpanded);
+    /** Keys of EnhanceAction notes that are expanded (default collapsed). */
+    const [openEnhancementKeys, setOpenEnhancementKeys] = useState<Record<string, boolean>>({})
 
     /** Keep tier visibility aligned with props (new action / reused instance / delayed prop). */
     useLayoutEffect(() => {
@@ -171,6 +173,7 @@ export function ActionCardComponent({
         if (forceCollapsed) {
             setIsExpanded(false)
             setIsPowerRollExpanded(false)
+            setOpenEnhancementKeys({})
             return
         }
         setIsExpanded(true)
@@ -181,6 +184,7 @@ export function ActionCardComponent({
         if (collapseAllSignal == null || collapseAllSignal < 1) return
         setIsExpanded(false)
         setIsPowerRollExpanded(false)
+        setOpenEnhancementKeys({})
     }, [collapseAllSignal])
 
     const config = getActionTypeStyle(action)
@@ -485,20 +489,51 @@ export function ActionCardComponent({
                     <p className="text-base text-foreground/80 leading-relaxed whitespace-pre-line">
                         {action.description}
                     </p>
-                    {action.enhancements?.notes.map((note, i) => (
-                        <div
-                            key={`${note.sourceLabel}-${i}`}
-                            className="mt-3 rounded-lg border border-primary/25 bg-primary/5 px-3 py-2"
-                        >
-                            <p className="text-xs font-semibold uppercase tracking-wide text-primary/80 mb-1">
-                                {note.sourceLabel}
-                            </p>
-                            <p className="text-sm text-foreground/75 leading-relaxed whitespace-pre-line">
-                                {note.appendDescription}
-                            </p>
-                        </div>
-                    ))}
                 </div>
+
+                {action.enhancements?.notes.length ? (
+                    <div className="mb-4 space-y-2" data-action-no-edit>
+                        {action.enhancements.notes.map((note, i) => {
+                            const key = `${note.sourceLabel}-${i}`
+                            const isOpen = openEnhancementKeys[key] === true
+                            return (
+                                <div
+                                    key={key}
+                                    className="rounded-lg border border-primary/25 bg-primary/5 overflow-hidden"
+                                >
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation()
+                                            setOpenEnhancementKeys((prev) => ({
+                                                ...prev,
+                                                [key]: !prev[key],
+                                            }))
+                                        }}
+                                        className="w-full px-3 py-2 flex items-center justify-between gap-2 text-left hover:bg-primary/10 transition-colors"
+                                    >
+                                        <span className="text-xs font-semibold uppercase tracking-wide text-primary/80">
+                                            {note.sourceLabel}
+                                        </span>
+                                        <ChevronDown
+                                            className={cn(
+                                                "w-4 h-4 shrink-0 text-primary/60 transition-transform duration-200",
+                                                !isOpen && "-rotate-90",
+                                            )}
+                                        />
+                                    </button>
+                                    {isOpen ? (
+                                        <div className="px-3 pb-2.5">
+                                            <p className="text-sm text-foreground/75 leading-relaxed whitespace-pre-line">
+                                                {note.appendDescription}
+                                            </p>
+                                        </div>
+                                    ) : null}
+                                </div>
+                            )
+                        })}
+                    </div>
+                ) : null}
 
                 {/* Power Roll (Collapsible) */}
                 {pr && (

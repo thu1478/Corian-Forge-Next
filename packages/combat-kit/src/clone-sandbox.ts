@@ -105,7 +105,7 @@ export function createSandboxEntry(
         section === "creatures"
             ? {
                   name: trimmedNew,
-                  role: "summon",
+                  role: "enemy",
                   level: 1,
                   creatureTypes: [],
                   tags: [],

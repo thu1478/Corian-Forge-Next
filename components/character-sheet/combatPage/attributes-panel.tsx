@@ -39,15 +39,16 @@ export function AttributesPanel({ attributes, highlighted = {} }: AttributesPane
               key={key}
               className={cn(
                 "text-center p-2.5 rounded-lg border",
-                config.color
+                config.color,
+                isHighlighted && "ring-2 ring-violet-500/70 dark:ring-violet-300/80",
               )}
               title={isHighlighted ? "Changed by active mount or Anima form" : undefined}
             >
               <div className="text-xs uppercase tracking-wider font-bold mb-1">
                 {config.abbr}
               </div>
-              <div className={cn("text-xl font-bold", isHighlighted ? "text-violet-700 dark:text-violet-300" : "text-foreground")}>{value}</div>
-              <div className={cn("text-sm font-mono opacity-80", isHighlighted ? "text-violet-700 dark:text-violet-300" : "")}>
+              <div className={cn("text-xl font-bold", isHighlighted ? "text-violet-800 dark:text-violet-200" : "text-foreground")}>{value}</div>
+              <div className={cn("text-sm font-mono", isHighlighted ? "text-violet-700 dark:text-violet-200" : "opacity-80")}>
                 {formatModifier(modifier)}
               </div>
             </div>
