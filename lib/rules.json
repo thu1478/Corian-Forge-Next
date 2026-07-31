@@ -12124,6 +12124,14 @@
       "value": 150,
       "type": "consumable"
     },
+    "herb_sunblind_cap": {
+      "name": "Sunblind Cap",
+      "quantity": 1,
+      "description": "Consuming this causes you to shed bright light out to 1 tile and dim light out to an additional tile for an hour or until you spend a Respite. If consumed again while glowing you are Blinded for the duration",
+      "tags": [],
+      "value": 100,
+      "type": "consumable"
+    },
     "wp_steelwindDagger": {
       "name": "Steel-Wind Dagger",
       "quantity": 1,
