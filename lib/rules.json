@@ -3826,7 +3826,7 @@
           "actionCard": {
             "name": "Rock Armor",
             "type": "action",
-            "description": "Choose a target. Nearby rocks form around them, increasing their defense by 3 and making them Slowed.\n\nMaintain: During the start phase you may spend 3 Mana to maintain this ability. If you do so then the effect is active for this round as well.",
+            "description": "Choose a target. Nearby rocks form around them, increasing their defense by 3, Stability by 1, and making them Slowed.\n\nMaintain: During the start phase you may spend 3 Mana to maintain this ability. If you do so then the effect is active for this round as well.",
             "apCost": 2,
             "focusCost": 1,
             "mpCost": 8,
@@ -16807,13 +16807,13 @@
         "tier1Effect": {
           "type": "ForcedMovement",
           "effect": "push",
-          "distance": 1
+          "distance": 2
         },
         "tier2Dmg": 6,
         "tier2Effect": {
           "type": "ForcedMovement",
           "effect": "push",
-          "distance": 2
+          "distance": 3
         },
         "tier3Dmg": 8,
         "tier3Effect": {
@@ -16847,7 +16847,13 @@
         ],
         "tier1Dmg": 7,
         "tier2Dmg": 8,
-        "tier3Dmg": 10
+        "tier3Dmg": 10,
+        "tier3Effect": {
+          "type": "Condition",
+          "effect": "bleeding",
+          "strength": "strong",
+          "duration": "[turn end]"
+        }
       }
     },
     "monster/strawFist": {
@@ -20600,7 +20606,7 @@
     "acc_ringOfInterposition": {
       "name": "Ring of Interposition",
       "minLevel": 1,
-      "description": "Once per long rest you may pair this ring with one other Ring of Interposition. You can swap your position with whoever is wearing the paired ring with an Interact action.",
+      "description": "Once per long rest you may pair this ring with one other Ring of Interposition. You cannot take off the ring until you spend a Respite. You can swap your position with whoever is wearing the paired ring with an Interact action.",
       "fixedMaxCharges": 2,
       "chargeReset": [
         "longRest"
@@ -20744,6 +20750,35 @@
           {
             "type": "Immunity",
             "stat": "agony"
+          }
+        ]
+      },
+      "immutable": {
+        "name": "Immutable",
+        "description": "Immune to Slowed, Restrained, Grabbed, and any effect that would change its shape",
+        "effects": [
+          {
+            "type": "Immunity",
+            "stat": "slowed"
+          },
+          {
+            "type": "Immunity",
+            "stat": "restrained"
+          },
+          {
+            "type": "Immunity",
+            "stat": "grabbed"
+          }
+        ]
+      },
+      "swimmer": {
+        "name": "Swimmer",
+        "description": "Gain Swimming Speed equal to half of Speed (round down)",
+        "effects": [
+          {
+            "type": "GrantMovement",
+            "stat": "swimming",
+            "value": "halfSpeed"
           }
         ]
       },
@@ -20930,7 +20965,7 @@
         "attributes": {
           "might": 14,
           "dexterity": 10,
-          "reason": 3,
+          "reason": 5,
           "willpower": 8,
           "presence": 10
         },
@@ -21318,6 +21353,10 @@
             "value": "1"
           },
           {
+            "stat": "fire",
+            "value": "1"
+          },
+          {
             "stat": "water",
             "value": "1"
           }
@@ -21502,8 +21541,9 @@
         "speed": 3,
         "size": "1L",
         "resistances": [
+          "volt",
           "water",
-          "earth"
+          "nature"
         ],
         "vulnerabilities": [
           {
@@ -21556,6 +21596,10 @@
         "vulnerabilities": [
           {
             "stat": "crushing",
+            "value": "2"
+          },
+          {
+            "stat": "fire",
             "value": "2"
           },
           {

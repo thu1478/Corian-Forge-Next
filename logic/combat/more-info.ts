@@ -61,7 +61,9 @@ export type SpecialMovementEntry = {
 function resolveGrantMovementSpeed(value: string | undefined, landSpeed: number): number | null {
     const v = String(value ?? "").trim()
     if (!v) return landSpeed
-    if (v.toLowerCase() === "speed") return landSpeed
+    const key = v.toLowerCase()
+    if (key === "speed") return landSpeed
+    if (key === "halfspeed" || key === "half") return Math.floor(landSpeed / 2)
     const n = Number(v)
     return Number.isFinite(n) ? Math.floor(n) : null
 }
