@@ -190,8 +190,8 @@ export function computeMaxMP(params: {
     traitMaxMpBonus: number
 }): number {
     return (
-        params.characterLevel +
-        2 * params.effectiveWillpower +
+        2 * params.characterLevel +
+        Math.ceil(params.effectiveWillpower/2) +
         params.classMpBonus +
         params.gearMpBonus +
         params.traitMaxMpBonus

@@ -8,7 +8,8 @@ export type ChargePipsProps = {
     onChange?: (newCount: number) => void
     label?: string
     className?: string
-    readOnly?: boolean
+    /** Use `isReadOnly` — not `readOnly`; React 19 strips the DOM prop name on custom components. */
+    isReadOnly?: boolean
     showLabel?: boolean
 }
 
@@ -18,7 +19,7 @@ export function ChargePips({
     onChange,
     label = "Charges",
     className,
-    readOnly = false,
+    isReadOnly = false,
     showLabel = true,
 }: ChargePipsProps) {
     if (maxCharges <= 0) return null
@@ -31,8 +32,8 @@ export function ChargePips({
             isFilled
                 ? "bg-amber-400 border-amber-600 shadow-sm"
                 : "bg-muted/30 border-dashed border-muted-foreground/30",
-            !readOnly && !isFilled && "hover:border-amber-400/50",
-            !readOnly && "transition-all hover:scale-110 active:scale-95",
+            !isReadOnly && !isFilled && "hover:border-amber-400/50",
+            !isReadOnly && "transition-all hover:scale-110 active:scale-95",
         )
 
     return (
@@ -47,7 +48,7 @@ export function ChargePips({
                     const isFilled = i < current
                     const isLastFilled = i === current - 1
 
-                    if (readOnly) {
+                    if (isReadOnly) {
                         return <span key={i} className={pipClass(isFilled)} aria-hidden />
                     }
 

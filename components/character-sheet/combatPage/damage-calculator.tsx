@@ -295,6 +295,27 @@ export function DamageCalculator({
                         <span className="text-muted-foreground">Raw</span>
                         <span className="font-mono font-bold text-foreground tabular-nums">{breakdown.rawDamage}</span>
                     </div>
+                    {breakdown.conflict && (
+                        <p className="text-xs text-amber-700 dark:text-amber-400 leading-snug">
+                            Resist and vulnerability both apply to this type — modifiers cancel (same as combat stats).
+                        </p>
+                    )}
+                    {!breakdown.conflict && breakdown.resistApplied && (
+                        <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground">Resistance (½, round up)</span>
+                            <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">
+                → {breakdown.afterResist}
+              </span>
+                        </div>
+                    )}
+                    {!breakdown.conflict && breakdown.vulnFlat > 0 && (
+                        <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground">Vulnerability</span>
+                            <span className="font-mono font-bold text-red-700 dark:text-red-400 tabular-nums">
+                +{breakdown.vulnFlat}
+              </span>
+                        </div>
+                    )}
                     {usesDefense && (
                         <div className="flex items-center justify-between">
               <span className="text-muted-foreground">
@@ -318,32 +339,13 @@ export function DamageCalculator({
                             </span>
                         </div>
                     )}
-                    <div className="flex items-center justify-between border-t border-border/60 pt-2">
-                        <span className="text-muted-foreground">After defense</span>
-                        <span
-                            className="font-mono font-bold text-foreground tabular-nums">{breakdown.afterDefense}</span>
-                    </div>
-                    {breakdown.conflict && (
-                        <p className="text-xs text-amber-700 dark:text-amber-400 leading-snug">
-                            Resist and vulnerability both apply to this type — modifiers cancel (same as combat stats).
-                        </p>
-                    )}
-                    {!breakdown.conflict && breakdown.resistApplied && (
-                        <div className="flex items-center justify-between">
-                            <span className="text-muted-foreground">Resistance (½, round up)</span>
-                            <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">
-                → {breakdown.afterResist}
-              </span>
+                    {usesDefense ? (
+                        <div className="flex items-center justify-between border-t border-border/60 pt-2">
+                            <span className="text-muted-foreground">After defense</span>
+                            <span
+                                className="font-mono font-bold text-foreground tabular-nums">{breakdown.afterDefense}</span>
                         </div>
-                    )}
-                    {!breakdown.conflict && breakdown.vulnFlat > 0 && (
-                        <div className="flex items-center justify-between">
-                            <span className="text-muted-foreground">Vulnerability</span>
-                            <span className="font-mono font-bold text-red-700 dark:text-red-400 tabular-nums">
-                +{breakdown.vulnFlat}
-              </span>
-                        </div>
-                    )}
+                    ) : null}
                     <div className="border-t border-border pt-2 mt-1">
                         <div className="flex items-center justify-between">
                             <span className="font-semibold text-foreground text-base">Final damage</span>

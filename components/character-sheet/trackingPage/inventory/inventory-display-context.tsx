@@ -2,6 +2,7 @@
 
 import { createContext } from "react"
 import type { TraitRef } from "@/lib/baseRefs"
+import type { CharacterClass } from "@/lib/rules"
 import type { RulesWithItemRanks } from "@/logic/equipment/item-rank-display"
 import type { WeaponDamageContext } from "@/logic/equipment/weapon-utils"
 
@@ -17,4 +18,5 @@ export const InventoryItemDisplayContext = createContext<{
         willpower: number
         presence: number
     }
+    classes?: CharacterClass[]
 }>({})

@@ -12,6 +12,7 @@ import { INV_DRAG_ITEM_PREFIX } from "@/logic/equipment/inventory-helpers"
 import { equipmentStatSummaryLine } from "@/logic/equipment/stats-display"
 import { ProficiencyAlert } from "@/components/character-sheet/trackingPage/equipment-panel"
 import { heavyMightRequirementDeficitMessage } from "@/logic/equipment/proficiency"
+import { itemRequirementsDeficitMessageFromDef } from "@/logic/equipment/item-requirements"
 import { getItemNameClass } from "@/logic/equipment/item-rank-display"
 import { WeaponBondBadge } from "@/components/equipment/weapon-bond-badge"
 import { buildWeaponBondContext, isBondedWeapon } from "@/logic/equipment/weapon-utils"
@@ -37,6 +38,11 @@ export function DraggableItemRow({
     const id = `${INV_DRAG_ITEM_PREFIX}${item.uid}`
     const equipStats = equipmentStatSummaryLine(item)
     const heavyWarningMessage = heavyMightRequirementDeficitMessage(item, displayCtx.attributes?.might)
+    const requirementsWarningMessage = itemRequirementsDeficitMessageFromDef(
+        item as unknown as Record<string, unknown>,
+        { attributes: displayCtx.attributes, classes: displayCtx.classes },
+        (displayCtx.rules ?? {}) as { classes?: Record<string, { name?: string }> },
+    )
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id })
     const style = transform
         ? { transform: CSS.Translate.toString(transform), zIndex: isDragging ? 20 : undefined }
@@ -89,6 +95,7 @@ export function DraggableItemRow({
                 ) : null}
             </div>
             <div className="flex shrink-0 items-center gap-1.5">
+                {requirementsWarningMessage ? <ProficiencyAlert message={requirementsWarningMessage} /> : null}
                 {heavyWarningMessage ? <ProficiencyAlert message={heavyWarningMessage} /> : null}
                 {capacityWarningMessage ? <ProficiencyAlert message={capacityWarningMessage} /> : null}
                 <label className="sr-only" htmlFor={`qty-${item.uid}`}>

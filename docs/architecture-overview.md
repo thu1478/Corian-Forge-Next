@@ -35,7 +35,6 @@ flowchart TB
   subgraph hooks [React wiring - hooks/]
     IO[use-character-io]
     DL[use-data-loader]
-    DS[use-derived-stats]
   end
   subgraph ui [UI - components/]
     Sheet[CharacterSheetView]
@@ -167,11 +166,11 @@ flowchart TB
 | **6. Charge state** | [`logic/traits/charge-helpers.ts`](../logic/traits/charge-helpers.ts) | Merge saved `ActionRef.charges` with rules max/reset |
 | **7. Reactions** | `hydrateCharacter` in [`use-data-loader.tsx`](../hooks/character/use-data-loader.tsx) | Map `ReactionRef[]` → full `Reaction[]` via `buildReactionLibrary` |
 | **8. Orchestration** | [`useDataLoader`](../hooks/character/use-data-loader.tsx) | Wires the above; exposes assembled character + `traitRefs` + UIDs for active slots |
-| **9. Derived stats** | [`logic/character/derived-stats.ts`](../logic/character/derived-stats.ts) via [`useDerivedStats`](../hooks/character/use-derived-stats.tsx) | Attributes, defense, stability, speed, resistances, languages, skill grants, druid anima overrides |
+| **9. Derived stats** | [`computeDerivedStats`](../logic/character/derived-stats.ts) in [`useDataLoader`](../hooks/character/use-data-loader.tsx) | Attributes, defense, stability, speed, resistances, languages, skill grants, druid anima overrides |
 
 **Creator** uses the same `logic/` modules for review and validation (e.g. `computeDerivedStats`, `resolvePassiveById`) but does **not** call `useDataLoader`.
 
-**Sheet UI** consumes `{ character, derived }` from `useDataLoader`. Legacy re-exports remain at `components/character-sheet/hooks/DataLoader.tsx` and `statCalculator.tsx` for older import paths.
+**Sheet UI** consumes `{ character, derived }` from `useDataLoader`. A legacy re-export remains at `components/character-sheet/hooks/DataLoader.tsx` for older import paths.
 
 ---
 
@@ -234,7 +233,6 @@ Domain subfolders (non-exhaustive):
 | `use-character-io.tsx` | Persistence, import/export |
 | `use-item-hydration.tsx` | Item + equipment hydration |
 | `use-data-loader.tsx` | Full pipeline orchestration |
-| `use-derived-stats.tsx` | Thin memo wrapper over `computeDerivedStats` |
 | `use-action-cards.tsx` | Action card discovery and filtering |
 
 Top-level [`hooks/CharacterLoader.tsx`](../hooks/CharacterLoader.tsx), [`ItemLoader.tsx`](../hooks/ItemLoader.tsx), [`ActionCardLoader.tsx`](../hooks/ActionCardLoader.tsx) are deprecated re-exports of the above.

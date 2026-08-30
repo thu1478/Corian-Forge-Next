@@ -1304,14 +1304,15 @@
       "tightGrip": {
         "name": "Tight Grip",
         "minLevel": 5,
-        "description": "You may treat non-Heavy two-handed melee weapons as 1H and Heavy weapons no longer increase AP costs. These 2H weapons can be used for either 1H or 2H abilities interchangeably.",
+        "description": "You may treat non-Heavy two-handed melee weapons as 1H and Heavy weapons no longer increase AP costs. These 2H weapons can be used for either 1H or 2H abilities interchangeably. If you are not wearing martial armor then you may treat Heavy weapons as 1H as well.",
         "prereqs": {
           "classes": {
             "5": [
               "fury"
             ],
             "7": [
-              "rider"
+              "rider",
+              "weaponmaster"
             ]
           }
         }
@@ -1478,11 +1479,6 @@
       ],
       "primaryAttribute": "reason",
       "statBonuses": [
-        {
-          "stat": "mp",
-          "amount": 2,
-          "frequency": 1
-        },
         {
           "stat": "ip",
           "amount": 2,
@@ -2046,7 +2042,7 @@
         "segue": {
           "name": "Segue",
           "minLevel": 1,
-          "description": "You may make Opportunity Attacks with your instrument, dealing damage equal to half your Presence modifier, rounding up"
+          "description": "You may make Opportunity Attacks with your instrument, dealing damage equal to half your Presence modifier, rounding up. You deal additional damage to Taunted targets equal to your Presence modifier (max 3)."
         },
         "backupSinger": {
           "name": "Backup Singer",
@@ -2145,7 +2141,11 @@
               "tier1Dmg": 1,
               "tier2Dmg": 2,
               "tier3Dmg": 3
-            }
+            },
+            "hiddenTags": [
+              "sustain",
+              "heal"
+            ]
           }
         },
         "chantOfTheDying": {
@@ -3749,7 +3749,7 @@
       "statBonuses": [
         {
           "stat": "mp",
-          "amount": 2,
+          "amount": 6,
           "frequency": 1
         }
       ]
@@ -4075,7 +4075,7 @@
       "statBonuses": [
         {
           "stat": "mp",
-          "amount": 2,
+          "amount": 6,
           "frequency": 1
         }
       ]
@@ -4194,7 +4194,7 @@
       "statBonuses": [
         {
           "stat": "mp",
-          "amount": 2,
+          "amount": 6,
           "frequency": 1
         }
       ]
@@ -4215,7 +4215,7 @@
         "bigHands": {
           "name": "Big Hands",
           "minLevel": 1,
-          "description": "You gain a Boon on Grab and Escape Grab rolls."
+          "description": "You gain a Boon on Grab and Escape Grab rolls. If you are not wearing martial armor you gain double Boon instead."
         },
         "frenzy": {
           "name": "Frenzy",
@@ -4247,7 +4247,7 @@
           "actionCard": {
             "name": "Big Crush",
             "type": "action",
-            "description": "Prepare a big overhead strike. You cannot take Reactions while the Delay effect is pending, but you are also unaffected by forced movement. If any creature tries to move out of melee range and would normally trigger an Opportunity attack but the Delay effect has yet to be activated you may instead immediately activate the Delay effect and remove it afterwards.",
+            "description": "Prepare a big overhead strike. You cannot take Reactions while the Delay effect is pending, but your Stability is also increased by 1. If any creature tries to move out of melee range and would normally trigger an Opportunity attack but the Delay effect has yet to be activated you may instead immediately activate the Delay effect and remove it afterwards.",
             "apCost": 2,
             "focusCost": 1,
             "mpCost": 0,
@@ -4300,7 +4300,7 @@
           "actionCard": {
             "name": "Yeet",
             "type": "action",
-            "description": "If a creature is currently Grabbed by you then you can throw them, using them as a projectile. This throwing distance is affected by the thrown creature's stability. If the thrown creature's size is greater than 1L this deals bonus damage equal to the creature's size. Both the thrown creature and any creature that the thrown creature hits take crushing damage.",
+            "description": "If a creature is currently Grabbed by you then you can throw them, using them as a projectile. The throwing distance is equal to your Might modifier, reduced by the thrown creature's stability. If the thrown creature's size is greater than 1L this deals bonus damage equal to the creature's size if it hits another target. Both the thrown creature and any creature that the thrown creature hits take crushing damage.",
             "apCost": 1,
             "focusCost": 0,
             "mpCost": 0,
@@ -4405,7 +4405,7 @@
           "actionCard": {
             "name": "Mighty Leap",
             "type": "action",
-            "description": "Choose an unoccupied tile within tiles equal to your Speed. You jump high in the air and land on that tile by warping to it, releasing a powerful shockwave around you that affects all creatures within 1 tile, dealing crushing damage. Deal bonus damage equal to twice the stability of any creature you have Grabbed",
+            "description": "Choose an unoccupied tile within tiles equal to your Speed. You jump high in the air and land on that tile by warping to it, releasing a powerful shockwave around you that affects all creatures within 1 tile, dealing crushing damage. Deal bonus damage equal to twice the stability of any creature you have Grabbed. If you are not wearing martial armor this gains a Boon.",
             "apCost": 2,
             "focusCost": 3,
             "mpCost": 0,
@@ -4631,7 +4631,7 @@
           "actionCard": {
             "name": "Soul Ripper",
             "type": "action",
-            "description": "Attack the target. If you have a Bond towards them you may recover 5 HP and 3 Mana afterwards. Cannot be used on allies.",
+            "description": "Attack the target. If you have a Bond towards them you may recover 3 HP and 1 Mana afterwards. Cannot be used on allies.\n\n7 Focus: Treat the target as if you had a Bond towards them.",
             "apCost": 2,
             "focusCost": 5,
             "mpCost": 0,
@@ -4705,7 +4705,7 @@
           "actionCard": {
             "name": "Meteor Tackle",
             "type": "action",
-            "description": "Inflict push 7 on yourself, ignoring stability, in any direction you want. If you slam into a creature after moving at least 1 tiles you do not take damage but instead inflict the remaining push onto the creature, moving along with them in the adjacent tile.",
+            "description": "Inflict push 5 on yourself, ignoring stability, in any direction you want. If you slam into a creature after moving at least 1 tiles you do not take damage but instead inflict the remaining push onto the creature, moving along with them in the adjacent tile. If you are not wearing martial armor the push is increased to 7",
             "apCost": 2,
             "focusCost": 7,
             "mpCost": 0,
@@ -5313,9 +5313,11 @@
           "name": "Castle",
           "type": "Reaction",
           "level": 3,
-          "trigger": "An adjacent ally is attacked by a hostile creature",
-          "description": "Swap places with the ally and take that attack for them",
-          "focusCost": 1
+          "trigger": "An ally within 2 tiles is attacked by a hostile creature",
+          "description": "Swap places with the ally and take that attack for them. If they take up more tiles than you then you can only swap if there is space.",
+          "focusCost": 1,
+          "tags": [],
+          "source": ""
         }
       ],
       "statBonuses": [
@@ -5885,7 +5887,7 @@
         "tearsOfBlood": {
           "name": "Tears of Blood",
           "minLevel": 5,
-          "description": "If mana is insufficient to cast a spell targeting only allies you can spend HP instead for twice the cost. If the spell would heal you then you don't heal."
+          "description": "If mana is insufficient to cast a spell you can spend twice as much HP instead. You cannot receive healing or barrier from that spell then."
         }
       },
       "elementalAspects": [
@@ -6907,7 +6909,7 @@
       "statBonuses": [
         {
           "stat": "mp",
-          "amount": 2,
+          "amount": 6,
           "frequency": 1
         }
       ]
@@ -7675,7 +7677,7 @@
           "actionCard": {
             "name": "Hit and Run",
             "type": "action",
-            "description": "You may Stride up to your Speed as part of this action. Strike a target with your weapon.",
+            "description": "You may Stride up to half your Speed as part of this action. If you are not wearing martial armor you may use your full Speed. Strike a target with your weapon.",
             "apCost": 2,
             "focusCost": 1,
             "mpCost": 0,
@@ -8038,7 +8040,7 @@
           "actionCard": {
             "name": "Flame Pillar",
             "type": "action",
-            "description": "Prepare to unleash columns of flames in a 3x3 area that reach 5 tiles high, dealing fire damage\n\nMaintain: During the start phase you may spend 1 Focus and 10 Mana to maintain this ability. If you do so then you can retrigger the ability in the same area during the End Phase.",
+            "description": "Prepare to unleash columns of flames in a 3x3 area that reach 5 tiles high, dealing fire damage\n\nMaintain: During the start phase you may spend 1 Focus and 10 Mana to maintain this ability. If you do so then you can immediately move the area up to 2 tiles and then retrigger the ability during the End Phase.",
             "apCost": 2,
             "focusCost": 3,
             "mpCost": 10,
@@ -8211,7 +8213,7 @@
           "actionCard": {
             "name": "Fireball",
             "type": "action",
-            "description": "Target a creature. Charge up a powerful concentration of flames that explodes in a 3x3 area once it hits its target dealing fire damage to all creatures in the area. The target is pushed away from the caster, but other creatures in the area are pushed away from the target. If you take at least 10 damage in one turn the explosive orb explodes prematurely on your location. After the attack flames remain in the area for 1 minute",
+            "description": "Target a creature. Charge up a powerful concentration of flames that explodes in a 3x3 area once it hits its target dealing fire damage to all creatures in the area. The target is pushed away from the caster, but other creatures in the area are pushed away from the target. After the attack flames remain in the area for 1 minute\n\n5 Focus: Ignore the Delay tag",
             "apCost": 2,
             "focusCost": 3,
             "mpCost": 10,
@@ -8489,7 +8491,7 @@
       "statBonuses": [
         {
           "stat": "mp",
-          "amount": 2,
+          "amount": 6,
           "frequency": 1
         }
       ]
@@ -9978,7 +9980,7 @@
       "statBonuses": [
         {
           "stat": "mp",
-          "amount": 2,
+          "amount": 6,
           "frequency": 1
         }
       ]
@@ -11250,7 +11252,8 @@
       "damageType": "piercing",
       "range": 2,
       "attributes": [
-        "might"
+        "migh",
+        "dexterity"
       ],
       "actionIDs": [
         "equipment/stab"
@@ -11706,7 +11709,9 @@
       ],
       "type": "armor",
       "defense": {
-        "value": 4
+        "value": 3,
+        "attribute": "dexterity",
+        "attrMax": 1
       },
       "stability": 0
     },
@@ -11723,7 +11728,9 @@
       ],
       "type": "armor",
       "defense": {
-        "value": 5
+        "value": 4,
+        "attribute": "dexterity",
+        "attrMax": 1
       },
       "stability": 1
     },
@@ -11737,8 +11744,7 @@
       ],
       "tags": [
         "martial",
-        "heavy",
-        "slowStart"
+        "heavy"
       ],
       "type": "armor",
       "defense": {
@@ -11814,8 +11820,7 @@
       ],
       "tags": [
         "martial",
-        "heavy",
-        "slowStart"
+        "heavy"
       ],
       "type": "shield",
       "defense": 3,
@@ -12463,7 +12468,14 @@
         "equipment/jab",
         "suplex"
       ],
-      "rank": "intermediate"
+      "rank": "intermediate",
+      "requirements": {
+        "classes": {
+          "1": [
+            "brawler"
+          ]
+        }
+      }
     },
     "wp_concussionGauntlets": {
       "name": "Concussion Gauntlets",
@@ -13205,7 +13217,6 @@
       ],
       "tags": [
         "ranged",
-        "slowStart",
         "heavy",
         "2h"
       ],
@@ -13696,7 +13707,6 @@
         "martial",
         "2h",
         "firearm",
-        "slowStart",
         "ranged",
         "heavy"
       ],
@@ -14223,8 +14233,7 @@
       ],
       "tags": [
         "martial",
-        "heavy",
-        "slowStart"
+        "heavy"
       ],
       "type": "armor",
       "defense": {
@@ -14267,8 +14276,7 @@
       ],
       "tags": [
         "martial",
-        "heavy",
-        "slowStart"
+        "heavy"
       ],
       "type": "armor",
       "defense": {
@@ -14290,8 +14298,7 @@
       ],
       "tags": [
         "martial",
-        "heavy",
-        "slowStart"
+        "heavy"
       ],
       "type": "armor",
       "defense": {
@@ -14549,8 +14556,7 @@
       ],
       "tags": [
         "martial",
-        "heavy",
-        "slowStart"
+        "heavy"
       ],
       "type": "shield",
       "defense": 3,
@@ -14576,7 +14582,6 @@
       "tags": [
         "martial",
         "heavy",
-        "slowStart",
         "firearm"
       ],
       "type": "shield",
@@ -14600,8 +14605,7 @@
       ],
       "tags": [
         "martial",
-        "heavy",
-        "slowStart"
+        "heavy"
       ],
       "type": "shield",
       "defense": 3,
@@ -14629,7 +14633,6 @@
       "tags": [
         "martial",
         "heavy",
-        "slowStart",
         "firearm"
       ],
       "type": "shield",
@@ -14654,7 +14657,6 @@
       "tags": [
         "martial",
         "heavy",
-        "slowStart",
         "firearm"
       ],
       "type": "shield",
@@ -15609,7 +15611,7 @@
     "acc_ringOfInterposition": {
       "name": "Ring of Interposition",
       "quantity": 1,
-      "description": "2 charges per long rest. Pair with another Ring of Interposition to swap positions.",
+      "description": "2 charges per long rest. Once per long rest you may pair this ring with one other Ring of Interposition. You cannot take off the ring until you spend a Respite. You can swap your position with whoever is wearing the paired ring with an Interact action so long as you are both within 15 tiles of each other.",
       "value": 350,
       "allowedSlots": [
         "wristLeft",
@@ -15986,6 +15988,37 @@
       "value": 370,
       "allowedSlots": [
         "waist"
+      ]
+    },
+    "wp_rod_of_unstable_flames": {
+      "name": "Rod of Unstable Flames",
+      "quantity": 1,
+      "description": "Has 3 charges which reset on long rest.",
+      "value": 835,
+      "allowedSlots": [
+        "rightHand",
+        "leftHand"
+      ],
+      "tags": [
+        "implement",
+        "2h"
+      ],
+      "type": "weapon",
+      "damage": 4,
+      "damageType": "magic",
+      "range": 1,
+      "attributes": [
+        "reason",
+        "willpower",
+        "presence"
+      ],
+      "rank": "intermediate",
+      "actionIDs": [
+        "unstableFireball"
+      ],
+      "fixedMaxCharges": 3,
+      "chargeReset": [
+        "longRest"
       ]
     }
   },
@@ -19916,6 +19949,18 @@
       ],
       "trigger": "You receive magic damage"
     },
+    "dunYanMageSlayer": {
+      "name": "Dun Yan's Mage Slayer",
+      "type": "reaction",
+      "description": "Make an ranged opportunity attack against that creature using half weapon damage (round down)",
+      "apCost": 0,
+      "focusCost": 1,
+      "mpCost": 0,
+      "range": "Wpn",
+      "tags": [],
+      "source": "trait",
+      "trigger": "A hostile creature within ranged weapon range tries to cast a spell"
+    },
     "bouncingCinders": {
       "name": "Bouncing Cinders",
       "type": "action",
@@ -20013,7 +20058,8 @@
         "tier3Dmg": 4
       },
       "hiddenTags": [
-        "shield"
+        "sustain",
+        "heal"
       ]
     },
     "bootLockdown": {
@@ -20155,6 +20201,47 @@
         "barrier"
       ],
       "trigger": "You receive water damage"
+    },
+    "unstableFireball": {
+      "name": "Unstable Fireball",
+      "type": "action",
+      "description": "Target a creature. Charge up a powerful concentration of flames that explodes in a 5x5 area once it hits its target dealing fire damage to all creatures in the area. The target is pushed away from the caster, but other creatures in the area are pushed away from the target. If you take at least 10 damage in one turn the explosive orb explodes prematurely on your location. After the attack flames remain in the area for 1 minute",
+      "apCost": 2,
+      "focusCost": 3,
+      "mpCost": 10,
+      "range": "12",
+      "tags": [
+        "Ranged",
+        "Spell",
+        "Area",
+        "Delay"
+      ],
+      "source": "equipment",
+      "damageType": "fire",
+      "powerRoll": {
+        "rollStats": [
+          "reason"
+        ],
+        "tier1Dmg": 5,
+        "tier1Effect": {
+          "type": "ForcedMovement",
+          "effect": "push",
+          "distance": 2
+        },
+        "tier2Dmg": 7,
+        "tier2Effect": {
+          "type": "ForcedMovement",
+          "effect": "push",
+          "distance": 3
+        },
+        "tier3Dmg": 9,
+        "tier3Effect": {
+          "type": "ForcedMovement",
+          "effect": "push",
+          "distance": 4
+        }
+      },
+      "itemChargeCost": 1
     }
   },
   "passives": {
@@ -20614,7 +20701,7 @@
     "acc_ringOfInterposition": {
       "name": "Ring of Interposition",
       "minLevel": 1,
-      "description": "Once per long rest you may pair this ring with one other Ring of Interposition. You cannot take off the ring until you spend a Respite. You can swap your position with whoever is wearing the paired ring with an Interact action.",
+      "description": "Once per long rest you may pair this ring with one other Ring of Interposition. You cannot take off the ring until you spend a Respite. You can swap your position with whoever is wearing the paired ring with an Interact action so long as you are both within 15 tiles of each other.",
       "fixedMaxCharges": 2,
       "chargeReset": [
         "longRest"
@@ -20883,6 +20970,41 @@
           {
             "type": "GrantSight",
             "stat": "low-light"
+          }
+        ]
+      },
+      "blindsight": {
+        "name": "Blindsight",
+        "description": "You perceive your surroundings through echolocation and sound rather than sight. You can sense creatures and objects within twice your Willpower score in tiles even in total darkness or when you cannot use your eyes. Creatures that are silent and did not move or act the previous round are Concealed to you",
+        "effects": [
+          {
+            "type": "GrantSight",
+            "stat": "blindsight"
+          }
+        ]
+      },
+      "tremorsense": {
+        "name": "Tremorsense",
+        "description": "You detect vibrations through the ground. You sense creatures and objects in contact with the same ground within thrice your Willpower score in tiles, even if you cannot see them.",
+        "effects": [
+          {
+            "type": "GrantSight",
+            "stat": "tremorsense"
+          }
+        ]
+      },
+      "dualWielding": {
+        "name": "Dual Wielding",
+        "description": "If you have already attacked with a one-handed weapon this turn with an action then your next weapon attack this turn using a different one-handed weapon with an action has its AP cost reduced by 1. If both weapon are Light then its AP cost is reduced by 2 instead. Both attacks must have an original AP cost of no more than 2. This can only be used once per round and neither of these actions can be a spell."
+      },
+      "pistolMaster": {
+        "name": "Pistol Master",
+        "description": "You may treat Pistols as Light weapons. Your Max MP is increased by 6.",
+        "effects": [
+          {
+            "type": "StatChange",
+            "stat": "maxMP",
+            "value": "6"
           }
         ]
       }
@@ -21760,7 +21882,8 @@
         "traitRefs": [
           "marksmanSummon",
           "unliving",
-          "undeadConstitution"
+          "undeadConstitution",
+          "blindsight"
         ]
       },
       "shade": {
@@ -21810,7 +21933,8 @@
           "utilitySummon",
           "unliving",
           "undeadConstitution",
-          "metaphysical"
+          "metaphysical",
+          "blindsight"
         ]
       },
       "zombie": {
@@ -21858,7 +21982,8 @@
         "traitRefs": [
           "minionType",
           "unliving",
-          "undeadConstitution"
+          "undeadConstitution",
+          "blindsight"
         ]
       },
       "crawlingHands": {
@@ -21907,7 +22032,8 @@
           "unliving",
           "undeadConstitution",
           "extraGrabby",
-          "weakling"
+          "weakling",
+          "blindsight"
         ]
       },
       "wight": {
@@ -21955,7 +22081,8 @@
         "traitRefs": [
           "defenderSummon",
           "unliving",
-          "undeadConstitution"
+          "undeadConstitution",
+          "blindsight"
         ]
       },
       "wraith": {
@@ -22006,7 +22133,8 @@
           "strikerSummon",
           "unliving",
           "undeadConstitution",
-          "metaphysical"
+          "metaphysical",
+          "blindsight"
         ]
       },
       "ghost": {
@@ -22057,7 +22185,8 @@
           "unliving",
           "undeadConstitution",
           "metaphysical",
-          "weakling"
+          "weakling",
+          "blindsight"
         ]
       },
       "poltergeist": {
@@ -22101,7 +22230,8 @@
           "unliving",
           "undeadConstitution",
           "metaphysical",
-          "weakling"
+          "weakling",
+          "blindsight"
         ]
       },
       "mount_swift": {
@@ -22154,7 +22284,7 @@
       "environmentalEffects": {
         "blindsight": {
           "name": "Blindsight",
-          "description": "You can detect creatures and objects within range, but you cannot perform more detailed work like reading text."
+          "description": "You perceive your surroundings through echolocation and sound rather than sight. You can sense creatures and objects within twice your Willpower score in tiles even in total darkness or when you cannot use your eyes. Creatures that are silent and did not move or act the previous round are Concealed to you"
         },
         "darkness": {
           "name": "Darkness",
@@ -22171,6 +22301,10 @@
         "lowLightVision": {
           "name": "Low-light vision",
           "description": "As long as there is a little bit of light such as the stars in the sky you can see in grayscale up to your Reason score in tiles. You cannot see anything in pitch black darkness such as deep in a cave or when there are no stars or moon in the sky at night."
+        },
+        "tremorsense": {
+          "name": "Tremorsense",
+          "description": "You detect vibrations through the ground. You sense creatures and objects in contact with the same ground within your Reason score in tiles, even if you cannot see them."
         }
       },
       "negativeStatusEffects": {
@@ -22417,10 +22551,6 @@
         "reach": {
           "name": "Reach",
           "description": "This melee weapon has a range of 2"
-        },
-        "slowStart": {
-          "name": "Slow Start",
-          "description": "During your first round of combat you must take your turn during the Slow Phase"
         },
         "throwing": {
           "name": "Throwing",

@@ -159,26 +159,30 @@ function resolveEquipmentGrantedInstances(
 
 type RulesWithActionCards = {
     actionCards?: Record<string, { type?: string; fixedMaxCharges?: number }>
+    items?: Record<string, { actionIDs?: string[] }>
 }
+
+/** Save rows or hydrated inventory — only `uid`, `id`, and optional `actionIDs` are read. */
+type HandSlotInventoryRow = Pick<InventoryItem, "uid" | "id"> & { actionIDs?: string[] }
 
 type CharacterWithHands = {
     equipment?: { activeWeapon?: string | null; offhand?: string | null }
-    inventory?: InventoryItem[]
+    inventory?: HandSlotInventoryRow[]
     reactions?: ReactionRef[]
 }
 
-function handEquippedInventoryItems(raw: CharacterWithHands | null | undefined): InventoryItem[] {
+function handEquippedInventoryItems(raw: CharacterWithHands | null | undefined): HandSlotInventoryRow[] {
     const handUids = [raw?.equipment?.activeWeapon, raw?.equipment?.offhand].filter(
         (u): u is string => typeof u === "string" && u.length > 0
     )
     const inventory = raw?.inventory ?? []
     return handUids
         .map((uid) => inventory.find((item) => item?.uid === uid))
-        .filter((item): item is InventoryItem => item != null)
+        .filter((item): item is HandSlotInventoryRow => item != null)
 }
 
 function actionIdsForHandItem(
-    item: InventoryItem,
+    item: HandSlotInventoryRow,
     rules: RulesWithActionCards & { items?: Record<string, { actionIDs?: string[] }> }
 ): string[] {
     const onItem = item.actionIDs ?? []

@@ -29,7 +29,7 @@ describe("ChargePips", () => {
 
   it("renders read-only pips without buttons", () => {
     const { container } = render(
-      <ChargePips readOnly={true} maxCharges={3} currentCharges={2} showLabel={false} />
+      <ChargePips isReadOnly={true} maxCharges={3} currentCharges={2} showLabel={false} />
     )
     expect(screen.queryAllByRole("button")).toHaveLength(0)
     const filled = container.querySelectorAll(".bg-amber-400")

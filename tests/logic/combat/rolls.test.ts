@@ -66,12 +66,14 @@ describe("combat-kit rolls", () => {
             actionId: "beast/ram",
             actionName: "Ram",
             naturalWeapons: { head: { damage: 2, name: "Antlers" } },
+            activeNaturalWeaponKey: "head",
             defaultNaturalWeaponKey: "head",
             rng: fixedRng,
         })
         expect(result.tier).toBe(2)
         expect(result.tierDamage).toBe(6)
         expect(result.weaponBonus).toBe(2)
+        expect(result.weaponKey).toBe("head")
         expect(result.totalDamage).toBe(8)
     })
 })

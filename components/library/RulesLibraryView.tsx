@@ -1566,6 +1566,7 @@ export function RulesLibraryView() {
                                                         {formatEquipmentLibraryTypeLabel(libraryType)}
                                                     </Badge>
                                                 </div>
+                                                <ItemRequirementsDisplay def={def} rules={RULES} />
                                                 <p className="text-sm text-muted-foreground whitespace-pre-line">
                                                     {def.description}
                                                 </p>
@@ -1576,7 +1577,6 @@ export function RulesLibraryView() {
                                                         ))}
                                                     </div>
                                                 ) : null}
-                                                <ItemRequirementsDisplay def={def} rules={RULES} />
                                                 <p className="text-sm text-muted-foreground">
                                                     <span className="font-medium text-foreground">Zenny</span>{" "}
                                                     {def.value ?? "—"}

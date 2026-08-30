@@ -33,6 +33,11 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { getCreatureTemplates, type RulesWithBestiary } from "@/logic/creatures/roster";
 import { buildAnimaWeaponSlotUid, listNaturalWeaponOptionsForTemplate, type RulesWithNaturalWeapons } from "@/logic/equipment/natural-weapons";
 import { ACCESSORY_SLOT_UI, itemAllowedInAccessorySlot, type AccessorySlotKey } from "@/logic/equipment/accessory-slots";
+import { ChargePips } from "@/components/character-sheet/charge-pips";
+import { resolveMaxCharges } from "@/logic/traits/charge-helpers";
+import { itemHasChargeTracking, type ItemChargeRules } from "@/logic/equipment/item-charges";
+import { itemRequirementsDeficitMessageFromDef } from "@/logic/equipment/item-requirements";
+import type { CharacterClass } from "@/lib/rules";
 
 export function ProficiencyAlert({ message }: { message: string | null }) {
     if (!message) return null;
@@ -68,6 +73,16 @@ interface EquipmentPanelProps {
     martialProficiencyIds?: ReadonlySet<string> | null;
     /** Used for Heavy equipment requirement warnings. */
     might?: number;
+    /** Full attributes for charge max resolution (defaults might-only when omitted). */
+    attributes?: {
+        might: number
+        dexterity: number
+        reason: number
+        willpower: number
+        presence: number
+    }
+    /** Character classes for item requirement warnings. */
+    classes?: CharacterClass[]
     /** When true, shields may be equipped in the main hand (Guardian Shield Master). */
     shieldMaster?: boolean;
     traits?: TraitRef[];
@@ -75,6 +90,47 @@ interface EquipmentPanelProps {
     rules?: RulesWithItemRanks;
     /** When set, only natural weapon hand slots are editable; other gear is stashed. */
     activeDruidAnimaTemplateId?: string | null;
+    onUpdateItemCharges?: (itemUid: string, newCount: number) => void;
+}
+
+function EquippedItemChargePips({
+    item,
+    attributes,
+    onUpdateItemCharges,
+}: {
+    item: InventoryItem | null | undefined
+    attributes: Record<string, number>
+    onUpdateItemCharges?: (itemUid: string, newCount: number) => void
+}) {
+    if (!item) return null
+    const chargeDef = item as ItemChargeRules
+    if (!itemHasChargeTracking(chargeDef)) return null
+    const maxCharges =
+        item.charges && typeof item.charges === "object" && typeof item.charges.max === "number"
+            ? item.charges.max
+            : resolveMaxCharges(chargeDef, attributes)
+    if (maxCharges <= 0) return null
+    const currentCharges =
+        item.charges && typeof item.charges === "object"
+            ? item.charges.current
+            : maxCharges
+
+    return (
+        <div
+            className="shrink-0"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+        >
+            <ChargePips
+                maxCharges={maxCharges}
+                currentCharges={currentCharges}
+                showLabel={false}
+                className="gap-0"
+                isReadOnly={!onUpdateItemCharges}
+                onChange={(n) => onUpdateItemCharges?.(item.uid, n)}
+            />
+        </div>
+    )
 }
 
 function EquippedWeaponName({
@@ -123,14 +179,37 @@ export function EquipmentPanel({
     onEquipmentChange,
     martialProficiencyIds = null,
     might,
+    attributes,
+    classes,
     shieldMaster = false,
     traits,
     bondedWeaponUids,
     rules,
     activeDruidAnimaTemplateId = null,
+    onUpdateItemCharges,
 }: EquipmentPanelProps) {
     const [showEquipped, setShowEquipped] = useState<"all" | "equipped" | "empty">("all")
     const bondCtx = buildWeaponBondContext(traits, bondedWeaponUids ?? [])
+    const chargeAttributes = attributes ?? {
+        might: might ?? 10,
+        dexterity: 10,
+        reason: 10,
+        willpower: 10,
+        presence: 10,
+    }
+    const requirementContext = {
+        attributes: chargeAttributes,
+        classes,
+    }
+    const requirementRules = (rules ?? {}) as { classes?: Record<string, { name?: string }> }
+    const itemReqWarn = (item: InventoryItem | null | undefined) =>
+        item
+            ? itemRequirementsDeficitMessageFromDef(
+                  item as unknown as Record<string, unknown>,
+                  requirementContext,
+                  requirementRules,
+              )
+            : null
 
     const animaMode = Boolean(activeDruidAnimaTemplateId)
     const animaNaturalWeapons = (() => {
@@ -160,9 +239,12 @@ export function EquipmentPanel({
     const activeHeavyWarn = heavyMightRequirementDeficitMessage(equipment.activeWeapon, might)
     const offhandHeavyWarn = heavyMightRequirementDeficitMessage(equipment.offhand, might)
     const armorHeavyWarn = heavyMightRequirementDeficitMessage(equipment.armor, might)
-    const activeWarn = [activeProfWarn, activeHeavyWarn].filter(Boolean).join(" ")
-    const offhandWarn = [offhandProfWarn, offhandHeavyWarn].filter(Boolean).join(" ")
-    const armorWarn = [armorProfWarn, armorHeavyWarn].filter(Boolean).join(" ")
+    const activeReqWarn = itemReqWarn(equipment.activeWeapon)
+    const offhandReqWarn = itemReqWarn(equipment.offhand)
+    const armorReqWarn = itemReqWarn(equipment.armor)
+    const activeWarn = [activeProfWarn, activeHeavyWarn, activeReqWarn].filter(Boolean).join(" ")
+    const offhandWarn = [offhandProfWarn, offhandHeavyWarn, offhandReqWarn].filter(Boolean).join(" ")
+    const armorWarn = [armorProfWarn, armorHeavyWarn, armorReqWarn].filter(Boolean).join(" ")
     const anyEquipProfWarn = !!(activeWarn || offhandWarn || armorWarn);
 
     const filteredAccessories = accessorySlots.filter(slot => {
@@ -236,13 +318,20 @@ export function EquipmentPanel({
 
                 <div className="space-y-3">
                     {/* Active Weapon */}
-                    <div className="p-3 rounded-lg bg-muted/20 border border-border">
+                    <div className="relative p-3 rounded-lg bg-muted/20 border border-border">
                         <div className="flex items-center justify-between gap-2 text-muted-foreground mb-2">
                             <div className="flex items-center gap-2 min-w-0">
                                 <Sword className="w-4 h-4 shrink-0"/>
                                 <span className="text-xs uppercase tracking-wider font-medium">Active Weapon</span>
                             </div>
-                            <ProficiencyAlert message={activeWarn || null} />
+                            <div className="flex items-center gap-2 shrink-0">
+                                <EquippedItemChargePips
+                                    item={equipment.activeWeapon}
+                                    attributes={chargeAttributes}
+                                    onUpdateItemCharges={onUpdateItemCharges}
+                                />
+                                <ProficiencyAlert message={activeWarn || null} />
+                            </div>
                         </div>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -305,13 +394,20 @@ export function EquipmentPanel({
                     </div>
 
                     {/* OFFHAND SLOT */}
-                    <div className="p-3 rounded-lg bg-muted/20 border border-border">
+                    <div className="relative p-3 rounded-lg bg-muted/20 border border-border">
                         <div className="flex items-center justify-between gap-2 text-muted-foreground mb-2">
                             <div className="flex items-center gap-2 min-w-0">
                                 <Shield className="w-4 h-4 shrink-0"/>
                                 <span className="text-xs uppercase tracking-wider font-medium">Offhand</span>
                             </div>
-                            <ProficiencyAlert message={offhandWarn || null} />
+                            <div className="flex items-center gap-2 shrink-0">
+                                <EquippedItemChargePips
+                                    item={equipment.offhand}
+                                    attributes={chargeAttributes}
+                                    onUpdateItemCharges={onUpdateItemCharges}
+                                />
+                                <ProficiencyAlert message={offhandWarn || null} />
+                            </div>
                         </div>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -378,13 +474,20 @@ export function EquipmentPanel({
                     {!animaMode ? (
                     <>
                     {/* Armor */}
-                    <div className="p-3 rounded-lg bg-muted/20 border border-border">
+                    <div className="relative p-3 rounded-lg bg-muted/20 border border-border">
                         <div className="flex items-center justify-between gap-2 text-muted-foreground mb-2">
                             <div className="flex items-center gap-2 min-w-0">
                                 <Shirt className="w-4 h-4 shrink-0"/>
                                 <span className="text-xs uppercase tracking-wider font-medium">Armor</span>
                             </div>
-                            <ProficiencyAlert message={armorWarn || null} />
+                            <div className="flex items-center gap-2 shrink-0">
+                                <EquippedItemChargePips
+                                    item={equipment.armor}
+                                    attributes={chargeAttributes}
+                                    onUpdateItemCharges={onUpdateItemCharges}
+                                />
+                                <ProficiencyAlert message={armorWarn || null} />
+                            </div>
                         </div>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -460,17 +563,28 @@ export function EquipmentPanel({
                         // item is now a full MiscItem object from your HydratedCharacter
                         const item = equipment.accessories[key];
                         const availableItems = getItemsForSlot(key);
+                        const accessoryReqWarn = itemReqWarn(item);
 
                         return (
                             <div
                                 key={key}
                                 className={cn(
-                                    "flex items-center gap-3 p-3 rounded-lg border transition-colors",
+                                    "relative flex items-center gap-3 p-3 rounded-lg border transition-colors",
                                     item
                                         ? "bg-muted/20 border-border"
                                         : "bg-muted/5 border-border/30"
                                 )}
                             >
+                                <div className="absolute top-2 right-2 z-10 flex items-center gap-1.5">
+                                    {accessoryReqWarn ? (
+                                        <ProficiencyAlert message={accessoryReqWarn} />
+                                    ) : null}
+                                    <EquippedItemChargePips
+                                        item={item}
+                                        attributes={chargeAttributes}
+                                        onUpdateItemCharges={onUpdateItemCharges}
+                                    />
+                                </div>
                                 <div className={cn(
                                     "flex items-center justify-center w-8 h-8 rounded-lg shrink-0",
                                     item ? "bg-primary/20 text-primary" : "bg-muted/30 text-muted-foreground/50"

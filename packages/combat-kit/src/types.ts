@@ -14,6 +14,7 @@ export interface NaturalWeaponDefinition {
     name: string
     damage: number
     damageType?: string
+    tags?: string[]
 }
 
 /** Sandbox creature roles. `enemy` is combat-sandbox only (not used on character-sheet bestiary). */
@@ -82,10 +83,14 @@ export interface CombatantInstance {
     actionIDs: string[]
     naturalWeapons?: Record<string, NaturalWeaponDefinition>
     defaultNaturalWeaponKey?: string
+    /** Active weapon for +Wpn rolls; defaults from template on spawn. */
+    activeNaturalWeaponKey?: string
     defense?: number
     stability?: number
     speed?: number
     currentHp?: number
+    currentMp?: number
+    maxMp?: number
     maxHp?: number
 }
 

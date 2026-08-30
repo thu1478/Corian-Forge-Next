@@ -48,10 +48,10 @@ export type ResolveIncomingDamageBreakdown = {
 }
 
 /**
- * Incoming hit: defense + penetration when damageChannel is physical (any damage type),
- * optional sundered halves defense (round up) before penetration,
- * then resistance (half, round up), then flat vulnerability keyed by damageType.
- * If the type is both resisted and vulnerable, neither modifier applies.
+ * Incoming hit: resistance (half, round up) then flat vulnerability by damageType,
+ * then defense + penetration when damageChannel is physical (any damage type).
+ * Optional sundered halves defense (round up) before penetration.
+ * If the type is both resisted and vulnerable, neither R/V modifier applies.
  */
 export function resolveIncomingDamage(input: ResolveIncomingDamageInput): ResolveIncomingDamageBreakdown {
   const typeKey = normalizeDamageTypeKey(input.damageType)
@@ -59,29 +59,14 @@ export function resolveIncomingDamage(input: ResolveIncomingDamageInput): Resolv
   const pen = Math.max(0, Math.floor(Number(input.penetration)) || 0)
   const defense = Math.max(0, Math.floor(Number(input.defense)) || 0)
 
-  let relevantDefense = 0
-  let afterDefense: number
-
-  if (input.damageChannel === "physical") {
-    const defenseForHit = input.sundered ? Math.ceil(defense / 2) : defense
-    relevantDefense = Math.max(defenseForHit - pen, 0)
-    if (raw <= 0) {
-      afterDefense = 0
-    } else {
-      afterDefense = Math.max(1, raw - relevantDefense)
-    }
-  } else {
-    afterDefense = raw
-  }
-
   const conflicts = conflictingDamageTypeKeys(input.resistances, input.vulnerabilities)
   const conflict = conflicts.has(typeKey)
 
-  let afterResist = afterDefense
+  let afterResist = raw
   let resistApplied = false
   if (!conflict && input.resistances.some((r) => normalizeDamageTypeKey(r) === typeKey)) {
     resistApplied = true
-    afterResist = Math.ceil(afterDefense / 2)
+    afterResist = Math.ceil(raw / 2)
   }
 
   let vulnFlat = 0
@@ -93,7 +78,24 @@ export function resolveIncomingDamage(input: ResolveIncomingDamageInput): Resolv
     }
   }
 
-  const finalDamage = Math.max(0, afterResist + vulnFlat)
+  const afterModifiers = Math.max(0, afterResist + vulnFlat)
+
+  let relevantDefense = 0
+  let afterDefense: number
+
+  if (input.damageChannel === "physical") {
+    const defenseForHit = input.sundered ? Math.ceil(defense / 2) : defense
+    relevantDefense = Math.max(defenseForHit - pen, 0)
+    if (afterModifiers <= 0) {
+      afterDefense = 0
+    } else {
+      afterDefense = Math.max(1, afterModifiers - relevantDefense)
+    }
+  } else {
+    afterDefense = afterModifiers
+  }
+
+  const finalDamage = Math.max(0, afterDefense)
 
   return {
     rawDamage: raw,

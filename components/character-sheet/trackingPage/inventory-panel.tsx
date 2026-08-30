@@ -133,6 +133,7 @@ import {
 } from "@/logic/equipment/stats-display"
 import { ProficiencyAlert } from "@/components/character-sheet/trackingPage/equipment-panel"
 import { heavyMightRequirementDeficitMessage } from "@/logic/equipment/proficiency"
+import { itemRequirementsDeficitMessageFromDef } from "@/logic/equipment/item-requirements"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { Switch } from "@/components/ui/switch"
 import type { TraitRef } from "@/lib/baseRefs"
@@ -807,6 +808,14 @@ function InventoryItemDetailSheet({
 
         <ScrollArea className="flex-1 min-h-0">
           <div className="space-y-6 px-6 py-5">
+            {catalogDef ? (
+              <ItemRequirementsDisplay
+                def={catalogDef}
+                rules={rules}
+                context={{ attributes, classes }}
+              />
+            ) : null}
+
             {!isCatalogPreview && (
             <div className="space-y-2">
               <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -1066,14 +1075,6 @@ function InventoryItemDetailSheet({
               <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                 Description
               </p>
-              {catalogDef ? (
-                <ItemRequirementsDisplay
-                  def={catalogDef}
-                  rules={rules}
-                  context={{ attributes, classes }}
-                  className="text-xs"
-                />
-              ) : null}
               {heavyWarningMessage ? (
                 <div
                   role="status"
@@ -1502,13 +1503,14 @@ export function InventoryPanel({
       traits,
       rules: rules as RulesWithItemRanks,
       attributes,
+      classes,
       weaponDamageContext: {
         traits,
         activeWeapon,
         offhandWeapon,
       } satisfies WeaponDamageContext,
     }),
-    [bondedWeaponUids, traits, rules, attributes, activeWeapon, offhandWeapon]
+    [bondedWeaponUids, traits, rules, attributes, classes, activeWeapon, offhandWeapon]
   )
 
   return (
@@ -1842,6 +1844,11 @@ export function InventoryPanel({
                     const statLine = equipmentStatSummaryFromDef(def)
                     const previewItem = previewInventoryItemFromCatalog(id, def)
                     const heavyWarningMessage = heavyMightRequirementDeficitMessage(previewItem, attributes.might)
+                    const requirementsWarningMessage = itemRequirementsDeficitMessageFromDef(
+                      def,
+                      { attributes, classes },
+                      rules as { classes?: Record<string, { name?: string }> },
+                    )
                     const rulesWithRanks = rules as RulesWithItemRanks
                     const itemRankClass = previewItem
                       ? getItemNameClass(previewItem, rulesWithRanks)
@@ -1873,18 +1880,21 @@ export function InventoryPanel({
                             <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase text-muted-foreground">
                               {t}
                             </span>
+                            {requirementsWarningMessage ? (
+                              <ProficiencyAlert message={requirementsWarningMessage} />
+                            ) : null}
                             {heavyWarningMessage ? <ProficiencyAlert message={heavyWarningMessage} /> : null}
                           </div>
-                          <p className="line-clamp-2 whitespace-pre-line text-xs text-muted-foreground">
-                            {String(def.description ?? "")}
-                          </p>
                           <ItemRequirementsDisplay
                             def={def}
                             rules={rules}
                             context={{ attributes, classes }}
-                            className="mt-1.5 text-[11px]"
+                            className="mb-1.5"
                             compact
                           />
+                          <p className="mt-1.5 line-clamp-2 whitespace-pre-line text-xs text-muted-foreground">
+                            {String(def.description ?? "")}
+                          </p>
                           {statLine ? (
                             <p className="mt-1.5 text-[11px] font-mono tabular-nums text-muted-foreground/90">
                               {statLine}

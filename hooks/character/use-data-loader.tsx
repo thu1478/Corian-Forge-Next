@@ -1,7 +1,6 @@
 import {useMemo} from 'react';
 import {useCharacterIO} from '@/hooks/character/use-character-io';
 import {hydrateItemData} from "@/hooks/character/use-item-hydration";
-import {useDerivedStats} from "@/hooks/character/use-derived-stats";
 import {useActions} from "@/hooks/character/use-action-cards";
 import type { CharacterSaveData } from "@/lib/character-data";
 import type { RulesRoot } from "@/lib/rules-data";
@@ -19,6 +18,7 @@ import {
 } from "@/logic/creatures/roster";
 import { discoverAllTraitRefs, hydrateTraitRefs } from "@/logic/traits/trait-hydration";
 import { resolvePassiveById } from "@/logic/traits/passive-lookup";
+import { computeDerivedStats } from "@/logic/character/derived-stats";
 import { applyActionEnhancements } from "@/logic/actions/action-enhancements";
 import { resolveEquippedHands } from "@/logic/equipment/weapon-utils";
 import { getEquippedAnimaNaturalKeys } from "@/logic/equipment/natural-weapons";
@@ -110,10 +110,10 @@ export function useDataLoader(rulesDataParam: RulesRoot) {
         const equipInject = getInjectedEquipmentReactionRefs(
             {
                 equipment: rawCharacter?.equipment,
-                inventory: hydratedItemsChar?.inventory ?? rawCharacter?.inventory,
+                inventory: hydratedItemsChar?.inventory,
                 reactions: rawCharacter?.reactions,
             },
-            rosterRules
+            rulesDataParam
         )
         const inject = [
             ...getInjectedCompanionReactionRefs(rawCharacter, rosterRules),
@@ -234,13 +234,15 @@ export function useDataLoader(rulesDataParam: RulesRoot) {
         hydratedItemsChar,
         hydratedActions,
         traitRefs,
-        rawCharacter?.equipment,
+        rawCharacter,
         rulesDataParam,
         reactionRefsWithInjections,
     ]);
 
-    // 6. Stat Calculations (Triggered by the assembled character)
-    const derived = useDerivedStats(character, rulesDataParam);
+    const derived = useMemo(
+        () => computeDerivedStats(character, rulesDataParam),
+        [character, rulesDataParam]
+    );
 
     return {
         character,
@@ -270,7 +272,7 @@ export function hydrateCharacter(rawSave: CharacterSaveData, rules: RulesRoot): 
         //     } as ActionCard;
         // }),
         // Map the thin Refs into full-fat Reaction objects for the UI
-        reactions: rawSave.reactions.map((ref: ReactionRef) => {
+        reactions: (rawSave.reactions ?? []).map((ref: ReactionRef) => {
             const rule = reactionLibrary.find(r => r.id === ref.id);
             return {
                 ...rule, // Trigger, Description, Name

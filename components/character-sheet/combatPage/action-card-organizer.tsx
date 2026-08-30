@@ -44,6 +44,8 @@ import {
 } from "@/logic/actions/action-layout"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
 import { ActionTile } from "@/components/character-sheet/combatPage/action-tile"
 import { ActionFolderTile } from "@/components/character-sheet/combatPage/action-folder-tile"
 import { isActionCardInteractiveTarget } from "@/logic/actions/action-card-interaction"
@@ -67,6 +69,9 @@ export type ActionCardOrganizerProps = {
     onLayoutChange: (layout: ActionLayout) => void
     viewMode: "grid" | "list"
     renderActionCard: (action: ActionCard, opts: ActionCardRenderOptions) => ReactNode
+    maintainActive?: boolean
+    onMaintainActiveChange?: (active: boolean) => void
+    maintainBreakDamage?: number
 }
 
 function isInteractiveTarget(target: EventTarget | null): boolean {
@@ -344,6 +349,9 @@ export function ActionCardOrganizer({
     onLayoutChange,
     viewMode,
     renderActionCard,
+    maintainActive = false,
+    onMaintainActiveChange,
+    maintainBreakDamage = 0,
 }: ActionCardOrganizerProps) {
     const isGrid = viewMode === "grid"
 
@@ -660,6 +668,63 @@ export function ActionCardOrganizer({
         [actionLayout, onLayoutChange, sortableIds, visibleKeys, isGrid]
     )
 
+    const renderMaintainToggle = () => (
+        <div
+            className={cn(
+                "flex h-8 items-center gap-2 rounded-full border px-2.5 transition-colors",
+                maintainActive
+                    ? "border-primary/50 bg-primary/10"
+                    : "border-border bg-muted/30",
+            )}
+            title={`Ends if you take ${maintainBreakDamage} or more damage in one turn (half Willpower, round up)`}
+        >
+            <Label
+                htmlFor="combat-maintain-toggle"
+                className={cn(
+                    "cursor-pointer text-[10px] font-black uppercase tracking-widest whitespace-nowrap",
+                    maintainActive ? "text-primary" : "text-muted-foreground",
+                )}
+            >
+                Maintain
+            </Label>
+            <Switch
+                id="combat-maintain-toggle"
+                checked={maintainActive}
+                onCheckedChange={(checked) => onMaintainActiveChange?.(checked)}
+                className={cn(
+                    // Changes the thumb color: slate-900 in light mode when checked, white in dark mode
+                    "[&>span]:bg-slate-900 dark:[&>span]:bg-white",
+                    // Optional: change thumb color when inactive/off
+                    !maintainActive && "[&>span]:bg-slate-700 dark:[&>span]:bg-slate-200"
+                )}
+                aria-label={
+                    maintainActive
+                        ? `Maintain on. Ends if you take ${maintainBreakDamage} or more damage in one turn`
+                        : `Maintain off. Breaks at ${maintainBreakDamage} damage in one turn`
+                }
+            />
+            <span
+                className={cn(
+                    "min-w-5 rounded-full px-1.5 py-0.5 text-center text-[11px] font-bold tabular-nums leading-none",
+                    maintainActive
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-foreground",
+                )}
+            >
+                {maintainBreakDamage} HP
+            </span>
+        </div>
+    )
+
+    const renderViewToolbar = () => (
+        <div className="flex items-center justify-between gap-2">
+            {renderMaintainToggle()}
+            <Button type="button" variant="outline" size="sm" className="h-8" onClick={enterEditMode}>
+                Edit layout
+            </Button>
+        </div>
+    )
+
     const renderEditChrome = (containerFolderId: string | null) => (
         <>
             <div className="flex items-center justify-between gap-2">
@@ -818,11 +883,7 @@ export function ActionCardOrganizer({
 
     const renderGridView = () => (
         <>
-            <div className="flex items-center justify-end">
-                <Button type="button" variant="outline" size="sm" className="h-8" onClick={enterEditMode}>
-                    Edit layout
-                </Button>
-            </div>
+            {renderViewToolbar()}
             <ViewBreadcrumbNav trail={viewBreadcrumbTrail} onNavigate={navigateViewCrumb} />
             <div className={CARD_GRID_CLASS}>
                 {gridRows.map((row) => {
@@ -852,11 +913,7 @@ export function ActionCardOrganizer({
 
     const renderListView = () => (
         <>
-            <div className="flex items-center justify-end">
-                <Button type="button" variant="outline" size="sm" className="h-8" onClick={enterEditMode}>
-                    Edit layout
-                </Button>
-            </div>
+            {renderViewToolbar()}
             <ViewBreadcrumbNav trail={viewBreadcrumbTrail} onNavigate={navigateViewCrumb} />
             <div className="space-y-4">
                 {listRows.map((row) => {

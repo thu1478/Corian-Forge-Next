@@ -39,7 +39,7 @@ After Phase 5, `lib/` contains **eight files** — no re-export shims. Game logi
 | **Hydrated** | `HydratedCharacter` | [`lib/HydratedChar.ts`](../lib/HydratedChar.ts) | Resolved items, full action cards, full reactions |
 | **Derived** | Return value of `computeDerivedStats` | [`logic/character/derived-stats.ts`](../logic/character/derived-stats.ts) | Max HP/MP, defense, resistances, trait list for UI — **never persisted** |
 
-**Rule:** Never write derived stats (defense total, attribute modifiers, resistance lists) back into save JSON. Recompute on load via `useDerivedStats`.
+**Rule:** Never write derived stats (defense total, attribute modifiers, resistance lists) back into save JSON. Recompute on load via `computeDerivedStats`.
 
 ---
 

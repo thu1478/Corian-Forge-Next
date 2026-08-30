@@ -51,6 +51,7 @@ describe("power-roll-display", () => {
             powerRoll: ramPowerRoll,
             attributes: { might: 14, dexterity: 9 },
             naturalWeapons: { legs: { damage: 2 } },
+            activeNaturalWeaponKey: "legs",
             defaultNaturalWeaponKey: "legs",
         })
         expect(tiers).toHaveLength(3)

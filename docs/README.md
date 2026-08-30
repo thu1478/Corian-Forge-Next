@@ -112,6 +112,5 @@ Remaining deprecated paths (hooks/sheet only — not under `lib/`):
 - `hooks/CharacterLoader.tsx` → `@/hooks/character/use-character-io`
 - `hooks/ItemLoader.tsx` → `@/hooks/character/use-item-hydration`
 - `components/character-sheet/hooks/DataLoader.tsx` → `@/hooks/character/use-data-loader`
-- `components/character-sheet/hooks/statCalculator.tsx` → `@/hooks/character/use-derived-stats`
 
 Prefer canonical paths in new code.

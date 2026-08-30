@@ -132,6 +132,7 @@ import {
     ActionCardOrganizer,
 } from "@/components/character-sheet/combatPage/action-card-organizer"
 import { emptyActionLayout, sanitizeActionLayout } from "@/logic/actions/action-layout"
+import { maintainBreakThreshold } from "@/logic/combat/maintain"
 import {
     getActionItemChargeCost,
     inventoryItemChargeCurrent,
@@ -865,9 +866,26 @@ export function CharacterSheetView() {
 
     const handleUpdateTraitCharges = (traitId: string, newCount: number) => {
         setCharacter((prev: any) => {
+            const traitRef = (prev.traits || []).find((t: any) => {
+                const id = typeof t === "object" && t?.id ? t.id : t
+                const uid = typeof t === "object" && t?.uid ? t.uid : id
+                return id === traitId || uid === traitId
+            })
+            const itemUid =
+                typeof traitRef === "object" && traitRef?.itemId
+                    ? String(traitRef.itemId)
+                    : null
+            if (itemUid) {
+                return {
+                    ...prev,
+                    inventory: updateInventoryItemCharges(prev.inventory ?? [], itemUid, newCount),
+                }
+            }
             const nextTraits = (prev.traits || []).map((t: any) => {
                 const id = typeof t === "object" && t?.id ? t.id : t
-                return id === traitId ? {...(typeof t === "object" ? t : {id: t}), id: traitId, charges: newCount} : t
+                const uid = typeof t === "object" && t?.uid ? t.uid : id
+                if (id !== traitId && uid !== traitId) return t
+                return {...(typeof t === "object" ? t : {id: t}), id: typeof t === "object" && t?.id ? t.id : traitId, charges: newCount}
             })
             return { ...prev, traits: nextTraits }
         })
@@ -929,6 +947,7 @@ export function CharacterSheetView() {
                 combatDefenseDelta: 0,
                 combatStabilityDelta: 0,
                 combatSpeedDelta: 0,
+                maintainActive: false,
                 respite: pool - s,
                 hp: Math.min(Math.max(prev.hp + s * hpPer, derived.deathThreshold), derived.maxHP),
                 mp: Math.min(Math.max(prev.mp + s * mpPer, 0), derived.maxMP),
@@ -1356,6 +1375,11 @@ export function CharacterSheetView() {
                                             actionLayout={actionLayout}
                                             onLayoutChange={handleActionLayoutChange}
                                             viewMode={viewMode}
+                                            maintainActive={Boolean(character.maintainActive)}
+                                            onMaintainActiveChange={(active) =>
+                                                setCharacter((prev) => ({...prev, maintainActive: active}))
+                                            }
+                                            maintainBreakDamage={maintainBreakThreshold(derived.attributes.willpower)}
                                             renderActionCard={(action, opts) => {
                                                 const grantingItem = action.grantingItemUid
                                                     ? (character.inventory ?? []).find(
@@ -1503,6 +1527,8 @@ export function CharacterSheetView() {
                                 inventory={character.inventory}
                                 martialProficiencyIds={classProficiencies}
                                 might={derived.attributes.might}
+                                attributes={derived.attributes}
+                                classes={character.classes}
                                 shieldMaster={hasShieldMaster}
                                 traits={character.traits}
                                 bondedWeaponUids={bondedWeaponUids}
@@ -1510,6 +1536,7 @@ export function CharacterSheetView() {
                                 activeDruidAnimaTemplateId={character.activeDruidAnimaTemplateId ?? null}
                                 onAccessoryChange={handleAccessoryChange}
                                 onEquipmentChange={handleEquipmentChange}
+                                onUpdateItemCharges={handleUpdateItemCharges}
                             />
                             <InventoryPanel
                                 inventory={character.inventory}
@@ -1584,7 +1611,9 @@ export function CharacterSheetView() {
                                     attributes={derived.attributes}
                                     activeWeapon={currentWeapon}
                                     offhandWeapon={offhandWeapon}
+                                    inventory={character.inventory}
                                     onUpdateTraitCharges={handleUpdateTraitCharges}
+                                    onUpdateItemCharges={handleUpdateItemCharges}
                                 />
                             </div>
                             <div className="space-y-4 min-w-0">

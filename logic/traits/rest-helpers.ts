@@ -25,6 +25,7 @@ type EndOfCombatCharacter = {
     combatDefenseDelta?: number
     combatStabilityDelta?: number
     combatSpeedDelta?: number
+    maintainActive?: boolean
     traits?: TraitRef[]
     actions?: ActionRef[]
     reactions?: Reaction[]
@@ -56,5 +57,6 @@ export function applyEndOfCombatEffects<T extends EndOfCombatCharacter>(
         combatDefenseDelta: 0,
         combatStabilityDelta: 0,
         combatSpeedDelta: 0,
+        maintainActive: false,
     }
 }

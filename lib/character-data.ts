@@ -179,6 +179,9 @@ export interface CharacterSaveData {
     /** Combat-tab temporary speed modifier (added to derived speed). */
     combatSpeedDelta?: number
 
+    /** Combat tab: a Maintain effect is currently being upheld. */
+    maintainActive?: boolean
+
     /** Artificer Special Invention (level 3): variant, module picks, weapon infusion damage type. */
     specialInvention?: SpecialInventionSave
 }

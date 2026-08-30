@@ -1,6 +1,10 @@
 import type { CharAttribute, PotencyEffect, PowerRoll } from "@corian-forge/rules-kit"
-import { getAttributeModifier, resolveNaturalWeaponBonus } from "./rolls.js"
-import type { AttributeBlock } from "./types.js"
+import { getAttributeModifier } from "./rolls.js"
+import type { AttributeBlock, NaturalWeaponDefinition } from "./types.js"
+import {
+    resolveNaturalWeaponBonusForRoll,
+    resolveNaturalWeaponKeyForRoll,
+} from "./natural-weapons.js"
 
 export type TierIndex = 1 | 2 | 3
 
@@ -118,6 +122,7 @@ export type PowerRollTierPreview = {
     label: string
     baseDamage: number
     weaponBonus: number
+    weaponKey?: string
     totalDamage: number
     usesWeapon: boolean
     effect: PotencyEffectPreview | null
@@ -148,22 +153,27 @@ function readTierFields(powerRoll: PowerRoll, tier: TierIndex) {
 export function buildPowerRollTierPreviews(input: {
     powerRoll: PowerRoll
     attributes: Partial<AttributeBlock>
-    naturalWeapons?: Record<string, { damage: number }>
+    naturalWeapons?: Record<string, NaturalWeaponDefinition>
+    activeNaturalWeaponKey?: string
     defaultNaturalWeaponKey?: string
+    actionWeaponKey?: string
+    actionTags?: string[]
+    hiddenTags?: string[]
 }): PowerRollTierPreview[] {
     const tiers: TierIndex[] = [1, 2, 3]
+    const weaponKey = resolveNaturalWeaponKeyForRoll(input)
     return tiers.map((tier) => {
         const { baseDamage, usesWeapon, effect } = readTierFields(input.powerRoll, tier)
-        const weaponBonus = resolveNaturalWeaponBonus(
-            input.naturalWeapons,
-            input.defaultNaturalWeaponKey,
+        const { weaponBonus } = resolveNaturalWeaponBonusForRoll({
+            ...input,
             usesWeapon,
-        )
+        })
         return {
             tier,
             label: TIER_LABELS[tier],
             baseDamage,
             weaponBonus,
+            weaponKey: usesWeapon ? weaponKey : undefined,
             totalDamage: baseDamage + weaponBonus,
             usesWeapon,
             effect: effect ? formatPotencyEffectPreview(effect, input.attributes) : null,

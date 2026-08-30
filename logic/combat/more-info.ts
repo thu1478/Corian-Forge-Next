@@ -24,6 +24,8 @@ const GRANT_SIGHT_LABELS: Record<string, string> = {
     metaphysical: "Metaphysical sight",
     "low-light": "Low-light vision",
     mana: "Manasight",
+    blindsight: "Blindsight",
+    tremorsense: "Tremorsense",
 }
 
 const GRANT_MOVEMENT_LABELS: Record<string, string> = {

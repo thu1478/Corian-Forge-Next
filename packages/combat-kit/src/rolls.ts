@@ -1,5 +1,8 @@
-import type { CharAttribute, PowerRoll } from "./types.js"
+import type { CharAttribute, PowerRoll, NaturalWeaponDefinition } from "./types.js"
 import type { AttributeBlock } from "./types.js"
+import {
+    resolveNaturalWeaponBonusForRoll,
+} from "./natural-weapons.js"
 
 export type PowerRollTier = 1 | 2 | 3
 
@@ -22,6 +25,7 @@ export type ActionRollResult = AttributeRollResult & {
     actionName: string
     tierDamage: number
     weaponBonus: number
+    weaponKey?: string
     totalDamage: number
 }
 
@@ -101,39 +105,39 @@ function tierDamageForRoll(powerRoll: PowerRoll, tier: PowerRollTier): {
     return { baseDamage: powerRoll.tier3Dmg ?? 0, usesWeapon: powerRoll.tier3Wpn === true }
 }
 
-export function resolveNaturalWeaponBonus(
-    naturalWeapons: Record<string, { damage: number }> | undefined,
-    defaultKey: string | undefined,
-    usesWeapon: boolean,
-): number {
-    if (!usesWeapon || !naturalWeapons || !defaultKey) return 0
-    return naturalWeapons[defaultKey]?.damage ?? 0
-}
-
 export function rollActionPowerRoll(input: {
     attributes: Partial<AttributeBlock>
     powerRoll: PowerRoll
     actionId: string
     actionName: string
     chosenStat?: CharAttribute
-    naturalWeapons?: Record<string, { damage: number }>
+    naturalWeapons?: Record<string, NaturalWeaponDefinition>
+    activeNaturalWeaponKey?: string
     defaultNaturalWeaponKey?: string
+    actionWeaponKey?: string
+    actionTags?: string[]
+    hiddenTags?: string[]
     rng?: Rng
 }): ActionRollResult {
     const stat = pickRollStat(input.attributes, input.powerRoll.rollStats ?? [], input.chosenStat)
     const base = rollAttributeCheck(input.attributes, stat, input.rng)
     const { baseDamage, usesWeapon } = tierDamageForRoll(input.powerRoll, base.tier)
-    const weaponBonus = resolveNaturalWeaponBonus(
-        input.naturalWeapons,
-        input.defaultNaturalWeaponKey,
+    const { weaponKey, weaponBonus } = resolveNaturalWeaponBonusForRoll({
+        naturalWeapons: input.naturalWeapons,
+        activeNaturalWeaponKey: input.activeNaturalWeaponKey,
+        defaultNaturalWeaponKey: input.defaultNaturalWeaponKey,
+        actionWeaponKey: input.actionWeaponKey,
+        actionTags: input.actionTags,
+        hiddenTags: input.hiddenTags,
         usesWeapon,
-    )
+    })
     return {
         ...base,
         actionId: input.actionId,
         actionName: input.actionName,
         tierDamage: baseDamage,
         weaponBonus,
+        weaponKey,
         totalDamage: baseDamage + weaponBonus,
     }
 }

@@ -10,7 +10,7 @@ import {
     PowerRollTierRow,
     type PowerRollDisplayMode,
 } from "@/components/power-roll/power-roll-tier-row"
-import { resolveWeaponForActionPowerRoll, resolveWeaponForGrantedEquipmentAction } from "@/logic/equipment/weapon-utils"
+import { resolveWeaponForActionPowerRoll, resolveWeaponForGrantedEquipmentAction, isWeaponItem } from "@/logic/equipment/weapon-utils"
 import {
     computeArcaneTraditionImplementBonus,
     computePowerRollFlatDamageBonus,
@@ -198,10 +198,14 @@ export function ActionCardComponent({
     const displayPowerRoll = getDisplayPowerRoll(action)
     const pr = displayPowerRoll ?? action.powerRoll
     const weaponForPowerRollHeader = grantingWeapon ?? weaponForPowerRollDamage ?? null
+    const powerRollHeaderWeapon = useMemo(() => {
+        if (!weaponForPowerRollHeader || !isWeaponItem(weaponForPowerRollHeader)) return null
+        return { attributes: weaponForPowerRollHeader.attributes }
+    }, [weaponForPowerRollHeader])
     const powerRollHeaderSimpleLabel = useMemo(() => {
         if (!pr?.rollStats?.length) return null
-        return formatPowerRollHeaderSimple(pr.rollStats, attributes, weaponForPowerRollHeader)
-    }, [pr?.rollStats, attributes, weaponForPowerRollHeader])
+        return formatPowerRollHeaderSimple(pr.rollStats, attributes, powerRollHeaderWeapon)
+    }, [pr?.rollStats, attributes, powerRollHeaderWeapon])
     const addsWeaponDamageToPowerRoll =
         !!pr &&
         (pr.tier1Wpn === true ||
@@ -298,7 +302,7 @@ export function ActionCardComponent({
                         onClick={(e) => e.stopPropagation()}
                     >
                         <ChargePips
-                            readOnly
+                            isReadOnly
                             showLabel={false}
                             maxCharges={itemChargeMax}
                             currentCharges={itemChargeCurrent}

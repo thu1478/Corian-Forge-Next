@@ -134,6 +134,43 @@ export function itemRequirementsMet(
     return statsOk && classesOk
 }
 
+/** Non-null when the character fails item requirements (stats and/or class levels). */
+export function itemRequirementsDeficitMessage(
+    requirements: ItemRequirements | null | undefined,
+    context: ItemRequirementsContext,
+    rules: ItemRequirementsRules,
+): string | null {
+    if (!requirements) return null
+    if (itemRequirementsMet(requirements, context)) return null
+
+    const lines = formatItemRequirementLines(requirements, rules)
+    if (lines.length === 0) return null
+
+    const statsOk = itemStatRequirementsMet(requirements, context.attributes)
+    const classesOk = requirements.classes
+        ? classLevelRequirementsMet(requirements.classes, context.classes ?? [])
+        : true
+
+    if (!statsOk && !classesOk) {
+        return `Does not meet requirements: ${lines.join(" · ")}`
+    }
+    if (!classesOk) {
+        const classLine = formatClassLevelRequirementsText(requirements.classes!, rules)
+        return classLine
+            ? `Does not meet class requirement: ${classLine}`
+            : `Does not meet requirements: ${lines.join(" · ")}`
+    }
+    return `Does not meet requirements: ${lines.join(" · ")}`
+}
+
+export function itemRequirementsDeficitMessageFromDef(
+    def: Record<string, unknown> | null | undefined,
+    context: ItemRequirementsContext,
+    rules: ItemRequirementsRules,
+): string | null {
+    return itemRequirementsDeficitMessage(readItemRequirements(def), context, rules)
+}
+
 export function readItemRequirementLinesFromDef(
     def: Record<string, unknown> | null | undefined,
     rules: ItemRequirementsRules,

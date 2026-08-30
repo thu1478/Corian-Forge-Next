@@ -3,7 +3,7 @@ import {
     formatModifier,
     getAttributeModifier,
     pickRollStat,
-} from "@/packages/combat-kit/src/rolls"
+} from "@/packages/combat-kit/dist/rolls"
 
 function normalizeWeaponAttributes(attrs: readonly string[] | undefined | null): string[] {
     return (attrs ?? []).filter((a): a is string => typeof a === "string" && a.trim().length > 0)

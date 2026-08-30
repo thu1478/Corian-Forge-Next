@@ -32,11 +32,16 @@ export function combatantFromCreature(
         actionIDs: [...(creature.actionIDs ?? [])],
         naturalWeapons: creature.naturalWeapons,
         defaultNaturalWeaponKey: creature.defaultNaturalWeaponKey,
+        activeNaturalWeaponKey:
+            creature.defaultNaturalWeaponKey ??
+            (creature.naturalWeapons ? Object.keys(creature.naturalWeapons)[0] : undefined),
         defense: creature.defense,
         stability: creature.stability,
         speed: creature.speed,
         currentHp: creature.defaultMaxHp,
         maxHp: creature.defaultMaxHp,
+        currentMp: creature.defaultMaxMp,
+        maxMp: creature.defaultMaxMp,
     }
 }
 
@@ -46,6 +51,7 @@ export type CharacterImportShape = {
     actions?: Array<{ id: string } | string>
     reactions?: Array<{ id: string } | string>
     hp?: number
+    mp?: number
     speed?: number
 }
 
@@ -70,5 +76,7 @@ export function combatantFromCharacterSheet(data: CharacterImportShape): Combata
         speed: data.speed,
         currentHp: data.hp,
         maxHp: data.hp,
+        currentMp: data.mp,
+        maxMp: data.mp,
     }
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import {
     formatItemRequirementLines,
+    itemRequirementsDeficitMessage,
     itemRequirementsMet,
     readItemRequirements,
 } from "@/logic/equipment/item-requirements"
@@ -86,5 +87,39 @@ describe("itemRequirementsMet", () => {
                 classes: [{ id: "conjurer", level: 2, source: "class" }],
             }),
         ).toBe(false)
+    })
+})
+
+describe("itemRequirementsDeficitMessage", () => {
+    it("returns null when requirements are met", () => {
+        const req = readItemRequirements({
+            requirements: { classes: { "3": ["conjurer"] } },
+        })
+        expect(
+            itemRequirementsDeficitMessage(
+                req,
+                {
+                    attributes: {},
+                    classes: [{ id: "conjurer", level: 3, source: "class" }],
+                },
+                rules,
+            ),
+        ).toBeNull()
+    })
+
+    it("warns on unmet class requirements", () => {
+        const req = readItemRequirements({
+            requirements: { classes: { "3": ["conjurer"] } },
+        })
+        expect(
+            itemRequirementsDeficitMessage(
+                req,
+                {
+                    attributes: {},
+                    classes: [{ id: "conjurer", level: 2, source: "class" }],
+                },
+                rules,
+            ),
+        ).toBe("Does not meet class requirement: Class level 3+ in Conjurer")
     })
 })

@@ -646,6 +646,7 @@ function mergeImportedCharData(json: any, empty: CharacterSaveData): CharacterSa
         combatDefenseDelta: sanitizeCombatDefenseDelta(json.combatDefenseDelta),
         combatStabilityDelta: sanitizeCombatStatDelta(json.combatStabilityDelta),
         combatSpeedDelta: sanitizeCombatStatDelta(json.combatSpeedDelta),
+        maintainActive: Boolean(json.maintainActive),
         specialInvention: sanitizeSpecialInvention(json.specialInvention),
     };
 }

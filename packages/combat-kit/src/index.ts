@@ -1,3 +1,4 @@
+export * from "./natural-weapons.js"
 export * from "./types.js"
 export * from "./rolls.js"
 export * from "./hydrate-actions.js"

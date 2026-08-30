@@ -93,7 +93,6 @@ hooks/character/
   use-character-io.tsx      # localStorage, import/export
   use-item-hydration.tsx    # wraps logic/equipment/hydrate-items
   use-data-loader.tsx       # full hydration orchestration
-  use-derived-stats.tsx     # memo wrapper over computeDerivedStats
   use-action-cards.tsx      # action discovery
 ```
 
@@ -106,7 +105,6 @@ Deprecated top-level aliases (re-export the above):
 Sheet-local deprecated aliases:
 
 - `components/character-sheet/hooks/DataLoader.tsx` → `use-data-loader`
-- `components/character-sheet/hooks/statCalculator.tsx` → `use-derived-stats`
 
 ---
 
