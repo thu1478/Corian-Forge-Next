@@ -28,14 +28,9 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      # FIX 1: Build workspace packages (like @corian-forge/rules-kit) FIRST
-      - name: Build workspace packages
-        run: npm run build --workspaces --if-present
-
       - name: Validate rules.json
         run: npm run validate:rules
 
-      # FIX 2: Build the Next.js app after internal packages are compiled
       - name: Build with Next.js
         run: npm run build
 
