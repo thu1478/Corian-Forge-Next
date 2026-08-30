@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "build:kits": "npm run build:rules-kit && npm run build:combat-kit",
     "build": "npm run build:combat-kit && next build",
     "start": "next start",
     "lint": "eslint .",
