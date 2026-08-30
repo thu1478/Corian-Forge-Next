@@ -26,7 +26,7 @@ jobs:
         uses: actions/configure-pages@v4
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       # FIX 1: Build workspace packages (like @corian-forge/rules-kit) FIRST
       - name: Build workspace packages
