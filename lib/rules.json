@@ -11750,7 +11750,10 @@
       "defense": {
         "value": 7
       },
-      "stability": 1
+      "stability": 1,
+      "traits": [
+        "plateArmor"
+      ]
     },
     "shld_buckler": {
       "name": "Buckler",
@@ -14285,7 +14288,8 @@
       "stability": 2,
       "rank": "advanced",
       "traits": [
-        "extraThickPlate"
+        "extraThickPlate",
+        "plateArmor"
       ]
     },
     "arm_anchorPlate": {
@@ -14307,7 +14311,8 @@
       "stability": 1,
       "rank": "advanced",
       "traits": [
-        "anchorPlate"
+        "anchorPlate",
+        "plateArmor"
       ]
     },
     "shld_razorBuckler": {
@@ -20427,12 +20432,12 @@
     "extraThickPlate": {
       "name": "Extra-Thick Plate",
       "minLevel": 1,
-      "description": "Heavier plate slows you; if your Speed is reduced to 2 or less you are treated as Slowed.",
+      "description": "-1 Speed. Heavier plate slows you; if your Speed is reduced to 2 or less you are treated as Slowed.",
       "effects": [
         {
           "type": "StatChange",
           "stat": "speed",
-          "value": "-2"
+          "value": "-1"
         }
       ]
     },
@@ -20798,6 +20803,18 @@
       "name": "Kinetic Converter Soles",
       "minLevel": 1,
       "description": "After you warp you gain 3 Barrier."
+    },
+    "plateArmor": {
+      "name": "Plate Armor",
+      "minLevel": 1,
+      "description": "-1 Speed",
+      "effects": [
+        {
+          "type": "StatChange",
+          "stat": "speed",
+          "value": "-1"
+        }
+      ]
     }
   },
   "bestiary": {
