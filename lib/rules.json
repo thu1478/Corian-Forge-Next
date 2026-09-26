@@ -1403,7 +1403,7 @@
       "parryMaster": {
         "name": "Parry Master",
         "minLevel": 5,
-        "description": "You may use Parry on non-melee attacks as well. Parry becomes a free Reaction.",
+        "description": "You may use Parry on non-melee attacks as well. Only your first Parry per round costs a Reaction. Further uses can be used a Free Reactions.",
         "prereqs": {
           "classes": {
             "5": [
@@ -2405,7 +2405,7 @@
           "actionCard": {
             "name": "Pitch Trauma",
             "type": "action",
-            "description": "Inflict bleeding onto all affected creatures.",
+            "description": "Inflict bleeding onto all targeted creatures. Alternatively you may instead ignore the Multi tag and instead target a single solid targetable object or Unliving creature, causing it to lose 5 HP.",
             "apCost": 2,
             "focusCost": 5,
             "mpCost": 0,
@@ -3127,7 +3127,7 @@
           "actionCard": {
             "name": "Earth Pulse",
             "type": "action",
-            "description": "Write a glowing sigil on an unoccupied tile within range. Any creature standing on that sigil in combat during the Start Phase regains 3 HP.",
+            "description": "Write a glowing sigil on an unoccupied tile within range. Any creature standing on that sigil in combat during the Start Phase regains 3 HP. You may have at most 1 of these at a time.",
             "apCost": 1,
             "focusCost": 3,
             "mpCost": 5,
@@ -5630,7 +5630,7 @@
           "actionCard": {
             "name": "Pinning Shot",
             "type": "action",
-            "description": "Fire a shot aimed near the target's legs to stop them in their tracks.",
+            "description": "Fire a barbed shot at the target. If they are pushed into a solid object and they are no greater than size 1L they are restrained [save end].",
             "apCost": 2,
             "focusCost": 3,
             "mpCost": 0,
@@ -5650,30 +5650,21 @@
               "tier2Dmg": 4,
               "tier2Wpn": true,
               "tier2Effect": {
-                "type": "Condition",
-                "srcStats": [
-                  "dexterity"
-                ],
-                "targetStats": [
-                  "might"
-                ],
-                "effect": "restrained",
-                "strength": "average",
-                "duration": "saveEnd"
+                "type": "ForcedMovement",
+                "effect": "push",
+                "distance": 2
               },
               "tier3Dmg": 6,
               "tier3Wpn": true,
               "tier3Effect": {
-                "type": "Condition",
-                "srcStats": [
-                  "dexterity"
-                ],
-                "targetStats": [
-                  "might"
-                ],
-                "effect": "restrained",
-                "strength": "strong",
-                "duration": "saveEnd"
+                "type": "ForcedMovement",
+                "effect": "push",
+                "distance": 2
+              },
+              "tier1Effect": {
+                "type": "ForcedMovement",
+                "effect": "push",
+                "distance": 1
               }
             }
           }
@@ -5697,26 +5688,26 @@
               "rollStats": [
                 "dexterity"
               ],
-              "tier1Dmg": 2,
+              "tier1Dmg": 0,
               "tier1Wpn": true,
               "tier1Effect": {
                 "type": "ForcedMovement",
                 "effect": "push",
-                "distance": 1
+                "distance": 2
               },
-              "tier2Dmg": 3,
+              "tier2Dmg": 1,
               "tier2Wpn": true,
               "tier2Effect": {
                 "type": "ForcedMovement",
                 "effect": "push",
-                "distance": 2
+                "distance": 3
               },
-              "tier3Dmg": 5,
+              "tier3Dmg": 2,
               "tier3Wpn": true,
               "tier3Effect": {
                 "type": "ForcedMovement",
                 "effect": "push",
-                "distance": 4
+                "distance": 5
               }
             }
           }
@@ -7677,7 +7668,7 @@
           "actionCard": {
             "name": "Hit and Run",
             "type": "action",
-            "description": "You may Stride up to half your Speed as part of this action. If you are not wearing martial armor you may use your full Speed. Strike a target with your weapon.",
+            "description": "Strike a target with your weapon. Afterwards you may Stride up to half your Speed. If you are not wearing martial armor you may use your full Speed instead.",
             "apCost": 2,
             "focusCost": 1,
             "mpCost": 0,
@@ -14245,7 +14236,8 @@
       "stability": 1,
       "rank": "intermediate",
       "traits": [
-        "hellknightArmor"
+        "hellknightArmor",
+        "plateArmor"
       ]
     },
     "arm_valkyrieHalfPlate": {
@@ -16025,6 +16017,27 @@
       "chargeReset": [
         "longRest"
       ]
+    },
+    "arm_dancer_outfit": {
+      "name": "Dancer's Outfit",
+      "quantity": 1,
+      "description": "Defense Dexterity (max 2).",
+      "value": 1400,
+      "allowedSlots": [
+        "armor"
+      ],
+      "tags": [],
+      "type": "armor",
+      "defense": {
+        "value": 0,
+        "attribute": "dexterity",
+        "attrMax": 2
+      },
+      "stability": 0,
+      "rank": "intermediate",
+      "actionIDs": [
+        "stylishTwirl"
+      ]
     }
   },
   "actionCards": {
@@ -16257,11 +16270,11 @@
         "rollStats": [
           "dexterity"
         ],
-        "tier1Dmg": 0,
+        "tier1Dmg": -1,
         "tier1Wpn": true,
-        "tier2Dmg": 1,
+        "tier2Dmg": 0,
         "tier2Wpn": true,
-        "tier3Dmg": 2,
+        "tier3Dmg": 1,
         "tier3Wpn": true
       }
     },
@@ -18543,7 +18556,8 @@
       "itemChargeCost": 1,
       "powerRoll": {
         "rollStats": [
-          "might"
+          "might",
+          "dexterity"
         ],
         "tier1Dmg": 2,
         "tier1Wpn": true,
@@ -18852,8 +18866,7 @@
       "range": "6",
       "tags": [
         "Ranged",
-        "Spell",
-        "Multi(2)"
+        "Spell"
       ],
       "source": "equipment",
       "damageType": "nature",
@@ -20247,6 +20260,72 @@
         }
       },
       "itemChargeCost": 1
+    },
+    "stylishTwirl": {
+      "name": "Stylish Twirl",
+      "type": "action",
+      "description": "Spin and dance, dealing slashing damage to all hostile creatures within 1 tile. If any of the targets are Bloodied prior to the attack then this attack gains Repeat (2).",
+      "apCost": 2,
+      "focusCost": 3,
+      "mpCost": 0,
+      "range": "Self",
+      "tags": [
+        "Melee",
+        "Area",
+        "Emanation",
+        "Brawling",
+        "Penetrate (3)"
+      ],
+      "source": "equipment",
+      "damageType": "earth",
+      "powerRoll": {
+        "rollStats": [
+          "dexterity",
+          "presence"
+        ],
+        "tier1Dmg": 0,
+        "tier2Dmg": 1,
+        "tier3Dmg": 2,
+        "tier1Effect": {
+          "type": "Condition",
+          "effect": "bleeding",
+          "strength": "weak",
+          "srcStats": [
+            "dexterity",
+            "presence"
+          ],
+          "targetStats": [
+            "willpower"
+          ],
+          "duration": "roundEnd"
+        },
+        "tier2Effect": {
+          "type": "Condition",
+          "effect": "bleeding",
+          "strength": "average",
+          "srcStats": [
+            "dexterity",
+            "presence"
+          ],
+          "targetStats": [
+            "willpower"
+          ],
+          "duration": "roundEnd"
+        },
+        "tier3Effect": {
+          "type": "Condition",
+          "effect": "bleeding",
+          "strength": "strong",
+          "srcStats": [
+            "dexterity",
+            "presence"
+          ],
+          "targetStats": [
+            "willpower"
+          ],
+          "duration": "roundEnd"
+        }
+      }
     }
   },
   "passives": {
