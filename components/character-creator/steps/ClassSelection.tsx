@@ -79,6 +79,7 @@ import {
     CollapsibleContent,
     CollapsibleTrigger,
 } from "@/components/ui/collapsible"
+import {MARTIAL_PROFICIENCY_ROWS} from "@/logic/equipment/proficiency";
 
 type LevelKey = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10";
 
@@ -969,9 +970,30 @@ const ClassSelection: React.FC<ClassSelectionProps> = ({
                                     <h2 className="text-2xl sm:text-3xl font-black uppercase italic tracking-tighter break-words leading-tight">
                                         {classData.name}
                                     </h2>
-                                    <span className="text-[10px] font-black uppercase text-primary/60 tracking-widest block mt-1">
-                                        Focus: {classData.focusFeat?.name ?? "None"}
-                                    </span>
+                                    {/*<span className="text-[10px] font-black uppercase text-primary/60 tracking-widest block mt-1">*/}
+                                    {/*    Focus: {classData.focusFeat?.name ?? "None"}*/}
+                                    {/*</span>*/}
+                                    {/*<span className="text-[14px] font-black uppercase text-primary/60 tracking-widest block mt-1">*/}
+                                    {/*    Proficiencies: {classData?.proficiencies?.length ?*/}
+                                    {/*    classData?.proficiencies.map((id: string) => MARTIAL_PROFICIENCY_ROWS.find(row => row.id === id)?.label || id)*/}
+                                    {/*    .join('\n, ')*/}
+                                    {/*    : "None"*/}
+                                    {/*}*/}
+                                    {/*</span>*/}
+                                    <div className="text-[14px] font-black uppercase text-primary/60 tracking-widest block mt-1">Proficiencies:</div>
+                                    <div className="text-[12px] font-black uppercase text-primary/60 tracking-widest block mt-1">
+                                        <ul className="list-disc list-inside ml-2">
+                                            {classData?.proficiencies?.length ? (
+                                                classData.proficiencies.map((id: string) => (
+                                                    <li key={id}>
+                                                        {MARTIAL_PROFICIENCY_ROWS.find(row => row.id === id)?.label || id}
+                                                    </li>
+                                                ))
+                                            ) : (
+                                                <li>None</li>
+                                            )}
+                                        </ul>
+                                    </div>
                                     <div className="text-xs text-muted-foreground mt-2">
                                         Next level XP cost: {currentLevel >= 10 ? "MAX" : nextCost}
                                     </div>

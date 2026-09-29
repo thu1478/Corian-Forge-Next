@@ -696,29 +696,29 @@ export function OtherStats({
                                 +{n}
                             </Button>
                         ))}
-                        <div className="flex min-w-0 flex-1 items-center gap-1.5 sm:max-w-[10rem]">
-                            <Input
-                                id="xp-custom-add"
-                                type="number"
-                                min={1}
-                                step={1}
-                                inputMode="numeric"
-                                placeholder="Other"
-                                aria-label="Custom XP to add"
-                                value={customAdd}
-                                onChange={(e) => setCustomAdd(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === "Enter") {
-                                        e.preventDefault()
-                                        applyCustomAdd()
-                                    }
-                                }}
-                                className="h-7 min-w-0 flex-1 font-mono text-xs"
-                            />
-                            <Button type="button" size="sm" className="h-7 shrink-0 px-2.5 text-xs" onClick={applyCustomAdd}>
-                                Add
-                            </Button>
-                        </div>
+                    </div>
+                    <div className="flex min-w-0 flex-1 items-center gap-1.5 sm:max-w-[10rem]">
+                        <Input
+                            id="xp-custom-add"
+                            type="number"
+                            min={1}
+                            step={1}
+                            inputMode="numeric"
+                            placeholder="Other"
+                            aria-label="Custom XP to add"
+                            value={customAdd}
+                            onChange={(e) => setCustomAdd(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    e.preventDefault()
+                                    applyCustomAdd()
+                                }
+                            }}
+                            className="h-7 min-w-0 flex-1 font-mono text-xs"
+                        />
+                        <Button type="button" size="sm" className="h-7 shrink-0 px-2.5 text-xs" onClick={applyCustomAdd}>
+                            Add
+                        </Button>
                     </div>
 
                     {!showSetTotal ? (

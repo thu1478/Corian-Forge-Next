@@ -972,6 +972,7 @@ export function CharacterSheetView() {
                 ...next,
                 hp: derived.maxHP,
                 mp: derived.maxMP,
+                ip: derived.maxIP,
                 respite: derived.maxRespite,
                 victories: 0,
                 mountedCreatureId: null,
@@ -1730,7 +1731,7 @@ export function CharacterSheetView() {
                         <AlertDialogTitle>Take a long rest?</AlertDialogTitle>
                         <AlertDialogDescription className="text-left space-y-2">
                             <span className="block">
-                                This will apply end-of-combat effects (focus and barrier cleared; combat stat adjustments reset), restore charges tagged for end of combat and long rest, then set HP and MP to maximum, restore all respites, and set victories to 0.
+                                This will apply end-of-combat effects (focus and barrier cleared; combat stat adjustments reset), restore charges tagged for end of combat and long rest, then set HP, MP, and IP to maximum, restore all respites, and set victories to 0.
                             </span>
                             <span className="block font-medium text-foreground">Only confirm if you intend a full long rest.</span>
                         </AlertDialogDescription>

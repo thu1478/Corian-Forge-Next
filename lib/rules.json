@@ -2405,7 +2405,7 @@
           "actionCard": {
             "name": "Pitch Trauma",
             "type": "action",
-            "description": "Inflict bleeding onto all targeted creatures. Alternatively you may instead ignore the Multi tag and instead target a single solid targetable object or Unliving creature, causing it to lose 5 HP.",
+            "description": "Unleash an extremely high pitch note. You may choose to ignore the Multi tag and instead target a single solid targetable object or Unliving creature, causing it to lose 6 HP, which is enough to destroy most Wood-durability objects.",
             "apCost": 2,
             "focusCost": 5,
             "mpCost": 0,
@@ -2480,7 +2480,10 @@
               "tier1Dmg": 8,
               "tier2Dmg": 11,
               "tier3Dmg": 16
-            }
+            },
+            "hiddenTags": [
+              "barrier"
+            ]
           }
         },
         "rhapsodyOfWar": {
@@ -3065,7 +3068,9 @@
           "type": "Reaction",
           "level": 1,
           "trigger": "A hostile creature casts a spell within 3 tiles of you",
-          "description": "You may shift 1. If this would put you into melee range of the caster and they're using a ranged attack they do not get the bane for having an enemy in melee range for this attack."
+          "description": "You may shift 2. If this would put you into melee range of the caster and they're using a ranged attack they do not get the bane for having an enemy in melee range for this attack.",
+          "tags": [],
+          "source": ""
         },
         {
           "id": "redirection",
@@ -4220,7 +4225,7 @@
         "frenzy": {
           "name": "Frenzy",
           "minLevel": 1,
-          "description": "If you are Bloodied you deal +2 damage with melee attacks. If you are Bloodied during the Start Phase you may choose to Rage, granting a Boon to all attacks that target only you. In exchange you have a Boon on all attacks you make for that round"
+          "description": "If you are Bloodied you deal bonus damage equal to your Presence modifier (min +1, max +3) with melee attacks. If you are Bloodied during the Start Phase you may choose to Rage, granting a Boon to all attacks that target only you. In exchange you have a Boon on all attacks you make for that round"
         },
         "centerOfMass": {
           "name": "Center of Mass",
@@ -4300,24 +4305,16 @@
           "actionCard": {
             "name": "Yeet",
             "type": "action",
-            "description": "If a creature is currently Grabbed by you then you can throw them, using them as a projectile. The throwing distance is equal to your Might modifier, reduced by the thrown creature's stability. If the thrown creature's size is greater than 1L this deals bonus damage equal to the creature's size if it hits another target. Both the thrown creature and any creature that the thrown creature hits take crushing damage.",
+            "description": "If a creature is currently Grabbed by you then you can throw them, using them as a projectile. The throwing distance is equal to your Might modifier, reduced by the thrown creature's stability. If the thrown creature's size is greater than 1L this deals bonus damage equal to the creature's size if it hits another target to both targets. This is treated as forced movement",
             "apCost": 1,
             "focusCost": 0,
             "mpCost": 0,
-            "range": "3",
+            "range": "X",
             "tags": [
               "Ranged",
               "Brawling"
             ],
-            "source": "fury",
-            "powerRoll": {
-              "rollStats": [
-                "might"
-              ],
-              "tier1Dmg": 3,
-              "tier2Dmg": 4,
-              "tier3Dmg": 6
-            }
+            "source": "fury"
           }
         },
         "getOverHere": {
@@ -4631,7 +4628,7 @@
           "actionCard": {
             "name": "Soul Ripper",
             "type": "action",
-            "description": "Attack the target. If you have a Bond towards them you may recover 3 HP and 1 Mana afterwards. Cannot be used on allies.\n\n7 Focus: Treat the target as if you had a Bond towards them.",
+            "description": "Attack the target. If you have a Bond towards them you may recover 1 Mana and HP equal to 1 + (Presence modifier, min 1) afterwards. Cannot be used on allies unless you would deal at least 5 damage.\n\n7 Focus: Treat the target as if you had a Bond towards them.",
             "apCost": 2,
             "focusCost": 5,
             "mpCost": 0,
@@ -4660,7 +4657,7 @@
           "actionCard": {
             "name": "Earthcleaver",
             "type": "action",
-            "description": "Split the earth, dealing damage in a 8x1 line starting from you and leaving the area as difficult terrain. Each creature in the area receives pushed away from the line.",
+            "description": "Split the earth, dealing damage in a 8x1 line starting from you and leaving the area as difficult terrain. Each creature in the area is pushed away from the line.",
             "apCost": 2,
             "focusCost": 7,
             "mpCost": 0,
@@ -4695,7 +4692,7 @@
               "tier3Effect": {
                 "type": "ForcedMovement",
                 "effect": "push",
-                "distance": 2
+                "distance": 3
               }
             }
           }
@@ -4722,7 +4719,7 @@
           "actionCard": {
             "name": "Hatred",
             "type": "action",
-            "description": "Sacrifice the greater of either 3 times your Presence modifier HP or 3 HP. Then attack your target, increasing the damage dealt by the sacrificed HP. This attack has an innate Dark infusion that cannot be overridden.",
+            "description": "Sacrifice the greater of either 2 times your Presence modifier HP or 3 HP. Then attack your target, increasing the damage dealt by the sacrificed HP. This attack has an innate Dark infusion that cannot be overridden.",
             "apCost": 2,
             "focusCost": 7,
             "mpCost": 0,
@@ -5674,14 +5671,15 @@
           "actionCard": {
             "name": "Explosive Shot",
             "type": "action",
-            "description": "Fire an explosive shot that trades damage for knockback",
+            "description": "Select a 2x2 area and fire an explosive shot at it, pushing all affected targets away from you",
             "apCost": 2,
             "focusCost": 5,
             "mpCost": 0,
             "range": "Wpn",
             "tags": [
               "Ranged",
-              "Weapon"
+              "Weapon",
+              "Area"
             ],
             "source": "marksman",
             "powerRoll": {
@@ -5707,7 +5705,7 @@
               "tier3Effect": {
                 "type": "ForcedMovement",
                 "effect": "push",
-                "distance": 5
+                "distance": 4
               }
             }
           }
@@ -9387,7 +9385,7 @@
         "air",
         "volt",
         "dark",
-        "poison"
+        "nature"
       ],
       "passives": {
         "manaAbsorption": {
@@ -9415,14 +9413,14 @@
           ]
         }
       },
-      "freeFeaturesNote": "You can perceive Metaphysical beings. Wizard: When interacting with runes or other magical objects you can try to extract information about them (who made them, what they are, when they were made or last activated, etc.). You cannot cast Wizard spells while wearing martial armor. Elemental aspects for your spells: Air, Volt, Dark, Poison.",
+      "freeFeaturesNote": "You can perceive Metaphysical beings. Wizard: When interacting with runes or other magical objects you can try to extract information about them (who made them, what they are, when they were made or last activated, etc.). You cannot cast Wizard spells while wearing martial armor. Elemental aspects for your spells: Air, Volt, Dark, Nature.",
       "actions": {
         "stupefy": {
           "minLevel": 1,
           "actionCard": {
             "name": "Stupefy",
             "type": "action",
-            "description": "Surround your targets with a purple cloud of numbing spores, inflicting poison damage",
+            "description": "Surround your targets with a purple cloud of numbing spores, inflicting nature damage",
             "apCost": 2,
             "focusCost": 3,
             "mpCost": 10,
@@ -10839,7 +10837,7 @@
       "type": "weapon",
       "damage": 2,
       "damageType": "slashing",
-      "range": 2,
+      "range": 3,
       "attributes": [
         "dexterity"
       ],
@@ -12286,7 +12284,7 @@
       "type": "weapon",
       "damage": 2,
       "damageType": "slashing",
-      "range": 2,
+      "range": 3,
       "attributes": [
         "dexterity"
       ],
@@ -12313,7 +12311,7 @@
       "type": "weapon",
       "damage": 2,
       "damageType": "slashing",
-      "range": 2,
+      "range": 3,
       "attributes": [
         "dexterity"
       ],
@@ -12340,7 +12338,7 @@
       "type": "weapon",
       "damage": 2,
       "damageType": "slashing",
-      "range": 2,
+      "range": 3,
       "attributes": [
         "dexterity"
       ],
@@ -16196,7 +16194,7 @@
     "equipment/lasso": {
       "name": "Lasso",
       "type": "action",
-      "description": "Lasso the target with your weapon. You may also use this on an ally to deal no damage and instead vertical pull 3",
+      "description": "Lasso the target with your weapon. You may also use this on an ally to deal no damage and instead vertical pull 2",
       "apCost": 2,
       "focusCost": 0,
       "mpCost": 0,
@@ -16208,7 +16206,6 @@
       "source": "equipment",
       "powerRoll": {
         "rollStats": [
-          "might",
           "dexterity"
         ],
         "tier1Dmg": 0,
@@ -16216,14 +16213,16 @@
         "tier2Dmg": 1,
         "tier2Wpn": true,
         "tier2Effect": {
-          "type": "Special",
-          "effect": "pull 1"
+          "type": "ForcedMovement",
+          "effect": "verticalpull",
+          "distance": 1
         },
         "tier3Dmg": 2,
         "tier3Wpn": true,
         "tier3Effect": {
-          "type": "Special",
-          "effect": "vertical pull 1"
+          "type": "ForcedMovement",
+          "effect": "pull",
+          "distance": 2
         }
       }
     },
@@ -17156,7 +17155,7 @@
     "fairy/shockingGrasp": {
       "name": "Shocking Grasp",
       "type": "action",
-      "description": "Will o wisp charges one of your melee attacks with electricity to deal magical Volt damage. If used on the surface of a body of water the attack becomes an area attack instead, targeting all creatures within 5 tiles of you, but deals 2 less damage",
+      "description": "Will o wisp charges one of your melee attacks with electricity to deal magical Volt damage. If used on the surface of a body of water the attack becomes an area attack instead, targeting all creatures within 5 tiles of you that are in the water, but deals -1 damage.",
       "apCost": 2,
       "focusCost": 1,
       "mpCost": 8,
@@ -17170,8 +17169,8 @@
       "damageType": "volt",
       "powerRoll": {
         "rollStats": [
-          "might",
-          "dexterity"
+          "dexterity",
+          "presence"
         ],
         "tier1Dmg": 0,
         "tier1Wpn": true,
@@ -17198,8 +17197,8 @@
       "duration": "1 minute",
       "powerRoll": {
         "rollStats": [
-          "reason",
-          "willpower"
+          "willpower",
+          "presence"
         ],
         "tier1Dmg": 2,
         "tier1Effect": {
@@ -17241,7 +17240,7 @@
     "fairy/hornetNest": {
       "name": "Hornet Nest",
       "type": "action",
-      "description": "Pixie summons hornets to attack your target, dealing nature damage. This attack ignores cover.",
+      "description": "Pixie summons hornets to attack your target, dealing nature damage. This attack ignores cover and does not require line of sight, only a traversable flight path.",
       "apCost": 2,
       "focusCost": 1,
       "mpCost": 5,
@@ -17255,7 +17254,7 @@
       "powerRoll": {
         "rollStats": [
           "reason",
-          "willpower"
+          "presence"
         ],
         "tier1Dmg": 2,
         "tier2Dmg": 3,
@@ -17299,7 +17298,7 @@
       "powerRoll": {
         "rollStats": [
           "reason",
-          "willpower"
+          "presence"
         ],
         "tier1Dmg": 3,
         "tier2Dmg": 5,
@@ -17324,7 +17323,7 @@
       "powerRoll": {
         "rollStats": [
           "reason",
-          "willpower"
+          "presence"
         ],
         "tier1Dmg": 2,
         "tier2Dmg": 3,
@@ -17379,7 +17378,45 @@
         "Area"
       ],
       "source": "fairy",
-      "duration": "1 minute"
+      "duration": "1 minute",
+      "powerRoll": {
+        "rollStats": [
+          "dexterity"
+        ],
+        "tier1Effect": {
+          "type": "Condition",
+          "effect": "prone",
+          "strength": "strong",
+          "srcStats": [
+            "presence"
+          ],
+          "targetStats": [
+            "dexterity"
+          ]
+        },
+        "tier2Effect": {
+          "type": "Condition",
+          "effect": "prone",
+          "strength": "average",
+          "srcStats": [
+            "presence"
+          ],
+          "targetStats": [
+            "dexterity"
+          ]
+        },
+        "tier3Effect": {
+          "type": "Condition",
+          "effect": "slowed",
+          "strength": "weak",
+          "srcStats": [
+            "presence"
+          ],
+          "targetStats": [
+            "dexterity"
+          ]
+        }
+      }
     },
     "fairy/snowflakes": {
       "name": "Snowflakes",
@@ -17429,8 +17466,8 @@
       "damageType": "air",
       "powerRoll": {
         "rollStats": [
-          "reason",
-          "willpower"
+          "willpower",
+          "presence"
         ],
         "tier1Dmg": 2,
         "tier2Dmg": 3,
@@ -17456,7 +17493,7 @@
       "powerRoll": {
         "rollStats": [
           "reason",
-          "willpower"
+          "presence"
         ],
         "tier1Dmg": 8,
         "tier2Dmg": 11,
@@ -17619,7 +17656,7 @@
       "powerRoll": {
         "rollStats": [
           "reason",
-          "willpower"
+          "presence"
         ],
         "tier1Dmg": 4,
         "tier2Dmg": 6,
@@ -17642,8 +17679,8 @@
       "damageType": "nature",
       "powerRoll": {
         "rollStats": [
-          "reason",
-          "willpower"
+          "willpower",
+          "presence"
         ],
         "tier1Dmg": 3,
         "tier2Dmg": 4,
@@ -17684,7 +17721,7 @@
       "powerRoll": {
         "rollStats": [
           "reason",
-          "willpower"
+          "presence"
         ],
         "tier1Dmg": 3,
         "tier2Dmg": 4,
@@ -17694,7 +17731,7 @@
     "fairy/blessedRain": {
       "name": "Blessed Rain",
       "type": "action",
-      "description": "Selkie ascends into the sky and transforms, causing it to rain heavily. On cast and during the Start Phase of each round the DM must place 3 Blessed droplets on the map, each within 2 tiles of a creature. Any ally that steps into its tile absorbs the droplet, regaining 3 HP.\n\nMaintain: During the Start Phase you can spend 1 Focus and 8 Mana to continue the rain.",
+      "description": "Selkie ascends into the sky and transforms, causing it to rain heavily. On cast and during the Start Phase of each round the DM must place 3 Blessed droplets on the map, each within 2 tiles of a creature. Any ally that steps into its tile absorbs the droplet, regaining 3 HP. You can have up to 5 droplets max after which no more will be created until some are removed.\n\nMaintain: During the Start Phase you can spend 1 Focus and 8 Mana to continue the rain.",
       "apCost": 3,
       "focusCost": 7,
       "mpCost": 25,
@@ -17724,8 +17761,8 @@
       "damageType": "water",
       "powerRoll": {
         "rollStats": [
-          "reason",
-          "willpower"
+          "willpower",
+          "presence"
         ],
         "tier1Dmg": 3,
         "tier1Effect": {
@@ -22646,7 +22683,7 @@
         },
         "reach": {
           "name": "Reach",
-          "description": "This melee weapon has a range of 2"
+          "description": "This melee weapon has a range of 2+"
         },
         "throwing": {
           "name": "Throwing",
