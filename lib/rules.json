@@ -2491,14 +2491,15 @@
           "actionCard": {
             "name": "Rhapsody of War",
             "type": "action",
-            "description": "All targets gain Penetrate (3), mana costs reduced by 3, and can shift up to Speed as a free Reaction.",
+            "description": "Play a song of combat. All targets gain Penetrate (3), have the mana cost of their spells reduced by 3 this round, and can immediately shift up to their Speed as a free Reaction.\n\nMaintain: You may spend 1 Focus at the Start Phase to Maintain this effect and keep it active for this round too",
             "apCost": 1,
             "focusCost": 7,
             "mpCost": 0,
             "tags": [
               "Ranged",
               "Song",
-              "Multi(3)"
+              "Multi(3)",
+              "Maintain"
             ],
             "source": "bard"
           }
@@ -2617,7 +2618,7 @@
           "actionCard": {
             "name": "Eagle Strike",
             "type": "action",
-            "description": "Flip over your target as you strike them. If there is an unoccupied tile on the exact opposite side of them you may warp 3 to the opposite side if in range.",
+            "description": "Flip over your target and then strike. If you are not wearing martial armor and there is an unoccupied tile on the exact opposite side of them you may warp 3 to the opposite side if in range.",
             "apCost": 2,
             "focusCost": 1,
             "mpCost": 0,
@@ -2638,7 +2639,22 @@
               "tier2Dmg": 3,
               "tier2Wpn": true,
               "tier3Dmg": 5,
-              "tier3Wpn": true
+              "tier3Wpn": true,
+              "tier1Effect": {
+                "type": "ForcedMovement",
+                "effect": "push",
+                "distance": 1
+              },
+              "tier2Effect": {
+                "type": "ForcedMovement",
+                "effect": "push",
+                "distance": 1
+              },
+              "tier3Effect": {
+                "type": "ForcedMovement",
+                "effect": "push",
+                "distance": 1
+              }
             }
           }
         },
@@ -3063,12 +3079,12 @@
       },
       "reactions": [
         {
-          "id": "moveLikeAButterfly",
-          "name": "Move like a Butterfly",
+          "id": "trip",
+          "name": "Trip",
           "type": "Reaction",
           "level": 1,
-          "trigger": "A hostile creature casts a spell within 3 tiles of you",
-          "description": "You may shift 2. If this would put you into melee range of the caster and they're using a ranged attack they do not get the bane for having an enemy in melee range for this attack.",
+          "trigger": "A hostile creature tries to stride or shift out of your melee range",
+          "description": "You trip the creature, reducing that movement by 2 tiles. If that reduces the allowed distance to 0 and they are no more than size 2 they are knocked prone.",
           "tags": [],
           "source": ""
         },
@@ -4794,7 +4810,7 @@
         "bigBarriers": {
           "name": "Big Barriers",
           "minLevel": 1,
-          "description": "When granting Barrier you can increase the barrier amount by your shield's defense if you have one equipped."
+          "description": "Gain exactly 5 Barrier at the beginning of combat. When granting Barrier you can increase the barrier amount by your shield's defense if you have one equipped."
         },
         "centerOfGravity": {
           "name": "Center of Gravity",
@@ -4879,17 +4895,16 @@
           "actionCard": {
             "name": "Come at Me",
             "type": "action",
-            "description": "Unleash a battle cry, taunting nearby enemies within 3 tiles.",
+            "description": "Unleash a battle cry, taunting your enemies",
             "apCost": 1,
             "focusCost": 3,
             "mpCost": 0,
-            "range": "3",
+            "range": "5",
             "tags": [
               "Ranged",
-              "Emanation"
+              "Multi (2)"
             ],
             "source": "guardian",
-            "duration": "6 seconds",
             "powerRoll": {
               "rollStats": [
                 "might",
@@ -4906,7 +4921,7 @@
                 ],
                 "effect": "taunted",
                 "strength": "weak",
-                "duration": "turnEnd"
+                "duration": "saveEnd"
               },
               "tier2Effect": {
                 "type": "Condition",
@@ -4919,7 +4934,7 @@
                 ],
                 "effect": "taunted",
                 "strength": "average",
-                "duration": "turnEnd"
+                "duration": "saveEnd"
               },
               "tier3Effect": {
                 "type": "Condition",
@@ -4932,7 +4947,7 @@
                 ],
                 "effect": "taunted",
                 "strength": "strong",
-                "duration": "turnEnd"
+                "duration": "saveEnd"
               }
             }
           }
@@ -5118,13 +5133,13 @@
           "actionCard": {
             "name": "Sacrifical Bond",
             "type": "action",
-            "description": "Choose an adjacent ally. Until the end of the round they gain resistance to all damage types and you gain Vulnerability (X) to all damage types. The vulnerability amount depends on your success tier.",
+            "description": "Choose an adjacent ally. Until the end of the round they gain resistance to all damage types and you gain Vulnerability (X) to all damage types. The vulnerability amount depends on your success tier.\n\nMaintain: You may spend 1 Mana at the Start Phase to Maintain this effect and keep it active for this round too.",
             "apCost": 2,
             "focusCost": 5,
-            "mpCost": 0,
+            "mpCost": 1,
             "range": "1",
             "tags": [
-              "Melee"
+              "Maintain"
             ],
             "source": "guardian",
             "duration": "6 seconds",
@@ -5303,7 +5318,9 @@
           "type": "Reaction",
           "level": 1,
           "trigger": "You are about to be attacked",
-          "description": "You raise your shield, gaining its defense bonus until the start of your next turn."
+          "description": "You raise your shield, gaining its defense bonus until the start of your next turn. If you have 3 or more levels in Guardian then you may treat this as a free Reaction.",
+          "tags": [],
+          "source": ""
         },
         {
           "id": "castle",
@@ -5358,7 +5375,7 @@
         "barrage": {
           "name": "Barrage",
           "minLevel": 3,
-          "description": "Can add multi (2) to ranged weapon attack by spending 5 mana. If it already has multi (2) change it to multi (3). This attack cannot have Delay."
+          "description": "Can add multi (2) to ranged weapon attack by spending 5 mana. If it already has multi (2) change it to multi (3). This attack cannot have Delay or Area."
         },
         "skilledSniper": {
           "name": "Skilled Sniper",
@@ -5597,7 +5614,7 @@
           "actionCard": {
             "name": "Piercing Shot",
             "type": "action",
-            "description": "Fire a shot in a straight 10x1 line starting from you.",
+            "description": "Choose a 10x1 area starting from you. Fire a shot through that line when the Delay effect triggers.",
             "apCost": 2,
             "focusCost": 5,
             "mpCost": 0,
@@ -5606,18 +5623,19 @@
               "Ranged",
               "Weapon",
               "Area",
-              "Penetrate(3)"
+              "Penetrate(3)",
+              "Delay"
             ],
             "source": "marksman",
             "powerRoll": {
               "rollStats": [
                 "dexterity"
               ],
-              "tier1Dmg": 3,
+              "tier1Dmg": 4,
               "tier1Wpn": true,
-              "tier2Dmg": 4,
+              "tier2Dmg": 6,
               "tier2Wpn": true,
-              "tier3Dmg": 6,
+              "tier3Dmg": 8,
               "tier3Wpn": true
             }
           }
@@ -7917,7 +7935,7 @@
           "actionCard": {
             "name": "Monowire",
             "type": "action",
-            "description": "Choose an adjacent sturdy object like a wall or pillar and another such object within 3 tiles. Deploy a very thin wire between both objects. Any hostile creature that enters the area, willingly or not, takes 5 slashing damage with Penetrate (3).",
+            "description": "Choose an adjacent sturdy object like a wall or pillar and another such object within 5 tiles. Deploy a very thin wire between both objects. Any creature that enters the area, willingly or not, takes 5 slashing damage with Penetrate (5).",
             "apCost": 2,
             "focusCost": 7,
             "mpCost": 0,
@@ -8878,7 +8896,7 @@
         "bladestorm": {
           "name": "Bladestorm",
           "minLevel": 1,
-          "description": "Can add multi (2) to melee attack by spending 5 mana. If it already has multi (2) change it to multi (3). This attack cannot have Delay."
+          "description": "Can add multi (2) to melee attack by spending 5 mana. If it already has multi (2) change it to multi (3). This attack cannot have Delay or Area."
         },
         "exploitWeakness": {
           "name": "Exploit Weakness",
@@ -8905,7 +8923,7 @@
             "tags": [
               "Melee",
               "Weapon",
-              "Penetrate(2)"
+              "Penetrate(3)"
             ],
             "source": "weaponmaster",
             "powerRoll": {
@@ -8913,11 +8931,11 @@
                 "might",
                 "dexterity"
               ],
-              "tier1Dmg": 3,
+              "tier1Dmg": 2,
               "tier1Wpn": true,
-              "tier2Dmg": 4,
+              "tier2Dmg": 3,
               "tier2Wpn": true,
-              "tier3Dmg": 6,
+              "tier3Dmg": 5,
               "tier3Wpn": true
             }
           }
@@ -8943,11 +8961,11 @@
                 "might",
                 "dexterity"
               ],
-              "tier1Dmg": 1,
+              "tier1Dmg": 0,
               "tier1Wpn": true,
-              "tier2Dmg": 2,
+              "tier2Dmg": 1,
               "tier2Wpn": true,
-              "tier3Dmg": 3,
+              "tier3Dmg": 2,
               "tier3Wpn": true
             }
           }
@@ -9004,6 +9022,46 @@
               "tier2Wpn": true,
               "tier3Dmg": 5,
               "tier3Wpn": true
+            }
+          }
+        },
+        "longThrust": {
+          "minLevel": 1,
+          "actionCard": {
+            "name": "Long Thrust",
+            "type": "action",
+            "description": "Thrust in a straight line, dealing damage in a 1xX area extending from you where X is your melee range",
+            "apCost": 3,
+            "focusCost": 1,
+            "mpCost": 0,
+            "range": "Wpn",
+            "tags": [
+              "Melee",
+              "Weapon",
+              "Extend",
+              "Area",
+              "Penetrate (2)"
+            ],
+            "source": "weaponmaster",
+            "powerRoll": {
+              "rollStats": [
+                "might",
+                "dexterity"
+              ],
+              "tier1Dmg": 2,
+              "tier1Wpn": true,
+              "tier2Dmg": 3,
+              "tier2Wpn": true,
+              "tier3Dmg": 5,
+              "tier3Wpn": true,
+              "tier2Effect": {
+                "type": "Condition",
+                "effect": "hemorrhage"
+              },
+              "tier3Effect": {
+                "type": "Condition",
+                "effect": "hemorrhage"
+              }
             }
           }
         },
@@ -9142,12 +9200,38 @@
                 "might",
                 "dexterity"
               ],
-              "tier1Dmg": 0,
+              "tier1Dmg": 2,
               "tier1Wpn": true,
-              "tier2Dmg": 1,
+              "tier2Dmg": 3,
               "tier2Wpn": true,
-              "tier3Dmg": 2,
-              "tier3Wpn": true
+              "tier3Dmg": 4,
+              "tier3Wpn": true,
+              "tier3Effect": {
+                "type": "Condition",
+                "effect": "bleeding",
+                "strength": "strong",
+                "targetStats": [
+                  "dexterity"
+                ],
+                "srcStats": [
+                  "might",
+                  "dexterity"
+                ],
+                "duration": "turnEnd"
+              },
+              "tier2Effect": {
+                "type": "Condition",
+                "effect": "bleeding",
+                "strength": "average",
+                "srcStats": [
+                  "might",
+                  "dexterity"
+                ],
+                "targetStats": [
+                  "dexterity"
+                ],
+                "duration": "turnEnd"
+              }
             }
           }
         },
@@ -9233,7 +9317,7 @@
               "Melee",
               "Weapon",
               "Delay",
-              "Penetrate(3)"
+              "Penetrate(5)"
             ],
             "source": "weaponmaster",
             "powerRoll": {
@@ -9281,37 +9365,6 @@
             }
           }
         },
-        "longThrust": {
-          "minLevel": 5,
-          "actionCard": {
-            "name": "Long Thrust",
-            "type": "action",
-            "description": "Thrust in a straight line, dealing damage in a 1xX area extending from you where X is your melee range. If using a Dex-based weapon gain Penetrate (3)",
-            "apCost": 3,
-            "focusCost": 7,
-            "mpCost": 0,
-            "range": "Wpn",
-            "tags": [
-              "Melee",
-              "Weapon",
-              "Extend",
-              "Area"
-            ],
-            "source": "weaponmaster",
-            "powerRoll": {
-              "rollStats": [
-                "might",
-                "dexterity"
-              ],
-              "tier1Dmg": 4,
-              "tier1Wpn": true,
-              "tier2Dmg": 7,
-              "tier2Wpn": true,
-              "tier3Dmg": 10,
-              "tier3Wpn": true
-            }
-          }
-        },
         "swordDance": {
           "minLevel": 5,
           "actionCard": {
@@ -9337,6 +9390,36 @@
               "tier2Dmg": 9,
               "tier2Wpn": true,
               "tier3Dmg": 12,
+              "tier3Wpn": true
+            }
+          }
+        },
+        "waveSwing": {
+          "minLevel": 5,
+          "actionCard": {
+            "name": "Wave Swing",
+            "type": "action",
+            "description": "Requires a melee weapon. Swing your weapon to release a wave at the target. Deals magical damage of the same type as the weapon. This is treated as a ranged attack.",
+            "apCost": 2,
+            "focusCost": 7,
+            "mpCost": 3,
+            "range": "5",
+            "tags": [
+              "Melee",
+              "Ranged",
+              "Weapon"
+            ],
+            "source": "weaponmaster",
+            "powerRoll": {
+              "rollStats": [
+                "might",
+                "dexterity"
+              ],
+              "tier1Dmg": 2,
+              "tier1Wpn": true,
+              "tier2Dmg": 3,
+              "tier2Wpn": true,
+              "tier3Dmg": 5,
               "tier3Wpn": true
             }
           }
@@ -22475,7 +22558,7 @@
         },
         "restrained": {
           "name": "Restrained",
-          "description": "Speed is 0 and you cannot change posture. You take a Bane on Might and Dexterity rolls and attacks against you gain a Boon."
+          "description": "Speed is 0 and you cannot Change Posture. You take a Bane on Might and Dexterity rolls and attacks against you gain a Boon."
         },
         "shaken": {
           "name": "Shaken",
