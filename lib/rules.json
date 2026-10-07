@@ -1085,7 +1085,7 @@
       "aerialMenace": {
         "name": "Aerial Menace",
         "minLevel": 3,
-        "description": "Your ranged attacks deal +3 damage against flying targets",
+        "description": "Your ranged attacks deal +2 damage against flying targets",
         "prereqs": {
           "classes": {
             "1": [
@@ -1308,7 +1308,8 @@
         "prereqs": {
           "classes": {
             "5": [
-              "fury"
+              "fury",
+              "guardian"
             ],
             "7": [
               "rider",
@@ -1483,6 +1484,11 @@
           "stat": "ip",
           "amount": 2,
           "once": true
+        },
+        {
+          "stat": "mp",
+          "amount": 3,
+          "frequency": 1
         }
       ],
       "focusFeat": {
@@ -1730,8 +1736,8 @@
           "actionCard": {
             "name": "Pressurized Balloon",
             "type": "action",
-            "description": "Create and deploy a pressurized balloon. When it takes damage it pops, pushing back all creatures within 1 tile of it, forcing them to make a Might power roll.",
-            "apCost": 2,
+            "description": "Create and deploy a pressurized balloon. When it takes damage or any creature tries to enter its space it pops, pushing back all creatures within 1 tile of it",
+            "apCost": 1,
             "focusCost": 0,
             "mpCost": 0,
             "range": "5",
@@ -1744,12 +1750,12 @@
             "duration": "1 minute",
             "powerRoll": {
               "rollStats": [
-                "might"
+                "reason"
               ],
               "tier1Effect": {
                 "type": "ForcedMovement",
                 "effect": "push",
-                "distance": 4
+                "distance": 1
               },
               "tier2Effect": {
                 "type": "ForcedMovement",
@@ -1759,7 +1765,7 @@
               "tier3Effect": {
                 "type": "ForcedMovement",
                 "effect": "push",
-                "distance": 1
+                "distance": 4
               }
             }
           }
@@ -2047,7 +2053,7 @@
         "backupSinger": {
           "name": "Backup Singer",
           "minLevel": 3,
-          "description": "You gain a tiny pet animal like a small frog or parrot as an Assistant that can repeat your song at the start of your next turn."
+          "description": "You gain a tiny pet animal like a small frog or parrot as an Assistant that can repeat your Emanation songs at the start of your next turn."
         },
         "targetAudience": {
           "name": "Target Audience",
@@ -2215,7 +2221,7 @@
           "actionCard": {
             "name": "Note Blast",
             "type": "action",
-            "description": "Unleash a blast of air, either with your voice or instrument, dealing physical air damage",
+            "description": "Unleash a blast of air, either with your voice or instrument, dealing physical air damage. The target is also deafened [turn end].",
             "apCost": 2,
             "focusCost": 3,
             "mpCost": 0,
@@ -2405,7 +2411,7 @@
           "actionCard": {
             "name": "Pitch Trauma",
             "type": "action",
-            "description": "Unleash an extremely high pitch note. You may choose to ignore the Multi tag and instead target a single solid targetable object or Unliving creature, causing it to lose 6 HP, which is enough to destroy most Wood-durability objects.",
+            "description": " Unleash an extremely high pitch note. If the target is afflicted with Bleeding then it is also afflicted with Deafened for the same duration. You may choose to ignore the Multi tag and instead target a single solid targetable object or Unliving creature, causing it to lose 6 HP, which is enough to destroy most Wood-durability objects.",
             "apCost": 2,
             "focusCost": 5,
             "mpCost": 0,
@@ -2503,6 +2509,64 @@
             ],
             "source": "bard"
           }
+        },
+        "drowsiness": {
+          "minLevel": 5,
+          "actionCard": {
+            "name": "Drowsiness",
+            "type": "action",
+            "description": "Play a song so boring that it makes your targets drowsy",
+            "apCost": 2,
+            "focusCost": 7,
+            "mpCost": 0,
+            "tags": [
+              "Ranged",
+              "Song",
+              "Multi (2)"
+            ],
+            "source": "bard",
+            "powerRoll": {
+              "rollStats": [
+                "presence"
+              ],
+              "tier1Effect": {
+                "type": "Condition",
+                "effect": "shaken",
+                "strength": "weak",
+                "targetStats": [
+                  "willpower"
+                ],
+                "srcStats": [
+                  "presence"
+                ],
+                "duration": "saveEnd"
+              },
+              "tier2Effect": {
+                "type": "Condition",
+                "effect": "shaken",
+                "strength": "average",
+                "srcStats": [
+                  "presence"
+                ],
+                "targetStats": [
+                  "willpower"
+                ],
+                "duration": "saveEnd"
+              },
+              "tier3Effect": {
+                "type": "Condition",
+                "effect": "dazed",
+                "strength": "strong",
+                "srcStats": [
+                  "presence"
+                ],
+                "targetStats": [
+                  "willpower"
+                ],
+                "duration": "saveEnd"
+              }
+            }
+          }
         }
       },
       "reactions": [
@@ -2552,12 +2616,12 @@
         "chainStrike": {
           "name": "Chain Strike",
           "minLevel": 1,
-          "description": "After you attack with a Brawling weapon as part of an action you may make an Opportunity Attack with a Brawling weapon. If you spend 1 Focus you can add Repeat(2) to this Opportunity Attack. Your target does not have to be the same as the first. You can also treat your fists as a weapon for the sake of changing damage types."
+          "description": "After you attack with a Brawling attack as part of an action you may make an Opportunity Attack with a Brawling weapon. If you spend 1 Focus you can add Repeat(2) to this Opportunity Attack. Your target does not have to be the same as the first. You can also treat your fists as a weapon for the sake of changing damage types."
         },
         "onTheMove": {
           "name": "On the Move",
           "minLevel": 1,
-          "description": "After you inflict forced movement on a hostile creature with a melee action you may shift 1 if you do not have martial armor equipped."
+          "description": "After you inflict forced movement or the Prone condition on a hostile creature with a melee action you may shift 1 if you do not have martial armor equipped."
         },
         "unarmoredDefense": {
           "name": "Unarmored Defense",
@@ -3083,7 +3147,7 @@
           "name": "Trip",
           "type": "Reaction",
           "level": 1,
-          "trigger": "A hostile creature tries to stride or shift out of your melee range",
+          "trigger": "A hostile creature tries to stride or shift within 1 tile of you",
           "description": "You trip the creature, reducing that movement by 2 tiles. If that reduces the allowed distance to 0 and they are no more than size 2 they are knocked prone.",
           "tags": [],
           "source": ""
@@ -3094,8 +3158,10 @@
           "type": "Reaction",
           "level": 3,
           "trigger": "You are subjected to forced movement",
-          "description": "Reduce the distance by 2 after factoring in Stability. If the remaining distance is 0 then you may instead inflict slide 2 on the attacker after the attack. This slide ignores stability",
-          "focusCost": 1
+          "description": "Reduce the distance by 2 after factoring in Stability. If the remaining distance is 0 then you may instead inflict slide 2 on the attacker after the attack if either of you are within each other's melee range. This slide ignores stability.",
+          "focusCost": 1,
+          "tags": [],
+          "source": ""
         }
       ],
       "statBonuses": [
@@ -3755,7 +3821,10 @@
           "level": 1,
           "focusCost": 0,
           "trigger": "An enemy within 8 tiles makes an attack",
-          "description": "Inflict Bane on that attack."
+          "description": "Inflict Bane on that attack. If this does not result in a change in success tier the mana cost is refunded.",
+          "mpCost": 5,
+          "tags": [],
+          "source": ""
         },
         {
           "id": "evilEye",
@@ -5190,7 +5259,8 @@
             "range": "3",
             "tags": [
               "Melee",
-              "Emanation"
+              "Emanation",
+              "Heavy"
             ],
             "source": "guardian",
             "powerRoll": {
@@ -5315,10 +5385,10 @@
         {
           "id": "reactiveShield",
           "name": "Reactive Shield",
-          "type": "Reaction",
+          "type": "Free Reaction",
           "level": 1,
           "trigger": "You are about to be attacked",
-          "description": "You raise your shield, gaining its defense bonus until the start of your next turn. If you have 3 or more levels in Guardian then you may treat this as a free Reaction.",
+          "description": "You raise your shield, gaining its defense bonus until the start of your next turn. This can be used as a free Reaction.",
           "tags": [],
           "source": ""
         },
@@ -8884,10 +8954,10 @@
         "description": "The first time per round an enemy takes damage from a melee attack you gain 1 Focus"
       },
       "passives": {
-        "weaponBond": {
-          "name": "Weapon Bond",
+        "signatureWeapon": {
+          "name": "Signature Weapon",
           "minLevel": 1,
-          "description": "Choose a melee weapon you are wielding. You bond to that weapon. Once per combat you can ignore one Bane on an attack using this weapon. You can change your bonded weapon after a Long Rest.",
+          "description": "Choose a melee weapon you are wielding. You bond to that weapon. Once per combat you can convert any Banes you have on an attack using this weapon into Boons. You can change your bonded weapon after a Long Rest.",
           "fixedMaxCharges": 1,
           "chargeReset": [
             "endOfCombat"
@@ -9735,7 +9805,7 @@
           "actionCard": {
             "name": "Omega Zone",
             "type": "action",
-            "description": "Encase a 5x5 area in magical energy. While standing in the area all hostile creatures are afflicted with Sundered. All forced movement effects in this area have their distance reduced by 1.\n\n- Maintain: You may spend 1 Focus and 5 Mana at the Start Phase to Maintain this spell and keep the field active for this round too.",
+            "description": "Encase a 5x5 area in magical energy. While standing in the area all hostile creatures are afflicted with Sundered and Deafened. All forced movement effects in this area have their distance reduced by 1.\n\n- Maintain: You may spend 1 Focus and 5 Mana at the Start Phase to Maintain this spell and keep the field active for this round too.",
             "apCost": 2,
             "focusCost": 5,
             "mpCost": 10,
@@ -10875,7 +10945,14 @@
       ],
       "actionIDs": [
         "equipment/jab"
-      ]
+      ],
+      "requirements": {
+        "classes": {
+          "1": [
+            "brawler"
+          ]
+        }
+      }
     },
     "wp_dagger": {
       "name": "Dagger",
@@ -14413,7 +14490,7 @@
       ]
     },
     "shld_sparkingBuckler": {
-      "name": "Sparking Buckler",
+      "name": "Spark Buckler",
       "quantity": 1,
       "description": "Grants Sparking Ignition.",
       "value": 450,
@@ -14461,7 +14538,7 @@
     "shld_elvishDuelingBuckler": {
       "name": "Elvish Dueling Buckler",
       "quantity": 1,
-      "description": "Grants Duelist's Parry; empowers Quick Block for a follow-up opportunity attack.",
+      "description": "Grants Duelist's Parry; gives you counter attacks in the form of opportunity attack.",
       "value": 2785,
       "allowedSlots": [
         "rightHand",
@@ -14478,9 +14555,6 @@
       "actionIDs": [
         "equipment/quickBlock",
         "duelistsParry"
-      ],
-      "traits": [
-        "elvishDuelingBuckler"
       ]
     },
     "shld_mirrorBuckler": {
@@ -16118,6 +16192,67 @@
       "rank": "intermediate",
       "actionIDs": [
         "stylishTwirl"
+      ]
+    },
+    "shld_sparkShield": {
+      "name": "Spark Shield",
+      "quantity": 1,
+      "description": "Grants Sparking Ignition.",
+      "value": 550,
+      "allowedSlots": [
+        "rightHand",
+        "leftHand"
+      ],
+      "tags": [
+        "martial"
+      ],
+      "type": "shield",
+      "defense": 2,
+      "stability": 1,
+      "range": 1,
+      "rank": "intermediate",
+      "actionIDs": [
+        "sparkingIgnition",
+        "equipment/raiseShield"
+      ]
+    },
+    "arm_glassRobes": {
+      "name": "Glass Robes",
+      "quantity": 1,
+      "description": "+35 Max Mana. -5 Max HP.",
+      "value": 1000,
+      "allowedSlots": [
+        "armor"
+      ],
+      "tags": [],
+      "type": "armor",
+      "defense": {
+        "value": 0
+      },
+      "stability": 0,
+      "statBonuses": {
+        "mp": 35,
+        "hp": -5
+      },
+      "rank": "intermediate"
+    },
+    "acc_slippersOfTransposition": {
+      "name": "Slippers of Transposition",
+      "quantity": 1,
+      "description": "2 charges per long rest. You may spend an Interact action to target 2 creatures or unconnected objects no greater than size 2 that are within 5 tiles of each other and 10 tiles of you. Your targets swap positions. There must be sufficient space available. If targeting creatures they must be no more than Elite-class enemies. If one of the targets is an Elite-class creature then 2 charges must be consumed.",
+      "value": 3500,
+      "allowedSlots": [
+        "feet"
+      ],
+      "tags": [],
+      "type": "misc",
+      "rank": "advanced",
+      "fixedMaxCharges": 2,
+      "chargeReset": [
+        "longRest"
+      ],
+      "traits": [
+        "passives.acc_slippersOfTransposition"
       ]
     }
   },
@@ -17970,7 +18105,7 @@
     "thrownCounterspell": {
       "name": "Thrown Counterspell",
       "type": "reaction",
-      "description": "Throw this dagger at the caster as a ranged opportunity attack using full weapon damage",
+      "description": "Throw this dagger at the caster as a ranged opportunity attack using full weapon damage. The target loses 3 Mana.",
       "tags": [
         "Ranged",
         "Weapon",
@@ -20029,7 +20164,7 @@
     "duelistsParry": {
       "name": "Duelist's Parry",
       "type": "reaction",
-      "description": "After you use Quick Block against an attack, when that attack resolves you may make an opportunity attack against the attacker.",
+      "description": "You may make an Opportunity attack on the target for half your weapon's damage (round up) and then shift 1",
       "apCost": 0,
       "focusCost": 0,
       "mpCost": 0,
@@ -20039,7 +20174,7 @@
       "hiddenTags": [
         "shield"
       ],
-      "trigger": "After you use Quick Block against an attack"
+      "trigger": "You are attacked while you have your shield raised"
     },
     "magicShell": {
       "name": "Magic Shell",
@@ -20106,7 +20241,7 @@
       "apCost": 1,
       "focusCost": 0,
       "mpCost": 0,
-      "range": "3",
+      "range": "5",
       "damageType": "fire",
       "tags": [
         "Ranged",
@@ -20273,7 +20408,7 @@
       "name": "Telekinetic Slide",
       "type": "action",
       "description": "Inflict slide 2 on any target within 5 tiles with an Interact action.",
-      "apCost": 0,
+      "apCost": 1,
       "focusCost": 0,
       "mpCost": 0,
       "range": "5",
@@ -20669,18 +20804,6 @@
         }
       ]
     },
-    "elvishDuelingBuckler": {
-      "name": "Elvish Dueling Buckler",
-      "minLevel": 1,
-      "description": "Empowers Quick Block while this buckler is equipped.",
-      "effects": [
-        {
-          "type": "EnhanceAction",
-          "actionId": "equipment/quickBlock",
-          "appendDescription": "After the triggering attack resolves you may make an opportunity attack against the attacker."
-        }
-      ]
-    },
     "spikedIronShield": {
       "name": "Spiked Iron Shield",
       "minLevel": 1,
@@ -21013,6 +21136,15 @@
           "stat": "speed",
           "value": "-1"
         }
+      ]
+    },
+    "passives.acc_slippersOfTransposition": {
+      "name": "Slippers of Transposition",
+      "minLevel": 1,
+      "description": "You may spend an Interact action to target 2 creatures or unconnected objects no greater than size 2 that are within 5 tiles of each other and 10 tiles of you. Your targets swap positions. There must be sufficient space available. If targeting creatures they must be no more than Elite-class enemies. If one of the targets is an Elite-class creature then 2 charges must be consumed.",
+      "fixedMaxCharges": 2,
+      "chargeReset": [
+        "longRest"
       ]
     }
   },
@@ -22539,6 +22671,10 @@
         "dazed": {
           "name": "Dazed",
           "description": "Lose 2 AP for your next turn. You cannot use reactions. Does not take effect if target has Stunned."
+        },
+        "deafened": {
+          "name": "Deafened",
+          "description": "You cannot hear anything and are unaffected by sound-based effects."
         },
         "frightened": {
           "name": "Frightened",
