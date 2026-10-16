@@ -2621,7 +2621,7 @@
         "onTheMove": {
           "name": "On the Move",
           "minLevel": 1,
-          "description": "After you inflict forced movement or the Prone condition on a hostile creature with a melee action you may shift 1 if you do not have martial armor equipped."
+          "description": "After you inflict forced movement or the Prone condition on a hostile creature with a melee action you may shift 1 if you do not have martial armor equipped. If you spend 1 Focus you may increase your shift up to 5 as long as your destination is adjacent to them."
         },
         "unarmoredDefense": {
           "name": "Unarmored Defense",
@@ -5600,7 +5600,7 @@
             "apCost": 2,
             "focusCost": 3,
             "mpCost": 0,
-            "range": "Wpn",
+            "range": "2-Wpn",
             "tags": [
               "Ranged",
               "Weapon"
@@ -6088,7 +6088,7 @@
             "woundLicking": {
               "name": "Wound Licking",
               "minLevel": 3,
-              "description": "If an ally within 3 tiles takes damage from an Opportunity attack you can reduce the damage by 3 and take that damage instead."
+              "description": "If an ally within 3 tiles takes damage from an Opportunity attack you can reduce the damage by 3 and take the remaining damage instead."
             }
           }
         },
@@ -6243,7 +6243,7 @@
             "apCost": 2,
             "focusCost": 1,
             "mpCost": 13,
-            "range": "10",
+            "range": "2-10",
             "tags": [
               "Ranged",
               "Spell",
@@ -7000,7 +7000,7 @@
         "name": "Momentum",
         "description": "The first time per round an ally strides or shifts you gain 1 Focus."
       },
-      "freeFeaturesNote": "Rider: You can always find where to buy mounts in the area within a day if the environment is suitable.\n\nYou may use 1H melee weapons while mounted. The other hand must be either empty or holding a shield so that you can still control your mount. You may also use ranged weapons, but you take a Bane on any ranged attacks if you have already changed position this round.",
+      "freeFeaturesNote": "Rider: You can always find where to buy mounts in the area within a day if the environment is suitable.\n\nYou may use 1H melee weapons while mounted. The other hand must be either empty or holding a shield so that you can still control your mount. You may also use ranged weapons, but you take a Bane on any ranged attacks if you have already changed position this round.\nYou may shift while mounted, but only through Rider abilities",
       "passives": {
         "faithfulSteed": {
           "name": "Faithful Steed",
@@ -7010,7 +7010,7 @@
         "twoStep": {
           "name": "Two-Step",
           "minLevel": 1,
-          "description": "You are no longer unable to shift while mounted. While mounted, Cavalier abilities let you shift normally while non-cavalier abilities that let you shift are converted to shift 1."
+          "description": "You are no longer unable to shift while mounted. While mounted, non-cavalier abilities that let you shift are converted to shift 1."
         },
         "longStride": {
           "name": "Long Stride",
@@ -7306,7 +7306,7 @@
           "actionCard": {
             "name": "Cyclone Starter",
             "type": "action",
-            "description": "Stride up to your Speed. If you circle an area and end your movement at your start position then you whip up a cyclone — all creatures in the area lose up to 5 Barrier and then take physical air damage.",
+            "description": "Shift up to your Speed. If you circle an area and end your movement at your start position then you whip up a cyclone — all creatures in the area lose up to 10 Barrier and then take physical air damage.",
             "apCost": 2,
             "focusCost": 5,
             "tags": [
@@ -8085,7 +8085,7 @@
             "apCost": 2,
             "focusCost": 0,
             "mpCost": 5,
-            "range": "12",
+            "range": "3-12",
             "tags": [
               "Ranged",
               "Spell"
@@ -8150,7 +8150,7 @@
             "apCost": 2,
             "focusCost": 1,
             "mpCost": 8,
-            "range": "10",
+            "range": "2-10",
             "tags": [
               "Ranged",
               "Spell",
@@ -8215,7 +8215,7 @@
             "apCost": 2,
             "focusCost": 3,
             "mpCost": 8,
-            "range": "12",
+            "range": "3-12",
             "tags": [
               "Ranged",
               "Spell"
@@ -8337,7 +8337,7 @@
             "apCost": 2,
             "focusCost": 5,
             "mpCost": 10,
-            "range": "10",
+            "range": "2-10",
             "tags": [
               "Ranged",
               "Spell"
@@ -8957,10 +8957,10 @@
         "signatureWeapon": {
           "name": "Signature Weapon",
           "minLevel": 1,
-          "description": "Choose a melee weapon you are wielding. You bond to that weapon. Once per combat you can convert any Banes you have on an attack using this weapon into Boons. You can change your bonded weapon after a Long Rest.",
+          "description": "Choose a weapon you are wielding. You bond to that weapon. Once per Long Rest you can convert any Banes you have on an attack using this weapon into Boons. You can change your bonded weapon after a Long Rest.",
           "fixedMaxCharges": 1,
           "chargeReset": [
-            "endOfCombat"
+            "longRest"
           ]
         },
         "bladestorm": {
@@ -9654,7 +9654,7 @@
             "apCost": 2,
             "focusCost": 3,
             "mpCost": 5,
-            "range": "10",
+            "range": "2-10",
             "tags": [
               "Ranged",
               "Spell"
