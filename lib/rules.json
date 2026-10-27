@@ -3147,8 +3147,8 @@
           "name": "Trip",
           "type": "Reaction",
           "level": 1,
-          "trigger": "A hostile creature tries to stride or shift within 1 tile of you",
-          "description": "You trip the creature, reducing that movement by 2 tiles. If that reduces the allowed distance to 0 and they are no more than size 2 they are knocked prone.",
+          "trigger": "A hostile creature no more than size 2 tries to stride or shift within 1 tile of you",
+          "description": "You trip the creature, reducing that movement by 2 tiles. If that reduces the allowed distance to 0 they are knocked prone.",
           "tags": [],
           "source": ""
         },
@@ -5398,7 +5398,7 @@
           "type": "Reaction",
           "level": 3,
           "trigger": "An ally within 2 tiles is attacked by a hostile creature",
-          "description": "Swap places with the ally and take that attack for them. If they take up more tiles than you then you can only swap if there is space.",
+          "description": "Swap places with the ally and take that attack for them. If the attack has a repeat effect then you still take all attacks that would target your ally. If If they take up more tiles than you then you can only swap if there is space.",
           "focusCost": 1,
           "tags": [],
           "source": ""
@@ -8636,7 +8636,7 @@
           "actionCard": {
             "name": "Mark",
             "type": "action",
-            "description": "Mark a target. The mark lasts until you are dying, dead, or until you use this again. Only one Mark can exist on a creature at a time and if another Mark ability is used on one that already has Mark then the new one replaces the old one. If the marked target dies then you may spend a free Reaction to mark a new target in range. As long as you have line of sight to the marked creature all allies gain a Boon on Power Rolls made against that creature.",
+            "description": "Mark a target. The mark lasts until you are dying, dead, or until you use this again. Only one Mark can exist on a creature at a time and if another Mark ability is used on one that already has Mark then the new one replaces the old one. If the marked target dies then you may spend a free Reaction to mark a new target in range. As long as you have line of sight to the marked creature all allies except you gain a Boon on Power Rolls made against that creature.",
             "apCost": 1,
             "focusCost": 0,
             "mpCost": 0,
@@ -9718,7 +9718,7 @@
           "actionCard": {
             "name": "Imprison",
             "type": "action",
-            "description": "Attempt to restrain your target, dealing dark damage. When applying a slow if the target is already slowed then they are restrained instead\n\n5 Focus: This attack gains Repeat(2)",
+            "description": "Attempt to restrain your target, dealing dark damage. When applying a slow if the target is already slowed then they are restrained instead\n\n5 Focus: This attack gains Repeat(2), but deals 2 less damage",
             "apCost": 2,
             "focusCost": 1,
             "mpCost": 8,
