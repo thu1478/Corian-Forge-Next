@@ -7706,7 +7706,7 @@
             "name": "Caltrop Deployment",
             "type": "action",
             "description": "Drop caltrops in a 3x3 area. That area is now difficult terrain.",
-            "apCost": 2,
+            "apCost": 1,
             "focusCost": 3,
             "mpCost": 0,
             "range": "4",
@@ -7756,7 +7756,7 @@
           "actionCard": {
             "name": "Hit and Run",
             "type": "action",
-            "description": "Strike a target with your weapon. Afterwards you may Stride up to half your Speed. If you are not wearing martial armor you may use your full Speed instead.",
+            "description": "Strike a target with your weapon. Afterwards you may Stride up to half your Speed. If you are not wearing martial armor you may Shift instead.",
             "apCost": 2,
             "focusCost": 1,
             "mpCost": 0,
@@ -7919,6 +7919,7 @@
             "range": "Wpn",
             "tags": [
               "Melee",
+              "Ranged",
               "Weapon"
             ],
             "source": "scout",
@@ -8011,7 +8012,7 @@
             "apCost": 2,
             "focusCost": 7,
             "mpCost": 0,
-            "range": "3",
+            "range": "1",
             "tags": [
               "Ranged",
               "Area",
@@ -10535,7 +10536,7 @@
           "name": "Photosynthesis",
           "type": "selectable",
           "ptCost": 2,
-          "description": "Once per day if you complete a Short Rest during the daytime in the sun and you spent at least one Respite you can regain 8 HP and 4 MP. This does not stack with the effects of cooking."
+          "description": "Once per day if you complete a Short Rest during the daytime in the sun and you spent at least one Respite you can regain 4 HP and 4 MP. This does not stack with the effects of cooking."
         },
         "florian_vulnerability": {
           "name": "Vulnerability",
