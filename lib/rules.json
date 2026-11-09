@@ -1810,9 +1810,9 @@
               "rollStats": [
                 "reason"
               ],
-              "tier1Dmg": 2,
-              "tier2Dmg": 3,
-              "tier3Dmg": 5
+              "tier1Dmg": 3,
+              "tier2Dmg": 4,
+              "tier3Dmg": 6
             }
           }
         },
@@ -3196,7 +3196,7 @@
         "anima": {
           "name": "Anima",
           "minLevel": 3,
-          "description": "Twice per Long Rest you may spend 2 AP to transform into one of your Anima for up to 1 hour. When you do so you gain Barrier equal to Druid level x 3. You may select 2 Anima of level 2 or lower. At level 5 you may select 1 Anima of level 4 or lower.\n\nBenefits:\n- You can stay in Anima form up to 1 hour.\n- On use you immediately gain Barrier equal to Druid level x 3.\n- You take on the chosen Anima's Might, Dexterity, Defense, Stability, and Speed.\n- You may use Brawler abilities while in Anima form.\n\nDrawbacks:\n- While in Anima form you cannot speak any of your languages or cast spells, though you may still Maintain existing effects.\n- If you are Bloodied or take physical damage exceeding your Might score in a single hit you revert back to normal form.\n- You cannot use Anima while wearing martial armor.",
+          "description": "Twice per Long Rest you may spend 2 AP to transform into one of your Anima for up to 1 hour. When you do so you gain Barrier equal to Druid level x 3. You may select 2 Anima of level 2 or lower. At level 5 you may select 1 Anima of level 4 or lower.\n\nBenefits:\n- You can stay in Anima form up to 1 hour.\n- On use you immediately gain Barrier equal to Druid level x 3.\n- You take on the chosen Anima's Might, Dexterity, Defense, Stability, and Speed.\n- You may use Brawler abilities while in Anima form.\n\nDrawbacks:\n- While in Anima form you cannot speak any of your languages or cast spells, though you may still Maintain existing effects.\n- If you gain Dying status, or take physical damage exceeding your Might score in a single hit you revert back to normal form.\n- You cannot use Anima while wearing martial armor.",
           "fixedMaxCharges": 2,
           "chargeReset": [
             "longRest"
@@ -3916,7 +3916,7 @@
           "actionCard": {
             "name": "Rock Armor",
             "type": "action",
-            "description": "Choose a target. Nearby rocks form around them, increasing their defense by 3, Stability by 1, and making them Slowed.\n\nMaintain: During the start phase you may spend 3 Mana to maintain this ability. If you do so then the effect is active for this round as well.",
+            "description": "Choose a target no greater than size 2. Nearby rocks form around them, increasing their defense by 3, Stability by 1, and making them Slowed.\n\nMaintain: During the start phase you may spend 3 Mana to maintain this ability. If you do so then the effect is active for this round as well.",
             "apCost": 2,
             "focusCost": 1,
             "mpCost": 8,
@@ -3961,17 +3961,17 @@
           "actionCard": {
             "name": "Summoner's Infusion",
             "type": "action",
-            "description": "Give Infusion (Earth) or Infusion (Dark) depending on whether you chose Geomancy or Necromancy to your weapon or an ally's weapon. That weapon's damage type changes to earth. You may only have one of these active at a time. You cannot use this if you don't have the Summoner passive.",
+            "description": "Give either Infusion (Earth) or Infusion (Dark) to your weapon or an ally's weapon for the remainder of the round. The next attack with that weapon can become ranged with a range of 5. You may only have one of these active at a time.",
             "apCost": 1,
             "focusCost": 0,
-            "mpCost": 2,
-            "range": "8",
+            "mpCost": 3,
+            "range": "3",
             "tags": [
               "Ranged",
               "Spell"
             ],
             "source": "conjurer",
-            "duration": "18 seconds"
+            "duration": "6 seconds"
           }
         },
         "totemOfAnger": {
@@ -4391,7 +4391,7 @@
             "name": "Yeet",
             "type": "action",
             "description": "If a creature is currently Grabbed by you then you can throw them, using them as a projectile. The throwing distance is equal to your Might modifier, reduced by the thrown creature's stability. If the thrown creature's size is greater than 1L this deals bonus damage equal to the creature's size if it hits another target to both targets. This is treated as forced movement",
-            "apCost": 1,
+            "apCost": 2,
             "focusCost": 0,
             "mpCost": 0,
             "range": "X",
@@ -4836,7 +4836,9 @@
           "type": "Reaction",
           "level": 1,
           "trigger": "You receive forced movement",
-          "description": "Temporarily increase your Stability by 1 for that forced movement only"
+          "description": "Temporarily increase your Stability by 2 for that forced movement only",
+          "tags": [],
+          "source": ""
         },
         {
           "id": "unstoppable",
@@ -7905,12 +7907,12 @@
             }
           }
         },
-        "crossSlash": {
+        "killSteal": {
           "minLevel": 3,
           "actionCard": {
-            "name": "Cross Slash",
+            "name": "Kill Steal",
             "type": "action",
-            "description": "You may stride 1 towards your target as part of this attack. If you are dual wielding this deals an extra 2 damage.",
+            "description": "Stride up to your Speed and then attack your target. If they are killed then you may Shift up to your Speed. You may also Hide for free afterwards if the conditions are met.",
             "apCost": 2,
             "focusCost": 3,
             "mpCost": 0,
@@ -8937,7 +8939,12 @@
         {
           "stat": "hp",
           "amount": 1,
-          "frequency": 1
+          "frequency": 2
+        },
+        {
+          "stat": "mp",
+          "amount": 1,
+          "frequency": 2
         }
       ]
     },
@@ -9515,7 +9522,9 @@
           "chargeReset": [
             "endOfCombat"
           ],
-          "description": "You gain Parry charges equal to your Dexterity modifier. You may spend a Parry charge to reduce the incoming damage by 5 as a free Reaction. If you are dual wielding or wielding a 2H weapon you reduce the damage by 6 instead. Your Parry charges reset at the end of combat. You must have a melee weapon equipped."
+          "description": "You gain Parry charges equal to your Dexterity modifier. You may spend a Parry charge to reduce the incoming damage by 5 as a free Reaction. If you are dual wielding or wielding a 2H weapon you reduce the damage by 6 instead. Your Parry charges reset at the end of combat. You must have a melee weapon equipped. If you reduce the total damage to 0 then the attacker is afflicted with weakened [round end]",
+          "tags": [],
+          "source": ""
         }
       ],
       "statBonuses": [
@@ -11899,7 +11908,7 @@
       "defense": {
         "value": 7
       },
-      "stability": 1,
+      "stability": 2,
       "traits": [
         "plateArmor"
       ]
@@ -14391,7 +14400,7 @@
       "defense": {
         "value": 7
       },
-      "stability": 1,
+      "stability": 2,
       "rank": "intermediate",
       "traits": [
         "hellknightArmor",
@@ -14435,7 +14444,7 @@
       "defense": {
         "value": 7
       },
-      "stability": 2,
+      "stability": 3,
       "rank": "advanced",
       "traits": [
         "extraThickPlate",
@@ -14458,7 +14467,7 @@
       "defense": {
         "value": 7
       },
-      "stability": 1,
+      "stability": 2,
       "rank": "advanced",
       "traits": [
         "anchorPlate",
@@ -16726,7 +16735,7 @@
     "beast/ram": {
       "name": "Ram",
       "type": "action",
-      "description": "Prepare to ram a target. When delay triggers shift in a straight line up to your Speed at your target to deal crushing damage. If you reach a different hostile creature first they become the new target. If you reach an obstacle that blocks movement first it would also become the new target.",
+      "description": "Prepare to ram a target. When delay triggers shift in a straight line up to your Speed at your target to deal crushing damage. If you reach a different hostile creature first they become the new target. If you reach an obstacle that blocks movement first it would also become the new target. If you move at least 4 tiles you gain Penetrate (3).",
       "apCost": 2,
       "focusCost": 1,
       "mpCost": 0,
@@ -16753,14 +16762,20 @@
         "tier1Effect": {
           "type": "ForcedMovement",
           "effect": "push",
-          "distance": 1
+          "distance": 2
         },
         "tier2Dmg": 6,
         "tier2Wpn": true,
         "tier2Effect": {
-          "type": "ForcedMovement",
-          "effect": "push",
-          "distance": 2
+          "type": "Condition",
+          "effect": "prone",
+          "strength": "average",
+          "srcStats": [
+            "might"
+          ],
+          "targetStats": [
+            "might"
+          ]
         },
         "tier3Dmg": 8,
         "tier3Wpn": true,
@@ -16780,7 +16795,7 @@
     "beast/kick": {
       "name": "Kick",
       "type": "action",
-      "description": "Kick the target to deal crushing damage",
+      "description": " Kick the target to deal crushing damage. If the target is prone then this can be upgraded to Stomp, dealing +2 damage.",
       "apCost": 2,
       "focusCost": 0,
       "mpCost": 0,
@@ -20581,13 +20596,405 @@
           "duration": "roundEnd"
         }
       }
+    },
+    "beast/scratch": {
+      "name": "Scratch",
+      "type": "action",
+      "description": "Scratch with your claws to deal slashing damage",
+      "apCost": 2,
+      "focusCost": 0,
+      "mpCost": 0,
+      "range": "Wpn",
+      "tags": [
+        "Melee",
+        "Weapon",
+        "Brawling",
+        "Anima"
+      ],
+      "hiddenTags": [
+        "natural:arms"
+      ],
+      "source": "druidAnima",
+      "damageType": "slashing",
+      "powerRoll": {
+        "rollStats": [
+          "might",
+          "dexterity"
+        ],
+        "tier1Dmg": 2,
+        "tier1Wpn": true,
+        "tier2Dmg": 3,
+        "tier2Wpn": true,
+        "tier3Dmg": 5,
+        "tier3Wpn": true,
+        "tier3Effect": {
+          "type": "Condition",
+          "effect": "bleeding",
+          "strength": "strong",
+          "targetStats": [
+            "might"
+          ],
+          "srcStats": [
+            "might",
+            "dexterity"
+          ],
+          "duration": "turnEnd"
+        }
+      }
+    },
+    "beast/pounce": {
+      "name": "Pounce",
+      "type": "action",
+      "description": "Stride up to your Speed and strike the target, dealing piercing damage. If the target is grabbed then they are also knocked prone.",
+      "apCost": 2,
+      "focusCost": 1,
+      "mpCost": -4,
+      "range": "Wpn",
+      "tags": [
+        "Melee",
+        "Weapon",
+        "Brawling",
+        "Anima"
+      ],
+      "hiddenTags": [
+        "natural:teeth"
+      ],
+      "source": "druidAnima",
+      "damageType": "piercing",
+      "powerRoll": {
+        "rollStats": [
+          "might",
+          "dexterity"
+        ],
+        "tier1Dmg": 3,
+        "tier1Wpn": true,
+        "tier2Dmg": 4,
+        "tier2Wpn": true,
+        "tier3Dmg": 6,
+        "tier3Wpn": true,
+        "tier1Effect": {
+          "type": "Condition",
+          "effect": "grabbed",
+          "strength": "weak",
+          "srcStats": [
+            "might",
+            "dexterity"
+          ],
+          "targetStats": [
+            "might"
+          ]
+        },
+        "tier2Effect": {
+          "type": "Condition",
+          "effect": "grabbed",
+          "strength": "average",
+          "srcStats": [
+            "might",
+            "dexterity"
+          ],
+          "targetStats": [
+            "might"
+          ]
+        },
+        "tier3Effect": {
+          "type": "Condition",
+          "effect": "grabbed",
+          "strength": "strong",
+          "srcStats": [
+            "might",
+            "dexterity"
+          ],
+          "targetStats": [
+            "might"
+          ]
+        }
+      }
+    },
+    "beast/tongueGrab": {
+      "name": "Tongue Grab",
+      "type": "action",
+      "description": "Slap the target with your tongue, dealing crushing damage. If they are grabbed they are pulled to an unoccupied tile adjacent to you",
+      "apCost": 2,
+      "focusCost": 1,
+      "mpCost": 0,
+      "range": "Wpn",
+      "tags": [
+        "Melee",
+        "Weapon",
+        "Brawling",
+        "Anima"
+      ],
+      "hiddenTags": [
+        "natural:head"
+      ],
+      "source": "druidAnima",
+      "damageType": "crushing",
+      "powerRoll": {
+        "rollStats": [
+          "might",
+          "dexterity"
+        ],
+        "tier1Dmg": -1,
+        "tier1Wpn": true,
+        "tier2Dmg": 0,
+        "tier2Wpn": true,
+        "tier3Dmg": 1,
+        "tier3Wpn": true,
+        "tier1Effect": {
+          "type": "Condition",
+          "effect": "grabbed",
+          "strength": "weak",
+          "srcStats": [
+            "might",
+            "dexterity"
+          ],
+          "targetStats": [
+            "might"
+          ]
+        },
+        "tier2Effect": {
+          "type": "Condition",
+          "effect": "grabbed",
+          "strength": "average",
+          "srcStats": [
+            "might",
+            "dexterity"
+          ],
+          "targetStats": [
+            "might"
+          ]
+        },
+        "tier3Effect": {
+          "type": "Condition",
+          "effect": "grabbed",
+          "strength": "strong",
+          "srcStats": [
+            "might",
+            "dexterity"
+          ],
+          "targetStats": [
+            "might"
+          ]
+        }
+      }
+    },
+    "beast/swallow": {
+      "name": "Swallow",
+      "type": "action",
+      "description": "Swallow a target you have grabbed, dealing nature damage",
+      "apCost": 2,
+      "focusCost": 0,
+      "mpCost": 0,
+      "range": "1",
+      "tags": [
+        "Melee",
+        "Weapon",
+        "Brawling",
+        "Anima"
+      ],
+      "hiddenTags": [
+        "natural:head"
+      ],
+      "source": "druidAnima",
+      "damageType": "nature",
+      "powerRoll": {
+        "rollStats": [
+          "might"
+        ],
+        "tier1Dmg": 4,
+        "tier1Wpn": false,
+        "tier2Dmg": 6,
+        "tier2Wpn": false,
+        "tier3Dmg": 8,
+        "tier3Wpn": false,
+        "tier2Effect": {
+          "type": "Condition",
+          "effect": "sundered",
+          "duration": "roundEnd"
+        },
+        "tier3Effect": {
+          "type": "Condition",
+          "effect": "sundered",
+          "duration": "roundEnd"
+        }
+      }
+    },
+    "beast/leap": {
+      "name": "Leap",
+      "type": "action",
+      "description": "Leap into the air, warping up to your Speed",
+      "apCost": 1,
+      "focusCost": 3,
+      "mpCost": 0,
+      "range": "1",
+      "tags": [
+        "Brawling",
+        "Anima"
+      ],
+      "source": "druidAnima",
+      "damageType": "crushing"
+    },
+    "beast/headSmash": {
+      "name": "Head Smash",
+      "type": "action",
+      "description": "Slam your head into your target. Lose 2 HP afterwards.",
+      "apCost": 2,
+      "focusCost": 3,
+      "mpCost": 0,
+      "range": "Wpn",
+      "tags": [
+        "Melee",
+        "Weapon",
+        "Brawling",
+        "Anima"
+      ],
+      "hiddenTags": [
+        "natural:head"
+      ],
+      "source": "druidAnima",
+      "damageType": "crushing",
+      "powerRoll": {
+        "rollStats": [
+          "might"
+        ],
+        "tier1Dmg": 5,
+        "tier1Wpn": true,
+        "tier2Dmg": 7,
+        "tier2Wpn": true,
+        "tier2Effect": {
+          "type": "Condition",
+          "effect": "shaken",
+          "strength": "average",
+          "srcStats": [
+            "might"
+          ],
+          "targetStats": [
+            "might"
+          ]
+        },
+        "tier3Dmg": 9,
+        "tier3Wpn": true,
+        "tier3Effect": {
+          "type": "Condition",
+          "srcStats": [
+            "might"
+          ],
+          "targetStats": [
+            "might"
+          ],
+          "effect": "shaken",
+          "strength": "strong"
+        }
+      }
+    },
+    "beast/wideScratch": {
+      "name": "Wide Scratch",
+      "type": "action",
+      "description": "Scratch with your claws to deal slashing damage",
+      "apCost": 2,
+      "focusCost": 1,
+      "mpCost": 0,
+      "range": "Wpn",
+      "tags": [
+        "Melee",
+        "Weapon",
+        "Brawling",
+        "Anima",
+        "Multi (2)"
+      ],
+      "hiddenTags": [
+        "natural:arms"
+      ],
+      "source": "druidAnima",
+      "damageType": "slashing",
+      "powerRoll": {
+        "rollStats": [
+          "might",
+          "dexterity"
+        ],
+        "tier1Dmg": 2,
+        "tier1Wpn": true,
+        "tier2Dmg": 3,
+        "tier2Wpn": true,
+        "tier3Dmg": 5,
+        "tier3Wpn": true,
+        "tier3Effect": {
+          "type": "ForcedMovement",
+          "effect": "push",
+          "distance": 2
+        },
+        "tier2Effect": {
+          "type": "ForcedMovement",
+          "effect": "push",
+          "distance": 1
+        }
+      }
+    },
+    "beast/bestialRoundhouse": {
+      "name": "Bestial Roundhouse",
+      "type": "action",
+      "description": "Prepare to swing in a circle around you, hitting all creatures within range of your weapon.",
+      "apCost": 2,
+      "focusCost": 5,
+      "mpCost": 0,
+      "range": "Wpn",
+      "tags": [
+        "Melee",
+        "Weapon",
+        "Brawling",
+        "Delay",
+        "Anima",
+        "Area",
+        "Emanation"
+      ],
+      "hiddenTags": [
+        "natural:arms"
+      ],
+      "source": "druidAnima",
+      "damageType": "",
+      "powerRoll": {
+        "rollStats": [
+          "might",
+          "dexterity"
+        ],
+        "tier1Dmg": 5,
+        "tier1Wpn": true,
+        "tier2Dmg": 7,
+        "tier2Wpn": true,
+        "tier3Dmg": 9,
+        "tier3Wpn": true,
+        "tier3Effect": {
+          "type": "Condition",
+          "srcStats": [
+            "might",
+            "dexterity"
+          ],
+          "targetStats": [
+            "dexterity"
+          ],
+          "effect": "bleeding",
+          "strength": "strong"
+        },
+        "tier2Effect": {
+          "type": "Condition",
+          "effect": "bleeding",
+          "strength": "average",
+          "srcStats": [
+            "might",
+            "dexterity"
+          ],
+          "targetStats": [
+            "dexterity"
+          ]
+        }
+      }
     }
   },
   "passives": {
     "invention_hoverBoots": {
       "name": "Hover Boots",
       "minLevel": 1,
-      "description": "Spend 2 Mana on use and during the Start Phase to have flying speed equal to your Speed for that round."
+      "description": "Spend 2 Mana on use and during the Start Phase to have hover speed equal to your Speed for that round."
     },
     "invention_heatGoggles": {
       "name": "Heat Goggles (Low-light vision)",
@@ -21299,6 +21706,28 @@
           }
         ]
       },
+      "climber": {
+        "name": "Climber",
+        "description": "Gain Climbing Speed equal to half of Speed (round down)",
+        "effects": [
+          {
+            "type": "GrantMovement",
+            "stat": "climbing",
+            "value": "halfSpeed"
+          }
+        ]
+      },
+      "greatClimber": {
+        "name": "Great Climber",
+        "description": "Gain Swimming Speed equal to your Speed",
+        "effects": [
+          {
+            "type": "GrantMovement",
+            "stat": "swimming",
+            "value": "speed"
+          }
+        ]
+      },
       "bloodthirsty": {
         "name": "Bloodthirsty",
         "description": "Gain a Boon on attacks against creatures that are bloodied or bleeding"
@@ -21355,6 +21784,46 @@
             "value": "6"
           }
         ]
+      },
+      "swallowed": {
+        "name": "Swallowed",
+        "description": "A target grabbed by you is Restrained and Blinded. They also suffer a Bane on Escape Grab rolls. If you receive damage equal to your Might score or higher the grab ends."
+      },
+      "poisonousSkin": {
+        "name": "Poisonous Skin",
+        "description": "The first time per combat a melee attack would cause you to become Bloodied the attacker suffers a potency of M < [M or D] poisoned [save end]"
+      },
+      "superiorVitality": {
+        "name": "Superior Vitality",
+        "description": "Immune to Shaken, Dazed, and Stunned",
+        "effects": [
+          {
+            "type": "Immunity",
+            "stat": "shaken"
+          },
+          {
+            "type": "Immunity",
+            "stat": "dazed"
+          },
+          {
+            "type": "Immunity",
+            "stat": "stunned"
+          }
+        ]
+      },
+      "slowImmunity": {
+        "name": "Slow Immunity",
+        "description": "Immune to Slowed",
+        "effects": [
+          {
+            "type": "Immunity",
+            "stat": "slowed"
+          }
+        ]
+      },
+      "poorCoordination": {
+        "name": "Poor Coordination",
+        "description": "Any weapon used by you is treated as Heavy"
       }
     },
     "creatures": {
@@ -21540,6 +22009,244 @@
           {
             "stat": "nature",
             "value": "1"
+          }
+        ]
+      },
+      "anima_tiger": {
+        "name": "Tiger Anima",
+        "description": "A large and adaptable feline predator with a powerful bite and sharp claws",
+        "role": "summon",
+        "level": 3,
+        "creatureTypes": [
+          "beast"
+        ],
+        "tags": [
+          "anima",
+          "beast"
+        ],
+        "attributes": {
+          "might": 14,
+          "dexterity": 14,
+          "reason": 3,
+          "willpower": 10,
+          "presence": 6
+        },
+        "actionIDs": [
+          "beast/scratch",
+          "beast/pounce"
+        ],
+        "naturalWeapons": {
+          "teeth": {
+            "name": "Teeth",
+            "damage": 3,
+            "damageType": "piercing",
+            "range": 1
+          },
+          "arms": {
+            "name": "Claws",
+            "damage": 3,
+            "damageType": "slashing",
+            "range": 1
+          }
+        },
+        "defaultNaturalWeaponKey": "teeth",
+        "traitRefs": [
+          "swimmer",
+          "bloodthirsty",
+          "climber"
+        ],
+        "defense": 2,
+        "stability": 0,
+        "speed": 6,
+        "size": "1L",
+        "resistances": [
+          "earth",
+          "nature"
+        ],
+        "vulnerabilities": [
+          {
+            "stat": "volt",
+            "value": "2"
+          },
+          {
+            "stat": "fire",
+            "value": "2"
+          }
+        ]
+      },
+      "anima_boglurker": {
+        "name": "Boglurker Anima",
+        "description": "A giant toad-like creature with a long tongue and poisonous skin",
+        "role": "summon",
+        "level": 3,
+        "creatureTypes": [
+          "beast"
+        ],
+        "tags": [
+          "anima",
+          "beast"
+        ],
+        "attributes": {
+          "might": 13,
+          "dexterity": 15,
+          "reason": 2,
+          "willpower": 8,
+          "presence": 8
+        },
+        "actionIDs": [
+          "beast/tongueGrab",
+          "beast/swallow",
+          "beast/leap"
+        ],
+        "naturalWeapons": {
+          "head": {
+            "name": "Thick Tongue",
+            "damage": 1,
+            "damageType": "crushing",
+            "range": 3
+          }
+        },
+        "defaultNaturalWeaponKey": "head",
+        "traitRefs": [
+          "greatSwimmer",
+          "swallowed",
+          "poisonousSkin"
+        ],
+        "defense": 0,
+        "stability": 0,
+        "speed": 3,
+        "size": "1L",
+        "resistances": [
+          "water",
+          "earth"
+        ],
+        "vulnerabilities": [
+          {
+            "stat": "volt",
+            "value": "2"
+          },
+          {
+            "stat": "air",
+            "value": "2"
+          }
+        ]
+      },
+      "anima_bicorn": {
+        "name": "Bicorn Anima",
+        "description": "A large rhino-like creature wtih 2 horns and a tough hide",
+        "role": "summon",
+        "level": 4,
+        "creatureTypes": [
+          "beast"
+        ],
+        "tags": [
+          "anima",
+          "beast"
+        ],
+        "attributes": {
+          "might": 16,
+          "dexterity": 8,
+          "reason": 2,
+          "willpower": 10,
+          "presence": 10
+        },
+        "actionIDs": [
+          "beast/ram",
+          "beast/kick",
+          "beast/headSmash"
+        ],
+        "naturalWeapons": {
+          "head": {
+            "name": "Horn",
+            "damage": 3,
+            "damageType": "crushing",
+            "range": 1
+          },
+          "legs": {
+            "name": "Legs",
+            "damage": 2,
+            "damageType": "crushing",
+            "range": 1
+          }
+        },
+        "defaultNaturalWeaponKey": "head",
+        "traitRefs": [
+          "teamwork",
+          "charger"
+        ],
+        "defense": 4,
+        "stability": 2,
+        "speed": 5,
+        "size": "2",
+        "resistances": [
+          "fire",
+          "earth"
+        ],
+        "vulnerabilities": [
+          {
+            "stat": "air",
+            "value": "2"
+          },
+          {
+            "stat": "nature",
+            "value": "2"
+          }
+        ]
+      },
+      "anima_magnosyl": {
+        "name": "Magnosyl Anima",
+        "description": "A very large and heavy ground sloth with short claws",
+        "role": "summon",
+        "level": 4,
+        "creatureTypes": [
+          "beast"
+        ],
+        "tags": [
+          "anima",
+          "beast"
+        ],
+        "attributes": {
+          "might": 18,
+          "dexterity": 8,
+          "reason": 2,
+          "willpower": 8,
+          "presence": 6
+        },
+        "actionIDs": [
+          "braceForImpact",
+          "beast/wideScratch",
+          "beast/bestialRoundhouse"
+        ],
+        "naturalWeapons": {
+          "arms": {
+            "name": "Claws",
+            "damage": 3,
+            "damageType": "slashing",
+            "range": 2
+          }
+        },
+        "defaultNaturalWeaponKey": "arms",
+        "traitRefs": [
+          "superiorVitality",
+          "slowImmunity",
+          "poorCoordination"
+        ],
+        "defense": 3,
+        "stability": 3,
+        "speed": 3,
+        "size": "3",
+        "resistances": [
+          "air",
+          "nature"
+        ],
+        "vulnerabilities": [
+          {
+            "stat": "fire",
+            "value": "2"
+          },
+          {
+            "stat": "dark",
+            "value": "2"
           }
         ]
       },

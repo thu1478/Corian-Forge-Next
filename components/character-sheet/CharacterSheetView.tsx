@@ -8,7 +8,12 @@ import {
     type CombatRuleContext,
 } from "@/components/character-sheet/combatPage/action-card-manager"
 import {FocusTracker} from "@/components/character-sheet/combatPage/focus-tracker"
-import {CombatStatsPanel, OtherStats, ResourceBars} from "@/components/character-sheet/combatPage/resource-bars"
+import {
+    CombatStatsPanel,
+    MiscCombatPanel,
+    OtherStats,
+    ResourceBars
+} from "@/components/character-sheet/combatPage/resource-bars"
 import {AttributesPanel} from "@/components/character-sheet/combatPage/attributes-panel"
 import {EquipmentPanel, ProficiencyAlert} from "@/components/character-sheet/trackingPage/equipment-panel"
 import {InventoryPanel} from "@/components/character-sheet/trackingPage/inventory-panel"
@@ -1088,151 +1093,191 @@ export function CharacterSheetView() {
 
                     {/*Combat tab*/}
                     <TabsContent value="combat">
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                            {/*Resource section*/}
-                            <div className="lg:col-span-3 space-y-4">
-                                <FocusTracker current={character.focus} onChange={updateFocus}/>
-                                <ResourceBars
-                                    hp={{
-                                        current: Math.min(character.hp, derived.maxHP),
-                                        max: derived.maxHP,
-                                        min: derived.deathThreshold
-                                    }}
-                                    barrier={character.barrier}
-                                    mp={{current: Math.min(character.mp, derived.maxMP), max: derived.maxMP}}
-                                    ip={{current: Math.min(character.ip, derived.maxIP), max: derived.maxIP}}
-                                    respite={{
-                                        current: Math.min(
-                                            Number(character.respite ?? derived.maxRespite),
-                                            derived.maxRespite
-                                        ),
-                                        max: derived.maxRespite,
-                                    }}
-                                    onHpChange={updateHp} onBarrierChange={updateBarrier} onMpChange={updateMp}
-                                    onIpChange={updateIp}
-                                    onRespiteChange={updateRespite}
-                                    onOpenDamageCalculator={() => setShowDamageCalculator(true)}
-                                    attributes={derived.attributes} knownClasses={character.classes}
-                                />
-                                <CombatStatsPanel
-                                    baseDefense={baseDefense}
-                                    defenseDelta={combatDefenseDelta}
-                                    onDefenseDeltaChange={handleDefenseDeltaChange}
-                                    baseStability={baseStability}
-                                    stabilityDelta={combatStabilityDelta}
-                                    onStabilityDeltaChange={handleStabilityDeltaChange}
-                                    baseSpeed={baseSpeed}
-                                    speedDelta={combatSpeedDelta}
-                                    onSpeedDeltaChange={handleSpeedDeltaChange}
-                                    resistances={derived.resistances}
-                                    vulnerabilities={derived.vulnerabilities}
-                                    conditionImmunities={derived.conditionImmunities}
-                                    specialSight={derived.specialSight}
-                                    specialMovement={derived.specialMovement}
-                                    mountedContext={derived.mountedContext}
-                                    highlightedStats={derived.statHighlights?.combat}
-                                />
-                                <OtherStats
-                                    xp={Math.max(0, Math.floor(Number(character.xp ?? 0) || 0))}
-                                    inspiration={character.inspiration}
-                                    victories={character.victories}
-                                    onUpdateXp={(next) =>
-                                        setCharacter((prev) => ({
-                                            ...prev,
-                                            xp: Math.max(0, Math.floor(Number(next)) || 0),
-                                        }))
-                                    }
-                                    onUpdateInspiration={(v) => setCharacter((prev) => ({...prev, inspiration: v}))}
-                                    onUpdateVictories={(v) => setCharacter((prev) => ({
-                                        ...prev,
-                                        victories: Math.max(0, Math.floor(v))
-                                    }))}
-                                />
+                        <div className="grid grid-cols-1 gap-4">
+                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                                <div className="lg:col-span-3 space-y-4">
+                                    <FocusTracker current={character.focus} onChange={updateFocus}/>
+                                    <AttributesPanel
+                                        attributes={derived.attributes}
+                                        highlighted={derived.statHighlights?.attributes}
+                                    />
+                                </div>
+                                <div className="lg:col-span-3 space-y-4">
+                                    <ResourceBars
+                                        hp={{
+                                            current: Math.min(character.hp, derived.maxHP),
+                                            max: derived.maxHP,
+                                            min: derived.deathThreshold
+                                        }}
+                                        barrier={character.barrier}
+                                        mp={{current: Math.min(character.mp, derived.maxMP), max: derived.maxMP}}
+                                        ip={{current: Math.min(character.ip, derived.maxIP), max: derived.maxIP}}
+                                        respite={{
+                                            current: Math.min(
+                                                Number(character.respite ?? derived.maxRespite),
+                                                derived.maxRespite
+                                            ),
+                                            max: derived.maxRespite,
+                                        }}
+                                        onHpChange={updateHp} onBarrierChange={updateBarrier} onMpChange={updateMp}
+                                        onIpChange={updateIp}
+                                        onRespiteChange={updateRespite}
+                                        onOpenDamageCalculator={() => setShowDamageCalculator(true)}
+                                        attributes={derived.attributes} knownClasses={character.classes}
+                                    />
+                                </div>
+                                <div className="lg:col-span-3 space-y-4">
+                                    <CombatStatsPanel
+                                        baseDefense={baseDefense}
+                                        defenseDelta={combatDefenseDelta}
+                                        onDefenseDeltaChange={handleDefenseDeltaChange}
+                                        baseStability={baseStability}
+                                        stabilityDelta={combatStabilityDelta}
+                                        onStabilityDeltaChange={handleStabilityDeltaChange}
+                                        baseSpeed={baseSpeed}
+                                        speedDelta={combatSpeedDelta}
+                                        onSpeedDeltaChange={handleSpeedDeltaChange}
+                                        resistances={derived.resistances}
+                                        vulnerabilities={derived.vulnerabilities}
+                                        conditionImmunities={derived.conditionImmunities}
+                                        specialSight={derived.specialSight}
+                                        specialMovement={derived.specialMovement}
+                                        mountedContext={derived.mountedContext}
+                                        highlightedStats={derived.statHighlights?.combat}
+                                    />
+                                </div>
+                                <div className="lg:col-span-3 space-y-4">
+                                    <MiscCombatPanel
+                                        baseDefense={baseDefense}
+                                        defenseDelta={combatDefenseDelta}
+                                        onDefenseDeltaChange={handleDefenseDeltaChange}
+                                        baseStability={baseStability}
+                                        stabilityDelta={combatStabilityDelta}
+                                        onStabilityDeltaChange={handleStabilityDeltaChange}
+                                        baseSpeed={baseSpeed}
+                                        speedDelta={combatSpeedDelta}
+                                        onSpeedDeltaChange={handleSpeedDeltaChange}
+                                        resistances={derived.resistances}
+                                        vulnerabilities={derived.vulnerabilities}
+                                        conditionImmunities={derived.conditionImmunities}
+                                        specialSight={derived.specialSight}
+                                        specialMovement={derived.specialMovement}
+                                        mountedContext={derived.mountedContext}
+                                        highlightedStats={derived.statHighlights?.combat}
+                                    />
+                                </div>
                             </div>
+                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                                {/*Resource section*/}
+                                <div className="lg:col-span-3 space-y-4">
+                                    {/*Focus Features and Reactions*/}
+                                    <FocusReactionsPanel
+                                        rules={rulesData}
+                                        knownFocusFeats={character.focusFeatures}
+                                        onSelectFeat={handleSelectFeat}
+                                        knownReactions={character.reactions}
+                                        onSelectReaction={handleSelectReaction}
+                                        attributes={derived.attributes}
+                                        onUpdateReactionCharges={handleUpdateReactionCharges}
+                                        actionCostBudget={actionCostBudget}
+                                        onSpendActionCost={handleSpendActionCost}
+                                        catalogReactionOptions={catalogReactionOptions}
+                                        onAddCatalogReaction={handleAddCatalogReaction}
+                                        currentWeapon={currentWeapon}
+                                        offhandWeapon={offhandWeapon}
+                                        combatRuleContext={combatRuleContext}
+                                        adventurerLevel={adventurerLevel}
+                                        onAddFocus={handleAddFocus}
+                                        itemGrantedReactionIds={itemGrantedReactionIds}
+                                        handEquippedReactionIds={handEquippedReactionIds}
+                                        hydratedTraits={(character as { hydratedTraits?: import("@/lib/rules").Trait[] }).hydratedTraits ?? []}
+                                    />
 
-                            {/*Action card manager*/}
-                            <div className="lg:col-span-6">
-                                <div className="bg-card rounded-xl border border-border p-4">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-                                            <Sparkles className="w-5 h-5 text-primary"/> Actions</h2>
-                                        <div className="flex items-center gap-2 flex-wrap justify-end">
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button
-                                                        type="button"
-                                                        variant="outline"
-                                                        size="sm"
-                                                        className="h-8 text-[10px] font-black uppercase tracking-widest gap-1.5"
-                                                        title="Add an action from global rules (all non-monster action cards: feat, fairy, generic, equipment, …)"
-                                                    >
-                                                        <Plus className="w-3 h-3"/>
-                                                        Catalog
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end" className="max-h-64 overflow-y-auto">
-                                                    {catalogActionIds.length === 0 ? (
-                                                        <DropdownMenuItem disabled>No catalog actions in
-                                                            rules</DropdownMenuItem>
-                                                    ) : (
-                                                        catalogActionIds.map((id) => (
-                                                            <DropdownMenuItem key={id}
-                                                                              onClick={() => handleAddCatalogAction(id)}>
-                                                                {(rulesData as any).actionCards?.[id]?.name ?? id}
-                                                            </DropdownMenuItem>
-                                                        ))
-                                                    )}
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                            <Button variant="outline" size="sm"
-                                                    onClick={() => setAllCollapsed(!allCollapsed)}
-                                                    className="h-8 text-[10px] font-black uppercase tracking-widest gap-2">
-                                                <ChevronDown
-                                                    className={cn("w-3 h-3 transition-transform duration-300", allCollapsed ? "-rotate-90" : "rotate-0")}/>
-                                                {allCollapsed ? "Expand All" : "Collapse All"}
-                                            </Button>
-                                            <div
-                                                className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-2 h-8"
-                                                title="Show base + weapon damage and potency math (max mod + tier) instead of totals only"
-                                            >
-                                                <Label
-                                                    htmlFor="action-power-roll-breakdown"
-                                                    className="text-[10px] font-black uppercase tracking-widest text-muted-foreground cursor-pointer whitespace-nowrap"
+                                </div>
+
+                                {/*Action card manager*/}
+                                <div className="lg:col-span-6">
+                                    <div className="bg-card rounded-xl border border-border p-4">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+                                                <Sparkles className="w-5 h-5 text-primary"/> Actions</h2>
+                                            <div className="flex items-center gap-2 flex-wrap justify-end">
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="h-8 text-[10px] font-black uppercase tracking-widest gap-1.5"
+                                                            title="Add an action from global rules (all non-monster action cards: feat, fairy, generic, equipment, …)"
+                                                        >
+                                                            <Plus className="w-3 h-3"/>
+                                                            Catalog
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end" className="max-h-64 overflow-y-auto">
+                                                        {catalogActionIds.length === 0 ? (
+                                                            <DropdownMenuItem disabled>No catalog actions in
+                                                                rules</DropdownMenuItem>
+                                                        ) : (
+                                                            catalogActionIds.map((id) => (
+                                                                <DropdownMenuItem key={id}
+                                                                                  onClick={() => handleAddCatalogAction(id)}>
+                                                                    {(rulesData as any).actionCards?.[id]?.name ?? id}
+                                                                </DropdownMenuItem>
+                                                            ))
+                                                        )}
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                                <Button variant="outline" size="sm"
+                                                        onClick={() => setAllCollapsed(!allCollapsed)}
+                                                        className="h-8 text-[10px] font-black uppercase tracking-widest gap-2">
+                                                    <ChevronDown
+                                                        className={cn("w-3 h-3 transition-transform duration-300", allCollapsed ? "-rotate-90" : "rotate-0")}/>
+                                                    {allCollapsed ? "Expand All" : "Collapse All"}
+                                                </Button>
+                                                <div
+                                                    className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-2 h-8"
+                                                    title="Show base + weapon damage and potency math (max mod + tier) instead of totals only"
                                                 >
-                                                    Roll breakdown
-                                                </Label>
-                                                <Switch
-                                                    id="action-power-roll-breakdown"
-                                                    checked={powerRollShowFormula}
-                                                    onCheckedChange={setPowerRollShowFormula}
-                                                    className="scale-90"
-                                                />
-                                            </div>
-                                            <div className="w-[1px] h-4 bg-border mx-1"/>
-                                            <Button variant="ghost" size="sm" onClick={() => setViewMode("grid")}
-                                                    className={cn(viewMode === "grid" && "bg-muted")}><LayoutGrid
-                                                className="w-4 h-4"/></Button>
-                                            <Button variant="ghost" size="sm" onClick={() => setViewMode("list")}
-                                                    className={cn(viewMode === "list" && "bg-muted")}><List
-                                                className="w-4 h-4"/></Button>
-                                        </div>
-                                    </div>
-                                    {/* ... Global Weapon Selector, Filters, and Action Grid (truncated for brevity) ... */}
-                                    <div className="mb-4 p-3 bg-muted/30 rounded-lg border border-border">
-                                        <div className="flex items-center justify-between gap-4">
-                                            <div className="flex items-center gap-2 min-w-0">
-                                                <Swords className="w-4 h-4 text-primary shrink-0"/>
-                                                <span
-                                                    className="text-sm font-medium text-foreground">Active Weapon</span>
-                                                <ProficiencyAlert message={activeWeaponWarningMessage || null}/>
-                                            </div>
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        className="min-w-[180px] justify-between"
+                                                    <Label
+                                                        htmlFor="action-power-roll-breakdown"
+                                                        className="text-[10px] font-black uppercase tracking-widest text-muted-foreground cursor-pointer whitespace-nowrap"
                                                     >
+                                                        Roll breakdown
+                                                    </Label>
+                                                    <Switch
+                                                        id="action-power-roll-breakdown"
+                                                        checked={powerRollShowFormula}
+                                                        onCheckedChange={setPowerRollShowFormula}
+                                                        className="scale-90"
+                                                    />
+                                                </div>
+                                                <div className="w-[1px] h-4 bg-border mx-1"/>
+                                                <Button variant="ghost" size="sm" onClick={() => setViewMode("grid")}
+                                                        className={cn(viewMode === "grid" && "bg-muted")}><LayoutGrid
+                                                    className="w-4 h-4"/></Button>
+                                                <Button variant="ghost" size="sm" onClick={() => setViewMode("list")}
+                                                        className={cn(viewMode === "list" && "bg-muted")}><List
+                                                    className="w-4 h-4"/></Button>
+                                            </div>
+                                        </div>
+                                        {/* ... Global Weapon Selector, Filters, and Action Grid (truncated for brevity) ... */}
+                                        <div className="mb-4 p-3 bg-muted/30 rounded-lg border border-border">
+                                            <div className="flex items-center justify-between gap-4">
+                                                <div className="flex items-center gap-2 min-w-0">
+                                                    <Swords className="w-4 h-4 text-primary shrink-0"/>
+                                                    <span
+                                                        className="text-sm font-medium text-foreground">Active Weapon</span>
+                                                    <ProficiencyAlert message={activeWeaponWarningMessage || null}/>
+                                                </div>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="min-w-[180px] justify-between"
+                                                        >
                             <span className="flex items-center gap-2 flex-wrap justify-end">
                                 {currentWeapon ? (
                                     <span className={cn("truncate", getItemNameClass(currentWeapon, rulesData))}>
@@ -1247,12 +1292,12 @@ export function CharacterSheetView() {
                                 })}
                                 {currentWeapon?.type === "shield" &&
                                     typeof (currentWeapon as { defense?: number }).defense === "number" && (
-                                    <span
-                                        className="flex items-center gap-1 text-xs text-muted-foreground font-mono bg-muted px-1.5 py-0.5 rounded border border-border">
+                                        <span
+                                            className="flex items-center gap-1 text-xs text-muted-foreground font-mono bg-muted px-1.5 py-0.5 rounded border border-border">
                                         <Shield className="w-3 h-3 shrink-0"/>
-                                        {(currentWeapon as { defense: number }).defense} Def
+                                            {(currentWeapon as { defense: number }).defense} Def
                                     </span>
-                                )}
+                                    )}
                                 {activeWeaponRangeLabel != null && (
                                     <span
                                         className="flex items-center gap-1 text-xs text-muted-foreground font-mono bg-muted px-1.5 py-0.5 rounded border border-border"
@@ -1263,21 +1308,21 @@ export function CharacterSheetView() {
                                     </span>
                                 )}
         </span>
-                                                        <ChevronDown className="w-4 h-4"/>
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end" className="w-[min(92vw,280px)]">
-                                                    {availableWeapons.map((weapon) => (
-                                                        <DropdownMenuItem
-                                                            key={weapon.uid}
-                                                            onClick={() =>
-                                                                handleEquipmentChange(
-                                                                    "activeWeapon",
-                                                                    weapon.uid === "empty" ? null : weapon,
-                                                                )
-                                                            }
-                                                            className="justify-between"
-                                                        >
+                                                            <ChevronDown className="w-4 h-4"/>
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end" className="w-[min(92vw,280px)]">
+                                                        {availableWeapons.map((weapon) => (
+                                                            <DropdownMenuItem
+                                                                key={weapon.uid}
+                                                                onClick={() =>
+                                                                    handleEquipmentChange(
+                                                                        "activeWeapon",
+                                                                        weapon.uid === "empty" ? null : weapon,
+                                                                    )
+                                                                }
+                                                                className="justify-between"
+                                                            >
                                                             <span className="flex items-center gap-1.5 font-medium min-w-0">
                                                                 <span className={cn("truncate", getItemNameClass(weapon, rulesData))}>
                                                                     {weapon.name}
@@ -1288,234 +1333,236 @@ export function CharacterSheetView() {
                                                                     />
                                                                 ) : null}
                                                             </span>
-                                                            <div className="flex items-center gap-1 shrink-0">
-                                                                {weaponDamageChip(weapon, {
-                                                                    bonded: false,
-                                                                    weaponDamageContext,
-                                                                    className: "border-0 bg-transparent px-0 py-0",
-                                                                })}
-                                                                {weapon.type === "shield" &&
-                                                                    typeof weapon.defense === "number" && (
-                                                                    <div
-                                                                        className="flex items-center gap-1 text-xs text-muted-foreground font-mono">
-                                                                        <Shield className="w-3 h-3 opacity-70"/>
-                                                                        {weapon.defense} Def
-                                                                    </div>
-                                                                )}
-                                                                {weaponRangeLabel(weapon) != null && (
-                                                                    <div
-                                                                        className="flex items-center gap-1 text-xs text-muted-foreground font-mono"
-                                                                        title="Range"
-                                                                    >
-                                                                        <Crosshair className="w-3 h-3 opacity-70"/>
-                                                                        {weaponRangeLabel(weapon)}
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </DropdownMenuItem>
-                                                    ))}
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
+                                                                <div className="flex items-center gap-1 shrink-0">
+                                                                    {weaponDamageChip(weapon, {
+                                                                        bonded: false,
+                                                                        weaponDamageContext,
+                                                                        className: "border-0 bg-transparent px-0 py-0",
+                                                                    })}
+                                                                    {weapon.type === "shield" &&
+                                                                        typeof weapon.defense === "number" && (
+                                                                            <div
+                                                                                className="flex items-center gap-1 text-xs text-muted-foreground font-mono">
+                                                                                <Shield className="w-3 h-3 opacity-70"/>
+                                                                                {weapon.defense} Def
+                                                                            </div>
+                                                                        )}
+                                                                    {weaponRangeLabel(weapon) != null && (
+                                                                        <div
+                                                                            className="flex items-center gap-1 text-xs text-muted-foreground font-mono"
+                                                                            title="Range"
+                                                                        >
+                                                                            <Crosshair className="w-3 h-3 opacity-70"/>
+                                                                            {weaponRangeLabel(weapon)}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </DropdownMenuItem>
+                                                        ))}
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-2">
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <Button
-                                                    type="button"
-                                                    variant={actionSearch.trim() ? "secondary" : "outline"}
-                                                    size="icon"
-                                                    className="h-8 w-8 shrink-0"
-                                                    title="Search actions"
-                                                >
-                                                    <Filter className="w-4 h-4"/>
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-80" align="start">
-                                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
-                                                    Search actions
-                                                </p>
-                                                <Input
-                                                    placeholder="Name, tag, description…"
-                                                    value={actionSearch}
-                                                    onChange={(e) => setActionSearch(e.target.value)}
-                                                    className="h-9"
-                                                />
-                                                {actionSearch.trim() !== "" && (
+                                        <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-2">
+                                            <Popover>
+                                                <PopoverTrigger asChild>
                                                     <Button
                                                         type="button"
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="mt-2 h-8 px-2 text-xs"
-                                                        onClick={() => setActionSearch("")}
+                                                        variant={actionSearch.trim() ? "secondary" : "outline"}
+                                                        size="icon"
+                                                        className="h-8 w-8 shrink-0"
+                                                        title="Search actions"
                                                     >
-                                                        Clear search
+                                                        <Filter className="w-4 h-4"/>
                                                     </Button>
-                                                )}
-                                            </PopoverContent>
-                                        </Popover>
-                                        {filterOptions.map((option) => (
-                                            <button
-                                                key={option.value}
-                                                type="button"
-                                                onClick={() => setActionFilter(option.value)}
-                                                className={cn(
-                                                    "px-3 py-1.5 rounded-full text-xs font-medium transition-colors whitespace-nowrap",
-                                                    actionFilter === option.value
-                                                        ? "bg-primary text-primary-foreground"
-                                                        : "bg-muted/50 text-muted-foreground hover:bg-muted"
-                                                )}
-                                            >
-                                                {option.label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                    <ScrollArea className="h-[calc(100vh-150px)]">
-                                        <ActionCardOrganizer
-                                            visibleActions={filteredActions}
-                                            actionLayout={actionLayout}
-                                            onLayoutChange={handleActionLayoutChange}
-                                            viewMode={viewMode}
-                                            maintainActive={Boolean(character.maintainActive)}
-                                            onMaintainActiveChange={(active) =>
-                                                setCharacter((prev) => ({...prev, maintainActive: active}))
-                                            }
-                                            maintainBreakDamage={maintainBreakThreshold(derived.attributes.willpower)}
-                                            renderActionCard={(action, opts) => {
-                                                const grantingItem = action.grantingItemUid
-                                                    ? (character.inventory ?? []).find(
-                                                          (i: InventoryItem) =>
-                                                              i.uid === action.grantingItemUid
-                                                      ) ?? null
-                                                    : null
-                                                const itemRules = grantingItem
-                                                    ? itemChargeRulesFromCatalog(
-                                                          grantingItem.id,
-                                                          rulesData
-                                                      )
-                                                    : undefined
-                                                const itemChargeCost = getActionItemChargeCost(action)
-                                                const itemChargeMax = itemRules
-                                                    ? resolveMaxCharges(
-                                                          itemRules,
-                                                          derived.attributes
-                                                      )
-                                                    : 0
-                                                const itemChargeCurrent =
-                                                    inventoryItemChargeCurrent(
-                                                        grantingItem ?? undefined
-                                                    )
-                                                const itemChargeDepleted =
-                                                    !!grantingItem &&
-                                                    isItemChargeDepletedForAction(
-                                                        itemRules,
-                                                        action,
-                                                        typeof grantingItem.charges === "number"
-                                                            ? grantingItem.charges
-                                                            : grantingItem.charges?.current,
-                                                        derived.attributes
-                                                    )
-                                                const grantingWeapon =
-                                                    grantingItem && isWeaponItem(grantingItem)
-                                                        ? grantingItem
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-80" align="start">
+                                                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                                                        Search actions
+                                                    </p>
+                                                    <Input
+                                                        placeholder="Name, tag, description…"
+                                                        value={actionSearch}
+                                                        onChange={(e) => setActionSearch(e.target.value)}
+                                                        className="h-9"
+                                                    />
+                                                    {actionSearch.trim() !== "" && (
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="mt-2 h-8 px-2 text-xs"
+                                                            onClick={() => setActionSearch("")}
+                                                        >
+                                                            Clear search
+                                                        </Button>
+                                                    )}
+                                                </PopoverContent>
+                                            </Popover>
+                                            {filterOptions.map((option) => (
+                                                <button
+                                                    key={option.value}
+                                                    type="button"
+                                                    onClick={() => setActionFilter(option.value)}
+                                                    className={cn(
+                                                        "px-3 py-1.5 rounded-full text-xs font-medium transition-colors whitespace-nowrap",
+                                                        actionFilter === option.value
+                                                            ? "bg-primary text-primary-foreground"
+                                                            : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                                                    )}
+                                                >
+                                                    {option.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <ScrollArea className="h-[calc(100vh-150px)]">
+                                            <ActionCardOrganizer
+                                                visibleActions={filteredActions}
+                                                actionLayout={actionLayout}
+                                                onLayoutChange={handleActionLayoutChange}
+                                                viewMode={viewMode}
+                                                maintainActive={Boolean(character.maintainActive)}
+                                                onMaintainActiveChange={(active) =>
+                                                    setCharacter((prev) => ({...prev, maintainActive: active}))
+                                                }
+                                                maintainBreakDamage={maintainBreakThreshold(derived.attributes.willpower)}
+                                                renderActionCard={(action, opts) => {
+                                                    const grantingItem = action.grantingItemUid
+                                                        ? (character.inventory ?? []).find(
+                                                        (i: InventoryItem) =>
+                                                            i.uid === action.grantingItemUid
+                                                    ) ?? null
                                                         : null
+                                                    const itemRules = grantingItem
+                                                        ? itemChargeRulesFromCatalog(
+                                                            grantingItem.id,
+                                                            rulesData
+                                                        )
+                                                        : undefined
+                                                    const itemChargeCost = getActionItemChargeCost(action)
+                                                    const itemChargeMax = itemRules
+                                                        ? resolveMaxCharges(
+                                                            itemRules,
+                                                            derived.attributes
+                                                        )
+                                                        : 0
+                                                    const itemChargeCurrent =
+                                                        inventoryItemChargeCurrent(
+                                                            grantingItem ?? undefined
+                                                        )
+                                                    const itemChargeDepleted =
+                                                        !!grantingItem &&
+                                                        isItemChargeDepletedForAction(
+                                                            itemRules,
+                                                            action,
+                                                            typeof grantingItem.charges === "number"
+                                                                ? grantingItem.charges
+                                                                : grantingItem.charges?.current,
+                                                            derived.attributes
+                                                        )
+                                                    const grantingWeapon =
+                                                        grantingItem && isWeaponItem(grantingItem)
+                                                            ? grantingItem
+                                                            : null
 
-                                                return (
-                                                            <ActionCardComponent
-                                                                action={action}
-                                                                attributes={derived.attributes}
-                                                                forceCollapsed={opts.isEditMode || allCollapsed}
-                                                                collapseAllSignal={
-                                                                    opts.isEditMode
-                                                                        ? opts.editCollapseSignal
-                                                                        : undefined
-                                                                }
-                                                                disabled={
-                                                                    (action.focusCost || 0) >
-                                                                        character.focus ||
-                                                                    (!action.grantingItemUid &&
-                                                                        isChargesDepleted(
-                                                                            "action",
+                                                    return (
+                                                        <ActionCardComponent
+                                                            action={action}
+                                                            attributes={derived.attributes}
+                                                            forceCollapsed={opts.isEditMode || allCollapsed}
+                                                            collapseAllSignal={
+                                                                opts.isEditMode
+                                                                    ? opts.editCollapseSignal
+                                                                    : undefined
+                                                            }
+                                                            disabled={
+                                                                (action.focusCost || 0) >
+                                                                character.focus ||
+                                                                (!action.grantingItemUid &&
+                                                                    isChargesDepleted(
+                                                                        "action",
+                                                                        action.id,
+                                                                        action.charges,
+                                                                        derived.attributes,
+                                                                        rulesData as import("@/logic/traits/charge-helpers").RulesWithCharges
+                                                                    )) ||
+                                                                itemChargeDepleted
+                                                            }
+                                                            currentWeapon={currentWeapon}
+                                                            offhandWeapon={offhandWeapon}
+                                                            grantingWeapon={grantingWeapon}
+                                                            actionCostBudget={actionCostBudget}
+                                                            onSpendActionCost={
+                                                                handleSpendActionCost
+                                                            }
+                                                            powerRollDisplayMode={
+                                                                powerRollShowFormula
+                                                                    ? "formula"
+                                                                    : "simple"
+                                                            }
+                                                            combatRuleContext={
+                                                                combatRuleContext
+                                                            }
+                                                            onUpdateCharges={
+                                                                action.grantingItemUid
+                                                                    ? undefined
+                                                                    : (n) =>
+                                                                        handleUpdateActionCharges(
                                                                             action.id,
-                                                                            action.charges,
-                                                                            derived.attributes,
-                                                                            rulesData as import("@/logic/traits/charge-helpers").RulesWithCharges
-                                                                        )) ||
-                                                                    itemChargeDepleted
-                                                                }
-                                                                currentWeapon={currentWeapon}
-                                                                offhandWeapon={offhandWeapon}
-                                                                grantingWeapon={grantingWeapon}
-                                                                actionCostBudget={actionCostBudget}
-                                                                onSpendActionCost={
-                                                                    handleSpendActionCost
-                                                                }
-                                                                powerRollDisplayMode={
-                                                                    powerRollShowFormula
-                                                                        ? "formula"
-                                                                        : "simple"
-                                                                }
-                                                                combatRuleContext={
-                                                                    combatRuleContext
-                                                                }
-                                                                onUpdateCharges={
-                                                                    action.grantingItemUid
-                                                                        ? undefined
-                                                                        : (n) =>
-                                                                              handleUpdateActionCharges(
-                                                                                  action.id,
-                                                                                  n
-                                                                              )
-                                                                }
-                                                                itemChargeCost={itemChargeCost}
-                                                                itemChargeCurrent={
-                                                                    itemChargeCurrent
-                                                                }
-                                                                itemChargeMax={itemChargeMax}
-                                                                onSpendItemCharge={
-                                                                    action.grantingItemUid &&
-                                                                    itemChargeCost != null
-                                                                        ? (n) =>
-                                                                              handleUpdateItemCharges(
-                                                                                  action.grantingItemUid!,
-                                                                                  n
-                                                                              )
-                                                                        : undefined
-                                                                }
-                                                            />
-                                                )
-                                            }}
-                                        />
-                                    </ScrollArea>
+                                                                            n
+                                                                        )
+                                                            }
+                                                            itemChargeCost={itemChargeCost}
+                                                            itemChargeCurrent={
+                                                                itemChargeCurrent
+                                                            }
+                                                            itemChargeMax={itemChargeMax}
+                                                            onSpendItemCharge={
+                                                                action.grantingItemUid &&
+                                                                itemChargeCost != null
+                                                                    ? (n) =>
+                                                                        handleUpdateItemCharges(
+                                                                            action.grantingItemUid!,
+                                                                            n
+                                                                        )
+                                                                    : undefined
+                                                            }
+                                                        />
+                                                    )
+                                                }}
+                                            />
+                                        </ScrollArea>
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div className="lg:col-span-3 space-y-4">
-                                <AttributesPanel
-                                    attributes={derived.attributes}
-                                    highlighted={derived.statHighlights?.attributes}
-                                />
-                                <FocusReactionsPanel
-                                    rules={rulesData}
-                                    knownFocusFeats={character.focusFeatures}
-                                    onSelectFeat={handleSelectFeat}
-                                    knownReactions={character.reactions}
-                                    onSelectReaction={handleSelectReaction}
-                                    attributes={derived.attributes}
-                                    onUpdateReactionCharges={handleUpdateReactionCharges}
-                                    actionCostBudget={actionCostBudget}
-                                    onSpendActionCost={handleSpendActionCost}
-                                    catalogReactionOptions={catalogReactionOptions}
-                                    onAddCatalogReaction={handleAddCatalogReaction}
-                                    currentWeapon={currentWeapon}
-                                    offhandWeapon={offhandWeapon}
-                                    combatRuleContext={combatRuleContext}
-                                    adventurerLevel={adventurerLevel}
-                                    onAddFocus={handleAddFocus}
-                                    itemGrantedReactionIds={itemGrantedReactionIds}
-                                    handEquippedReactionIds={handEquippedReactionIds}
-                                    hydratedTraits={(character as { hydratedTraits?: import("@/lib/rules").Trait[] }).hydratedTraits ?? []}
-                                />
+                                {/*Focus Features and Reactions*/}
+                                <div className="lg:col-span-3 space-y-4">
+                                    <TraitsPanel
+                                        traits={derived.activeTraits}
+                                        attributes={derived.attributes}
+                                        activeWeapon={currentWeapon}
+                                        offhandWeapon={offhandWeapon}
+                                        inventory={character.inventory}
+                                        onUpdateTraitCharges={handleUpdateTraitCharges}
+                                        onUpdateItemCharges={handleUpdateItemCharges}
+                                    />
+                                    <OtherStats
+                                        xp={Math.max(0, Math.floor(Number(character.xp ?? 0) || 0))}
+                                        inspiration={character.inspiration}
+                                        victories={character.victories}
+                                        onUpdateXp={(next) =>
+                                            setCharacter((prev) => ({
+                                                ...prev,
+                                                xp: Math.max(0, Math.floor(Number(next)) || 0),
+                                            }))
+                                        }
+                                        onUpdateInspiration={(v) => setCharacter((prev) => ({...prev, inspiration: v}))}
+                                        onUpdateVictories={(v) => setCharacter((prev) => ({
+                                            ...prev,
+                                            victories: Math.max(0, Math.floor(v))
+                                        }))}
+                                    />
+                                </div>
                             </div>
                         </div>
                     </TabsContent>
@@ -1571,8 +1618,9 @@ export function CharacterSheetView() {
                         </div>
                     </TabsContent>
 
+                    {/* ... Classes and Creatures Content ... */}
                     <TabsContent value="abilities">
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             <div className="space-y-4 min-w-0">
                                 <ClassesPanel
                                     classes={character.classes}
@@ -1606,17 +1654,7 @@ export function CharacterSheetView() {
                                 />
                                 <LanguagesPanel languages={derived.languages}/>
                             </div>
-                            <div className="min-w-0">
-                                <TraitsPanel
-                                    traits={derived.activeTraits}
-                                    attributes={derived.attributes}
-                                    activeWeapon={currentWeapon}
-                                    offhandWeapon={offhandWeapon}
-                                    inventory={character.inventory}
-                                    onUpdateTraitCharges={handleUpdateTraitCharges}
-                                    onUpdateItemCharges={handleUpdateItemCharges}
-                                />
-                            </div>
+
                             <div className="space-y-4 min-w-0">
                                 <SkillsPanel
                                     skills={character.skills ?? []}
@@ -1628,6 +1666,7 @@ export function CharacterSheetView() {
                         </div>
                     </TabsContent>
 
+                    {/* ... Character Profile Content ... */}
                     <TabsContent value="character">
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             <div className="space-y-4 min-w-0">

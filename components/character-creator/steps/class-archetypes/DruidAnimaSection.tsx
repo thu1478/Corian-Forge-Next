@@ -91,6 +91,11 @@ export function DruidAnimaSection({
                                             ))}
                                     </SelectContent>
                                 </Select>
+                                {current && creatureTemplates[current]?.description && (
+                                    <p className="text-xs text-muted-foreground italic whitespace-pre-line pt-0.5">
+                                        {creatureTemplates[current].description}
+                                    </p>
+                                )}
                             </div>
                         )
                     })}

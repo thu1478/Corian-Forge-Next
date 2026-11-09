@@ -203,7 +203,7 @@ export function ResourceBars({
                              }: ResourceBarsProps) {
 
     return (
-        <div className="p-4 bg-card rounded-xl border border-border space-y-5">
+        <div className="p-4 bg-card rounded-xl border border-border space-y-1">
             <div className="flex items-center justify-between">
                 <h3 className="text-base font-semibold uppercase tracking-wider text-primary">Resources</h3>
                 {onOpenDamageCalculator && (
@@ -294,6 +294,25 @@ export function ResourceBars({
 }
 
 interface CombatStatsPanelProps {
+    baseDefense: number
+    defenseDelta: number
+    onDefenseDeltaChange: (delta: number) => void
+    baseStability: number
+    stabilityDelta: number
+    onStabilityDeltaChange: (delta: number) => void
+    baseSpeed: number
+    speedDelta: number
+    onSpeedDeltaChange: (delta: number) => void
+    resistances: string[]
+    vulnerabilities: Record<string,number>
+    conditionImmunities: string[]
+    specialSight: string[]
+    specialMovement: string[]
+    mountedContext?: { creatureName: string; defenseBonus: number; stabilityBonus: number } | null
+    highlightedStats?: Partial<Record<"defense" | "stability" | "speed", boolean>>
+}
+
+interface MiscCombatPanelProps {
     baseDefense: number
     defenseDelta: number
     onDefenseDeltaChange: (delta: number) => void
@@ -408,9 +427,6 @@ export function CombatStatsPanel({
     onSpeedDeltaChange,
     resistances,
     vulnerabilities,
-    conditionImmunities,
-    specialSight,
-    specialMovement = [],
     mountedContext = null,
     highlightedStats = {},
 }: CombatStatsPanelProps) {
@@ -511,7 +527,24 @@ export function CombatStatsPanel({
                     </div>
                 )}
             </div>
+        </div>
+    )
+}
 
+export function MiscCombatPanel({
+                                     resistances,
+                                     vulnerabilities,
+                                     conditionImmunities,
+                                     specialSight,
+                                     specialMovement = []
+                                 }: MiscCombatPanelProps) {
+    const conflictingTypes = useConflictingDamageTypes(resistances, vulnerabilities)
+
+    return (
+        <div className="p-4 bg-card rounded-xl border border-border">
+            <h3 className="text-base font-semibold uppercase tracking-wider text-primary mb-4">Misc Combat Info</h3>
+
+            {/* Condition Immunities and Special Traits */}
             <div className="mt-4 pt-4 border-t border-border space-y-3">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">More info</p>
                 <div className="space-y-2">

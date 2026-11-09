@@ -296,21 +296,29 @@ export function FocusReactionsPanel({
                                         "p-4 rounded-lg border transition-all bg-orange-100 dark:bg-orange-950/30 border-orange-300 dark:border-orange-700/50",
                                         slotUsed && "opacity-70"
                                     )}>
-                                    <div className="flex items-center justify-between gap-2 mb-2">
-                                        <span className="font-bold text-foreground text-base">
-                                            {currentFeatName}
-                                        </span>
-                                        <FocusAddButton
-                                            sourceId={slotSourceId}
-                                            amount={1}
-                                            ariaLabel={`Add 1 Focus (${currentFeatName})`}
-                                            used={slotUsed}
-                                            onAddFocus={handleFocusAdd}
-                                        />
-                                    </div>
-                                    <p className="text-base text-foreground/80 leading-relaxed whitespace-pre-line">
-                                        {currentFeatRule?.description || "No description available."}
-                                    </p>
+                                    <details className="group" open>
+                                        <summary className="flex items-center justify-between gap-2 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                <span className="font-bold text-foreground text-base">
+                    {currentFeatName}
+                </span>
+                                            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                                {/* Stop propagation so clicking the button doesn't toggle the accordion */}
+                                                <FocusAddButton
+                                                    sourceId={slotSourceId}
+                                                    amount={1}
+                                                    ariaLabel={`Add 1 Focus (${currentFeatName})`}
+                                                    used={slotUsed}
+                                                    onAddFocus={handleFocusAdd}
+                                                />
+                                                <span className="text-xs text-foreground/60 group-open:hidden">Show</span>
+                                                <span className="text-xs text-foreground/60 hidden group-open:inline">Hide</span>
+                                            </div>
+                                        </summary>
+
+                                        <p className="mt-3 text-base text-foreground/80 leading-relaxed whitespace-pre-line border-t border-orange-300/40 dark:border-orange-700/30 pt-2">
+                                            {currentFeatRule?.description || "No description available."}
+                                        </p>
+                                    </details>
                                 </div>
                             )}
                         </div>
@@ -364,12 +372,25 @@ export function FocusReactionsPanel({
 
                 {/* Default Slot */}
                 <div className="p-4 rounded-lg border bg-blue-500/5 border-blue-500/20 opacity-90 mb-4">
-                    <div className="flex items-center justify-between mb-2">
-                        <span className="font-bold text-foreground text-base">{globalReaction?.name}</span>
-                        <Lock className="w-3 h-3 text-blue-400/50"/>
-                    </div>
-                    <p className="text-sm font-medium text-amber-700 dark:text-amber-400 mb-1 whitespace-pre-line">Trigger: {globalReaction?.trigger}</p>
-                    <p className="text-sm text-muted-foreground italic whitespace-pre-line">{globalReaction?.description}</p>
+                    <details className="group" open>
+                        <summary className="flex items-center justify-between cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                            <span className="font-bold text-foreground text-base">{globalReaction?.name}</span>
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs text-muted-foreground group-open:hidden">Show</span>
+                                <span className="text-xs text-muted-foreground hidden group-open:inline">Hide</span>
+                                <Lock className="w-3 h-3 text-blue-400/50"/>
+                            </div>
+                        </summary>
+
+                        <div className="mt-2 space-y-1">
+                            <p className="text-sm font-medium text-amber-700 dark:text-amber-400 whitespace-pre-line">
+                                Trigger: {globalReaction?.trigger}
+                            </p>
+                            <p className="text-sm text-muted-foreground italic whitespace-pre-line">
+                                {globalReaction?.description}
+                            </p>
+                        </div>
+                    </details>
                 </div>
 
                 {/* Choices Slots */}
