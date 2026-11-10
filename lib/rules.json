@@ -742,8 +742,11 @@
         "prereqs": {
           "classes": {
             "1": [
-              "fury",
-              "marksman"
+              "marksman",
+              "scout"
+            ],
+            "3": [
+              "fury"
             ]
           }
         }
