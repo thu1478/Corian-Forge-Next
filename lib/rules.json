@@ -1301,23 +1301,6 @@
           }
         }
       },
-      "tightGrip": {
-        "name": "Tight Grip",
-        "minLevel": 5,
-        "description": "You may treat non-Heavy two-handed melee weapons as 1H and Heavy weapons no longer increase AP costs. These 2H weapons can be used for either 1H or 2H abilities interchangeably. If you are not wearing martial armor then you may treat Heavy weapons as 1H as well.",
-        "prereqs": {
-          "classes": {
-            "5": [
-              "fury",
-              "guardian"
-            ],
-            "7": [
-              "rider",
-              "weaponmaster"
-            ]
-          }
-        }
-      },
       "rampart": {
         "name": "Rampart",
         "minLevel": 5,
@@ -4782,21 +4765,55 @@
             }
           }
         },
-        "meteorTackle": {
+        "lionSmash": {
           "minLevel": 5,
           "actionCard": {
-            "name": "Meteor Tackle",
+            "name": "Lion Smash",
             "type": "action",
-            "description": "Inflict push 5 on yourself, ignoring stability, in any direction you want. If you slam into a creature after moving at least 1 tiles you do not take damage but instead inflict the remaining push onto the creature, moving along with them in the adjacent tile. If you are not wearing martial armor the push is increased to 7",
+            "description": "Jump up to 3 tiles vertically into the air and bring down your weapon onto a reachable target of your choice from any of those 3 tiles as you land. You do not take fall damage from falling these 3 tiles.",
             "apCost": 2,
             "focusCost": 7,
             "mpCost": 0,
-            "range": "Self",
+            "range": "Wpn",
             "tags": [
               "Melee",
-              "Brawling"
+              "Weapon"
             ],
-            "source": "fury"
+            "source": "fury",
+            "powerRoll": {
+              "rollStats": [
+                "might",
+                "dexterity"
+              ],
+              "tier1Wpn": true,
+              "tier2Wpn": true,
+              "tier3Wpn": true,
+              "tier1Dmg": 6,
+              "tier2Dmg": 9,
+              "tier3Dmg": 12,
+              "tier2Effect": {
+                "type": "Condition",
+                "effect": "prone",
+                "strength": "average",
+                "srcStats": [
+                  "might"
+                ],
+                "targetStats": [
+                  "dexterity"
+                ]
+              },
+              "tier3Effect": {
+                "type": "Condition",
+                "effect": "prone",
+                "strength": "strong",
+                "srcStats": [
+                  "might"
+                ],
+                "targetStats": [
+                  "dexterity"
+                ]
+              }
+            }
           }
         },
         "hatred": {
@@ -7544,7 +7561,7 @@
         "backpacker": {
           "name": "Backpacker",
           "minLevel": 1,
-          "description": "Once per combat you may use an Interact action to target an adjacent ally. If you do so you allow them to immediately spend 1 Respite."
+          "description": "Once per combat you may use an Interact action to target an adjacent ally. If you do so you allow them to immediately spend 1 Respite and gain the Veiled condition for 1 minute."
         },
         "forage": {
           "name": "Forage",
@@ -7912,7 +7929,7 @@
           "actionCard": {
             "name": "Kill Steal",
             "type": "action",
-            "description": "Stride up to your Speed and then attack your target. If they are killed then you may Shift up to your Speed. You may also Hide for free afterwards if the conditions are met.",
+            "description": "Stride up to your Speed and then attack your target. If they are killed then you may Shift up to your Speed and gain the Veiled condition for 1 minute.",
             "apCost": 2,
             "focusCost": 3,
             "mpCost": 0,
@@ -10154,10 +10171,10 @@
             }
           ]
         },
-        "dwarf_stonePsychometry": {
-          "name": "Stone Psychometry",
+        "dwarf_earthernPsychometry": {
+          "name": "Earthern Psychometry",
           "type": "innate",
-          "description": "You tell the history of a stone just by touching it and spending 2 MP. This can tell you information like how recently it was moved or touched and events that happened to it."
+          "description": "You tell the history of a stone or metal just by touching it and spending 2 MP. This can tell you information like how recently it was moved or touched and events that happened to it."
         },
         "dwarf_dwarvish": {
           "name": "Dwarvish",
@@ -21753,7 +21770,7 @@
       },
       "blindsight": {
         "name": "Blindsight",
-        "description": "You perceive your surroundings through echolocation and sound rather than sight. You can sense creatures and objects within twice your Willpower score in tiles even in total darkness or when you cannot use your eyes. Creatures that are silent and did not move or act the previous round are Concealed to you",
+        "description": "You perceive your surroundings through echolocation and sound rather than sight. You can sense creatures and objects within twice your Willpower score in tiles even in total darkness or when you cannot use your eyes.",
         "effects": [
           {
             "type": "GrantSight",
@@ -22052,6 +22069,7 @@
         },
         "defaultNaturalWeaponKey": "teeth",
         "traitRefs": [
+          "blindsight",
           "swimmer",
           "bloodthirsty",
           "climber"
@@ -23340,7 +23358,7 @@
       "environmentalEffects": {
         "blindsight": {
           "name": "Blindsight",
-          "description": "You perceive your surroundings through echolocation and sound rather than sight. You can sense creatures and objects within twice your Willpower score in tiles even in total darkness or when you cannot use your eyes. Creatures that are silent and did not move or act the previous round are Concealed to you"
+          "description": "You perceive your surroundings through echolocation and sound rather than sight. You can sense creatures and objects within twice your Willpower score in tiles even in total darkness or when you cannot use your eyes."
         },
         "darkness": {
           "name": "Darkness",
@@ -23361,6 +23379,12 @@
         "tremorsense": {
           "name": "Tremorsense",
           "description": "You detect vibrations through the ground. You sense creatures and objects in contact with the same ground within your Reason score in tiles, even if you cannot see them."
+        }
+      },
+      "positiveStatusEffects": {
+        "veiled": {
+          "name": "Veiled",
+          "description": "Take half damage (round up) from next instance of terrain or area damage. Removed afterwards. Does not stack"
         }
       },
       "negativeStatusEffects": {
