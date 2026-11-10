@@ -21845,6 +21845,18 @@
       "poorCoordination": {
         "name": "Poor Coordination",
         "description": "Any weapon used by you is treated as Heavy"
+      },
+      "orc_vengeance": {
+        "name": "Vengeance",
+        "description": "The first time per combat you become Bloodied you can make an Opportunity attack on a hostile creature in melee range"
+      },
+      "orc_frenzy": {
+        "name": "Vengeance",
+        "description": "If you are Bloodied you deal +2 damage with melee attacks and your Speed increases by 1."
+      },
+      "destructiveKi": {
+        "name": "Destructive Ki",
+        "description": "You no longer gain the Opportunity attack from Chain Strike. Your attacks with Brawling weapons automatically gain Penetration (3)."
       }
     },
     "creatures": {

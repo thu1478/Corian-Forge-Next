@@ -19,7 +19,10 @@ function hydrateFromRules(
     for (const className of Object.keys(rules.classes || {})) {
         const classData = rules.classes![className] as {
             actions?: Record<string, { actionCard?: Record<string, unknown> }>
+            reactions?: Array<Record<string, unknown>> | Record<string, Record<string, unknown>>
         }
+
+        // 1. Check class actions (wrapper.actionCard)
         const wrapper = classData?.actions?.[id]
         if (wrapper?.actionCard) {
             const ac = wrapper.actionCard
@@ -28,6 +31,27 @@ function hydrateFromRules(
                 id,
                 source: className,
                 tags: (ac.tags as string[]) ?? [],
+            }
+        }
+
+        // 2. Check class reactions (array of reaction objects with `id`)
+        if (Array.isArray(classData?.reactions)) {
+            const rx = classData.reactions.find((r) => r?.id === id)
+            if (rx) {
+                return {
+                    ...(rx as HydratedActionCard),
+                    id,
+                    source: className,
+                    tags: (rx.tags as string[]) ?? [],
+                }
+            }
+        } else if (classData?.reactions?.[id]) {
+            const rx = classData.reactions[id]
+            return {
+                ...(rx as HydratedActionCard),
+                id,
+                source: className,
+                tags: (rx.tags as string[]) ?? [],
             }
         }
     }

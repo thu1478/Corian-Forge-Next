@@ -225,8 +225,19 @@ export function validateCombatSandbox(
                         severity: "error",
                     })
                 } else if (rules) {
-                    const bestiaryTraits =
-                        (rules.bestiary as { traits?: Record<string, unknown> })?.traits ?? {}
+                    const bestiaryTraits = (rules.bestiary as { traits?: Record<string, unknown> })?.traits ?? {}
+                    const classes = (rules.classes as Record<string, { passives?: Record<string, unknown> }>) ?? {}
+
+// Gather all valid trait IDs across bestiary + all class passives
+                    const validTraitIds = new Set<string>(Object.keys(bestiaryTraits))
+                    for (const classDef of Object.values(classes)) {
+                        if (classDef?.passives) {
+                            for (const passiveId of Object.keys(classDef.passives)) {
+                                validTraitIds.add(passiveId)
+                            }
+                        }
+                    }
+
                     for (const ref of traitRefs) {
                         if (typeof ref !== "string" || !ref.trim()) {
                             issues.push({
@@ -235,11 +246,11 @@ export function validateCombatSandbox(
                                 message: "traitRefs entries must be non-empty strings",
                                 severity: "error",
                             })
-                        } else if (!(ref in bestiaryTraits)) {
+                        } else if (!validTraitIds.has(ref)) {
                             issues.push({
                                 path: `creatures.${id}.traitRefs`,
                                 code: "unknown-trait-ref",
-                                message: `Trait ref "${ref}" not found in rules.bestiary.traits`,
+                                message: `Trait ref "${ref}" not found in bestiary traits or class passives`,
                                 severity: "warning",
                             })
                         }
